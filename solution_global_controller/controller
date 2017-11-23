@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Usage:
+   controller [options] [-q | -v]
+
+Options:
+   --logfile name	   Name of the logfile
+   --config configFile Config file path
+
+Example:
+   ./
+
+Other options:
+   -h, --help		   show this help message and exit
+   -q, --quiet		   print less text
+   -v, --verbose	   print more text
+   --version		   show version and exit
+"""
+
+__author__ = "Domenico Garlisi, ...."
+__copyright__ = "Copyright (c) ..., "
+__version__ = "0.1.0"
+__email__ = "domenico.garlisi@cnit.it; ..."
+
+import threading
+import datetime
+import logging
+import sys
+import time
+import gevent
+import signal
+import os
+import yaml
+import zmq
+import json
+import zmq
+import _thread
+
+sys.path.append('../')
+from lib.kvsimple import KVMsg
+from lib.zhelpers import zpipe
+
+log = logging.getLogger('wishful_agent.main')
+
+def signal_handler(signal, frame):
+	global do_run
+	do_run = False
+
+signal.signal(signal.SIGINT, signal_handler)
+
+
+class Solution:
+	"""
+	Structure to store solutions in order to get compatibility matrix
+	"""
+	id = 0
+	name = None
+	commandList=None
+	eventList = None
+	solutionCompatibilityList = None
+
+	def __init__(self, id, name, commandList=None, eventList=None, solutionCompatibilityList=None):
+		self.id = id
+		self.name = name
+		self.commandList = commandList
+		self.eventList = eventList
+		self.solutionCompatibilityList = solutionCompatibilityList
+
+	def store(self, dikt):
+		"""Store me in a dict if I have anything to store"""
+		if self.id != 0 and self.name is not None:
+			dikt[self.id] = self
+
+
+def main(args):
+	#Init variables
+	kvmap = {}
+	solutionCompatibilityMatrix = {}
+	solutionNum = 0
+	sequence = 0
+
+	log.info('******* 	WISHFUL *************')
+	log.info('********  Starting solution global controller ***************')
+
+	# Prepare our context and publisher socket
+	ctx = zmq.Context()
+
+	# Init Publisher socket
+	publisher = ctx.socket(zmq.PUB)
+	publisher.bind("tcp://*:7000")
+	updates, peer = zpipe(ctx)
+
+	# Init Request socket
+	request = ctx.socket(zmq.ROUTER)
+	request.bind("tcp://*:7001")
+	poller = zmq.Poller()
+	poller.register(request, zmq.POLLIN)
+
+	#Start main while, receive request and update information to solution
+	while True:
+		try:
+			items = dict(poller.poll())
+		except (zmq.ZMQError, KeyboardInterrupt):
+			break # interrupt/context shutdown
+
+		# Execute state request request
+		if request in items:
+			msg = request.recv_multipart()
+			identity = msg[0]
+			print(msg[1])
+			try:
+				received_request = json.loads(msg[1].decode("utf-8"))
+			except ValueError:
+				print("Received message not in json format")
+				continue
+
+			if "type" in received_request:
+
+				#Process registration request
+				if received_request["type"] == "registerRequest":
+					print("***Received registration request*** : %s\n" % received_request)
+					# {"solution": "InterferenceDetection", "eventList": ["interferenceDetected"], "commandList": ["start", "stop"], "type": "registerRequest"}
+					if "solution" in received_request and "eventList" in received_request and "commandList" in received_request:
+						print("received registration request")
+						solutionNum += 1
+						solution = Solution(solutionNum, received_request["solution"], received_request["commandList"], received_request["eventList"])
+						solution.store(solutionCompatibilityMatrix)
+						responseMsg = {"type": "registerResponse", "result": "ok"}
+					else:
+						print("received malformed registration request")
+						responseMsg = {"type": "registerResponse", "result": "bad"}
+
+					# reply response to client
+					# print('msg %s' % str(responseMsg))
+					# TOBE
+
+				# Process monitoring Report
+				if received_request["type"] == "monitorReport":
+					print("*** Received monitoring report *** : %s\n" % received_request)
+					# Distribute as key-value message
+					sequence += 1
+					kvmsg = KVMsg(sequence)
+					kvmsg.key = b"key"
+					kvmsg.body = b"body"
+					kvmsg.send(publisher)
+					# kvmsg.send(updates)
+					print("sent update information with sequence %d\n" % sequence)
+
+				# Process command Report
+				if received_request["type"] == "commandReport":
+					print("*** Received command report *** : %s\n" % received_request)
+
+
+if __name__ == "__main__":
+	try:
+		from docopt import docopt
+	except:
+		print(""" Please install docopt using:
+			pip install docopt==0.6.1
+			For more refer to: https://github.com/docopt/docopt """)
+		raise
+
+	args = docopt(__doc__, version=__version__)
+	log_level = logging.INFO  # default
+	if args['--verbose']:
+		log_level = logging.DEBUG
+	elif args['--quiet']:
+		log_level = logging.ERROR
+
+	logfile = None
+	if args['--logfile']:
+		logfile = args['--logfile']
+
+	logging.basicConfig(filename=logfile, level=log_level,
+		format='%(asctime)s - %(name)s.%(funcName)s() - %(levelname)s - %(message)s')
+
+	#Get configuration file
+	if args['--config']:
+		config_file_path = args['--config']
+		config = None
+		with open(config_file_path, 'r') as f:
+			config = yaml.load(f)
+
+	try:
+		main(args)
+		print('end main')
+	except KeyboardInterrupt:
+		log.debug("Controller exits")
+	finally:
+		log.debug("Exit")
