@@ -9,7 +9,7 @@ Only 1 Administrative Domain present with multiple Wi-Fi deployments to enable t
 Phase 3: ADD 2nd Second AD.
     First AD IMEC ZB, 2nd AD TCD virtualized OFDM based networks (frequency separation ? cooperation on the 2.4 GHz band,  blacklisting) IMEC.a, TCD.b
 
-link
+![alt text](https://github.com/wishful-project/final_showcase/blob/master/final-showcase-architecture.jpg)
 
 ### Showcase Architecture
 
@@ -30,7 +30,7 @@ receiving a monitor/event report, the solution global controller checks the solu
 and send update/command to solutions. Example: when it receives the report of detecting interference (LTE),
 sends activation command to solution TDMA cross interference, if not conflict are detected.
 
-link
+![alt text](https://github.com/wishful-project/final_showcase/blob/master/solution-global-controller-main-logic.jpg)
 
 ### how-to showcase activation on w-ilab.t
 
