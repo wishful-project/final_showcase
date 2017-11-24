@@ -126,7 +126,17 @@ def main(args):
 						print("received registration request")
 						solutionNum += 1
 						solution = Solution(solutionNum, received_request["solution"], received_request["commandList"], received_request["eventList"])
+
+						#draft
 						solution.store(solutionCompatibilityMatrix)
+
+						#TOBE
+						"""
+						we need more attention when store the reference for a solution in the solutionCompatibilityMatrix, 
+						we need check the real conflict between the solutions in order to use it in the main logic of the 
+						solution global controller
+						"""
+
 						responseMsg = {"type": "registerResponse", "result": "ok"}
 					else:
 						print("received malformed registration request")
@@ -139,6 +149,15 @@ def main(args):
 				# Process monitoring Report
 				if received_request["type"] == "monitorReport":
 					print("*** Received monitoring report *** : %s\n" % received_request)
+
+					#TOBE
+					"""
+					This is the main logic of the solution global controller, after receiving a monitor report, the 
+					solution global controller, check the solution compatibility matrix, in order to understand 
+					eventually conflict, and send update/command to solution.
+					Example: when it receive the report of detecting interference (LTE), send command to solution TDMA cross interference, if not conflict are detected  
+					"""
+					
 					# Distribute as key-value message
 					sequence += 1
 					kvmsg = KVMsg(sequence)
