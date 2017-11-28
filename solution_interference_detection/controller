@@ -34,6 +34,7 @@ import zmq
 import json
 import zmq
 import _thread
+import struct # for packing integers
 
 sys.path.append('../')
 sys.path.append('../../')
@@ -134,7 +135,7 @@ def csResultCollector1(group, node, data):
 	log.info('1 - receives data msg at %s - %s' % (str(node.ip), str(messagedata) ))
 
 
-def register_solution_to_solution_global_controller(request, subscriber):
+def register_solution_to_solution_global_controller(request):
 	"""
 	****	SETUP SOLUTION GLOBAL CONTROLLER CONNECTION	****
 	This function is used to setup the connection with the experiment GUI,
@@ -145,40 +146,55 @@ def register_solution_to_solution_global_controller(request, subscriber):
 	# De - activation
 	# Event 	List 	of 	monitoring 	parameters
 	# List 	of 	control knobs / parameters
+
 	solutionName = 'InterferenceDetection'
 	commandList = ["start", "stop"]
 	eventList = ["interferenceDetected"]
-	msg = {'type': 'registerRequest', 'solution': solutionName, 'commandList': commandList, 'eventList' : eventList}
-	print('msg %s' % str(msg))
-	request.send_json(msg)
+	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList" : eventList}
+	print('msg --> %s' % str(msg))
+
+	sequence = 1
+	kvmsg = KVMsg(sequence)
+	kvmsg.key = b"generic"
+	kvmsg.body = json.dumps(msg).encode('utf-8')
+	kvmsg.send(request)
+
 	#process the registerRespons
 	#TOBE
-	# while True:
-	# 	try:
-	# 		parsed_json = request.recv_json()
-	# 		print('parsed_json : %s' % str(parsed_json))
-	# 	except:
-	# 		return False
-    #
-	# 	if 'type' in parsed_json:
-	# 		type = parsed_json['type']
-	# 		if type == 'registerRespons':
-	# 			print("Received registration respons")
-	# 			return True
-	return True
+	try:
+		kvmsg_reply = KVMsg.recv(request)
+	except:
+		return False
+
+	seq = kvmsg_reply.sequence
+	key = kvmsg_reply.key
+	body = kvmsg_reply.body
+	print(body)
+	parsed_json = json.loads(body.decode("utf-8"))
+	if "type" in parsed_json:
+		type = parsed_json["type"]
+		if type == "registerResponse":
+			print("Received registration respons")
+			return True
+	return False
 
 
-def manager_subscriber(arg,subscriber):
+def listener_subscriber(arg,subscriber):
 	sequence = 0
 	kvmap = {}
 	while True:
 		try:
 			kvmsg = KVMsg.recv(subscriber)
+		except KeyboardInterrupt:
+			return
 		except:
 			break  # Interrupted
 		if kvmsg.sequence > sequence:
 			sequence = kvmsg.sequence
+			print("*********")
 			print("received update information with sequence %d" % sequence)
+			print(kvmsg.body)
+			print("*********")
 			kvmsg.store(kvmap)
 
 
@@ -326,11 +342,11 @@ def set_hosts(host_file):
 	return hosts,driver,eth_ip,freq,tx_power,wlan_ip,mac_address,label,role,iface
 
 
-def signal_handler(signal, frame):
-	global do_run
-	do_run = False
-
-signal.signal(signal.SIGINT, signal_handler)
+# def signal_handler(signal, frame):
+# 	global do_run
+# 	do_run = False
+#
+# signal.signal(signal.SIGINT, signal_handler)
 
 
 def main(args):
@@ -363,7 +379,7 @@ def main(args):
 	subscriber.connect("tcp://" + solution_global_controller + ":7000")
 
 	#Register InterferenceDetection solution to global solution controller
-	request_result = register_solution_to_solution_global_controller(request, subscriber)
+	request_result = register_solution_to_solution_global_controller(request)
 	if request_result:
 		print("solution is correctly registered")
 	else:
@@ -371,24 +387,31 @@ def main(args):
 		return False
 
 	# Start service for COMMAND/UPDATE from global solution controller
-	manager_subscriber_thread = threading.Thread(target=manager_subscriber, args=(0,subscriber))
-	manager_subscriber_thread.daemon = True
-	manager_subscriber_thread.start()
+	listener_subscriber_thread = threading.Thread(target=listener_subscriber, args=(0,subscriber))
+	listener_subscriber_thread.daemon = True
+	listener_subscriber_thread.start()
 
 	sequence = 0
 	EXPERIMENT_DURATION = 15
 	dt = 0
 	monitorThrValue = 0
-	while True:
-		monitorThrValue += 5
-		msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
-		print('msg %s' % str(msg))
-		request.send_json(msg)
+	try:
+		while True:
+			monitorThrValue += 5
+			msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
+			print('msg %s' % str(msg))
+			sequence = 1
+			kvmsg = KVMsg(sequence)
+			kvmsg.key = b"generic"
+			kvmsg.body = json.dumps(msg).encode('utf-8')
+			kvmsg.send(request)
+			gevent.sleep(5)
+			dt += 1
+			if dt > EXPERIMENT_DURATION:
+				break
+	except KeyboardInterrupt:
+		return
 
-		gevent.sleep(5)
-		dt += 1
-		if dt > EXPERIMENT_DURATION:
-			break
 
 	#remove this when the solution implementation is done
 	return

@@ -37,19 +37,13 @@ import zmq
 import json
 import zmq
 import _thread
+import struct # for packing integers
 
 sys.path.append('../')
 from lib.kvsimple import KVMsg
 from lib.zhelpers import zpipe
 
 log = logging.getLogger('wishful_agent.main')
-
-def signal_handler(signal, frame):
-	global do_run
-	do_run = False
-
-signal.signal(signal.SIGINT, signal_handler)
-
 
 class Solution:
 	"""
@@ -79,7 +73,7 @@ def main(args):
 	kvmap = {}
 	solutionCompatibilityMatrix = {}
 	solutionNum = 0
-	sequence = 0
+	sequence_publisher = 0
 
 	log.info('******* 	WISHFUL *************')
 	log.info('********  Starting solution global controller ***************')
@@ -109,9 +103,8 @@ def main(args):
 		if request in items:
 			msg = request.recv_multipart()
 			identity = msg[0]
-			print(msg[1])
 			try:
-				received_request = json.loads(msg[1].decode("utf-8"))
+				received_request = json.loads(msg[3].decode("utf-8"))
 			except ValueError:
 				print("Received message not in json format")
 				continue
@@ -123,11 +116,8 @@ def main(args):
 					print("***Received registration request*** : %s\n" % received_request)
 					# {"solution": "InterferenceDetection", "eventList": ["interferenceDetected"], "commandList": ["start", "stop"], "type": "registerRequest"}
 					if "solution" in received_request and "eventList" in received_request and "commandList" in received_request:
-						print("received registration request")
 						solutionNum += 1
 						solution = Solution(solutionNum, received_request["solution"], received_request["commandList"], received_request["eventList"])
-
-						#draft
 						solution.store(solutionCompatibilityMatrix)
 
 						#TOBE
@@ -143,33 +133,51 @@ def main(args):
 						responseMsg = {"type": "registerResponse", "result": "bad"}
 
 					# reply response to client
+					request.send(identity, zmq.SNDMORE)
 					# print('msg %s' % str(responseMsg))
-					# TOBE
+					# Distribute as key-value message
+					sequence = struct.unpack('!l',msg[2])[0] + 1
+					kvmsg = KVMsg(sequence)
+					kvmsg.key = b"generic"
+					kvmsg.body = json.dumps(responseMsg).encode('utf-8')
+					kvmsg.send(request)
 
 				# Process monitoring Report
 				if received_request["type"] == "monitorReport":
-					print("*** Received monitoring report *** : %s\n" % received_request)
+					print("*** Received monitoring report *** : %s" % received_request)
+					if len(solutionCompatibilityMatrix)>0:
+						#TOBE
+						"""
+						This is the main logic of the solution global controller, after receiving a monitor report, the 
+						solution global controller, check the solution compatibility matrix, in order to understand 
+						eventually conflict, and send update/command to solution.
+						Example: when it receive the report of detecting interference (LTE), send command to solution TDMA cross interference, if not conflict are detected  
+						"""
 
-					#TOBE
-					"""
-					This is the main logic of the solution global controller, after receiving a monitor report, the 
-					solution global controller, check the solution compatibility matrix, in order to understand 
-					eventually conflict, and send update/command to solution.
-					Example: when it receive the report of detecting interference (LTE), send command to solution TDMA cross interference, if not conflict are detected  
-					"""
-					
-					# Distribute as key-value message
-					sequence += 1
-					kvmsg = KVMsg(sequence)
-					kvmsg.key = b"key"
-					kvmsg.body = b"body"
-					kvmsg.send(publisher)
-					# kvmsg.send(updates)
-					print("sent update information with sequence %d\n" % sequence)
+						# Distribute as key-value message
+						sequence_publisher += 1
+						kvmsg = KVMsg(sequence_publisher)
+						kvmsg.key = b"generic"
+						solutionCompleteList = []
+						for key in solutionCompatibilityMatrix:
+							solutionCompleteList.append(solutionCompatibilityMatrix[key].name)
+						commandList = "activeTDMA"
+						msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompleteList, "commandList": commandList}
+						print('update message %s' % str(msg))
+						kvmsg.body = json.dumps(msg).encode('utf-8')
+						kvmsg.send(publisher)
+						print("sent update information with sequence %d" % sequence_publisher)
+					else:
+						print("Received monitor report but no solution is registered")
+
 
 				# Process command Report
 				if received_request["type"] == "commandReport":
 					print("*** Received command report *** : %s\n" % received_request)
+					if len(solutionCompatibilityMatrix) > 0:
+						pass
+					else:
+						print("Received command report but no solution is registered")
 
 
 if __name__ == "__main__":
@@ -201,7 +209,6 @@ if __name__ == "__main__":
 		config = None
 		with open(config_file_path, 'r') as f:
 			config = yaml.load(f)
-
 	try:
 		main(args)
 		print('end main')
