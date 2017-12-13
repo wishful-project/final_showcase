@@ -8,7 +8,7 @@ __email__ = "domenico.garlisi@cnit.it; pierluigi.gallo@unipa.it"
 
 
 # Definition of Local Control Program
-def read_busy_time(controller):
+def remote_control_program(controller):
     import sys
     sys.path.append('../../')
     sys.path.append("../../agent_modules/wifi_ath")

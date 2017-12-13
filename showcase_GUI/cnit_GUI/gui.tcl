@@ -189,6 +189,7 @@ proc vTcl:project:info {} {
     set site_5_0 $site_5_0
     set site_6_0 $site_5_0.lab41
     set site_6_0 $site_5_0.lab37
+    set site_6_0 $site_5_0.lab38
     set site_5_1 .top34.tFr39.tNo40.pg0 
     set site_5_0 $site_5_1
     set site_5_2 .top34.tFr39.tNo40.pg1 
@@ -231,7 +232,7 @@ proc vTclWindow.top34 {base} {
         -menu "$top.m37" -background {#ffffff} -highlightbackground wheat \
         -highlightcolor black 
     wm focusmodel $top passive
-    wm geometry $top 1448x752+230+129
+    wm geometry $top 1448x944+230+40
     update
     # set in toplevel.wgt.
     global vTcl
@@ -276,7 +277,7 @@ proc vTclWindow.top34 {base} {
         -tearoff 0 
     ttk::style configure TFrame -background #d9d9d9
     ttk::frame $top.tFr39 \
-        -borderwidth 2 -relief groove -width 1435 -height 660 
+        -borderwidth 2 -relief groove -width 1435 -height 830 
     vTcl:DefineAlias "$top.tFr39" "TFrame1" vTcl:WidgetProc "Toplevel1" 1
     set site_3_0 $top.tFr39
     ttk::style configure TNotebook -background #d9d9d9
@@ -310,7 +311,7 @@ proc vTclWindow.top34 {base} {
         -relheight 0 -anchor nw -bordermode ignore 
     labelframe $site_5_0.lab42 \
         -foreground black -text {Channel Time} -background {#d9d9d9} \
-        -height 275 -highlightbackground {#d9d9d9} -highlightcolor black \
+        -height 250 -highlightbackground {#d9d9d9} -highlightcolor black \
         -width 1360 
     vTcl:DefineAlias "$site_5_0.lab42" "LabelframeMonitor" vTcl:WidgetProc "Toplevel1" 1
     labelframe $site_5_0.cpd38 \
@@ -380,17 +381,34 @@ proc vTclWindow.top34 {base} {
     place $site_6_0.cpd49 \
         -in $site_6_0 -x 150 -y 92 -width 56 -height 25 -anchor nw \
         -bordermode ignore 
+    labelframe $site_5_0.lab38 \
+        -foreground black -text {Solution Global Controller LOG} \
+        -background {#d9d9d9} -height 175 -width 1360 
+    vTcl:DefineAlias "$site_5_0.lab38" "LabelframeLog" vTcl:WidgetProc "Toplevel1" 1
+    set site_6_0 $site_5_0.lab38
+    listbox $site_6_0.lis40 \
+        -background white -disabledforeground {#a3a3a3} -font font10 \
+        -foreground {#000000} -height 142 -width 1324 
+    .top34.tFr39.tNo40.t0.lab38.lis40 configure -font font10
+    .top34.tFr39.tNo40.t0.lab38.lis40 insert end text
+    vTcl:DefineAlias "$site_6_0.lis40" "ListboxLog" vTcl:WidgetProc "Toplevel1" 1
+    place $site_6_0.lis40 \
+        -in $site_6_0 -x 10 -y 20 -width 1324 -relwidth 0 -height 142 \
+        -relheight 0 -anchor nw -bordermode ignore 
     place $site_5_0.lab41 \
         -in $site_5_0 -x 30 -y 10 -width 500 -relwidth 0 -height 325 \
         -relheight 0 -anchor nw -bordermode ignore 
     place $site_5_0.lab42 \
-        -in $site_5_0 -x 30 -y 320 -rely 0.052 -width 1360 -relwidth 0 \
+        -in $site_5_0 -x 30 -y 480 -rely 0.052 -width 1360 -relwidth 0 \
         -height 250 -relheight 0 -anchor nw -bordermode ignore 
     place $site_5_0.cpd38 \
         -in $site_5_0 -x 770 -y 10 -width 620 -relwidth 0 -height 325 \
         -relheight 0 -anchor nw -bordermode ignore 
     place $site_5_0.lab37 \
         -in $site_5_0 -x 540 -y 10 -width 220 -relwidth 0 -height 325 \
+        -relheight 0 -anchor nw -bordermode ignore 
+    place $site_5_0.lab38 \
+        -in $site_5_0 -x 30 -y 340 -width 1360 -relwidth 0 -height 175 \
         -relheight 0 -anchor nw -bordermode ignore 
     frame $site_3_0.tNo40.pg0 \
         -background {#d9d9d9} -highlightbackground {#d9d9d9} \
@@ -480,7 +498,7 @@ proc vTclWindow.top34 {base} {
         -in $site_5_3 -x 20 -y 10 -width 920 -relwidth 0 -height 315 \
         -relheight 0 -anchor nw -bordermode ignore 
     place $site_3_0.tNo40 \
-        -in $site_3_0 -x 20 -y 10 -width 1405 -relwidth 0 -height 640 \
+        -in $site_3_0 -x 20 -y 10 -width 1405 -relwidth 0 -height 800 \
         -relheight 0 -anchor nw -bordermode ignore 
     ttk::style configure TSizegrip -background #d9d9d9
     vTcl::widgets::ttk::sizegrip::CreateCmd $top.tSi46 \
@@ -513,7 +531,7 @@ proc vTclWindow.top34 {base} {
     # SETTING GEOMETRY
     ###################
     place $top.tFr39 \
-        -in $top -x 7 -y 103 -width 1435 -relwidth 0 -height 660 -relheight 0 \
+        -in $top -x 7 -y 103 -width 1435 -relwidth 0 -height 830 -relheight 0 \
         -anchor nw -bordermode ignore 
     place $top.tSi46 \
         -in $top -x 1160 -relx 1 -y 860 -rely 1 -anchor se -bordermode inside 

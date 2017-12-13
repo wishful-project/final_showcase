@@ -20,10 +20,10 @@ if [ 1 -eq 1 ]; then
         rsync -avz  ../../../agent_modules/wifi_wmp/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/wifi_wmp/
         rsync -avz  ../../../agent_modules/wifi/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/wifi/
         rsync -avz  ../../../agent_modules/net_linux/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/net_linux/
-        ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/'
-        ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/wmp'
-        ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/wmp/WiSHFUL_Second_Example'
-        rsync -avz  ../../../examples/wmp/WiSHFUL_Second_Example/  -e ssh $user@$sta:~/wishful-github-manifest/examples/wmp/WiSHFUL_Second_Example/
+        #ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/'
+        #ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/wmp'
+        #ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/wmp/WiSHFUL_Second_Example'
+        #rsync -avz  ../../../examples/wmp/WiSHFUL_Second_Example/  -e ssh $user@$sta:~/wishful-github-manifest/examples/wmp/WiSHFUL_Second_Example/
     done
 
 fi

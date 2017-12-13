@@ -53,6 +53,7 @@ import wishful_controller
 import wishful_upis as upis
 from helper.MeasurementManager import MeasurementCollector
 from lib.kvsimple import KVMsg
+from local_control_program import remote_control_program
 
 __author__ = "Domenico Garlisi, ...."
 __copyright__ = "Copyright (c) ..., "
@@ -147,16 +148,19 @@ def register_solution_to_solution_global_controller(request):
 	# Event 	List 	of 	monitoring 	parameters
 	# List 	of 	control knobs / parameters
 
+	#create the json format message
 	solutionName = 'InterferenceDetection'
 	commandList = ["start", "stop"]
 	eventList = ["interferenceDetected"]
 	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList" : eventList}
 	print('msg --> %s' % str(msg))
 
+	#prepare the message
 	sequence = 1
 	kvmsg = KVMsg(sequence)
 	kvmsg.key = b"generic"
 	kvmsg.body = json.dumps(msg).encode('utf-8')
+	#send the message
 	kvmsg.send(request)
 
 	#process the registerRespons
@@ -196,6 +200,9 @@ def listener_subscriber(arg,subscriber):
 			print(kvmsg.body)
 			print("*********")
 			kvmsg.store(kvmap)
+
+# socket iperf pointer
+iperf_socket = None
 
 
 def start_command_connection():
@@ -240,10 +247,16 @@ def start_visualizer_connection():
 
 def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label):
 	"""
-					****	SETUP Collect results funciton	****
+	****	SETUP Collect results funciton	****
 	This functions is used to collect information from remote local control program,
 	the statistics are sent to the experiment GUI, and stored in the node.measurements list
 	"""
+	bad_plcp_old = 0
+	good_plcp_old = 0
+	bad_fcs_old = 0
+	good_fcs_old = 0
+	busy_time_old = 0
+
 	receive_thread = threading.currentThread()
 	while getattr(receive_thread, "do_run", True):
 		msg = lcpDescriptor_node.recv(timeout=0.1)
@@ -254,8 +267,52 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 					# print('message = %s - mac = %s' % (msg['measure'], msg['mac_address']))
 					msg['label'] = label[ii]
 					msg['type'] = u'statistics'
+
+					print(len(msg['measure'][0]))
+
+					if label[ii] == 'A' and len(msg['measure'][0]) == 19:  # len(errorMeasure)==6: #check error only for labl A
+						errorMeasure = msg['measure'][0]
+						print("%s %s" % (str(label), errorMeasure))
+
+						print("execute ANN")
+
+						# fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
+						# reg = {'104' '106' '108' '10A' '10C' '110' '112' '11E' '100'}; % '102'};
+						# leg = {'Too Long' 'Too Short' 'Invalid MAC Header' 'Bad FCS' 'Bad PLCP'...
+						#		 % 'Preamble OK, bad Header' 'Good PLCP' 'Good FCS, matching RA' 'Good FCS, not matching RA' 'Busy Time'};
+
+						bad_plcp = errorMeasure[7] - bad_plcp_old
+						bad_plcp_old = errorMeasure[7]
+						good_plcp = errorMeasure[9] - good_plcp_old
+						good_plcp_old = errorMeasure[7]
+						bad_fcs = errorMeasure[6] - bad_fcs_old
+						bad_fcs_old = errorMeasure[6]
+						good_fcs = errorMeasure[11] - good_fcs_old
+						good_fcs_old = errorMeasure[11]
+						busy_time = errorMeasure[1] - busy_time_old
+						busy_time_old = errorMeasure[1]
+
+						print("take decision")
+
+						if busy_time > 500:
+							if bad_plcp > good_plcp and bad_fcs > good_fcs:
+								# LTE detection
+								print("detected LTE")
+								#send message to solution global controller
+							elif bad_plcp < good_plcp and bad_fcs < good_fcs:
+								# WiFi detection
+								print("detected WiFi")
+								#send message to solution global controller
+
+							else:
+								# no interference detected
+								print("no interference detected")
+
+
+
 					# print(msg)
 					socket_visualizer.send_json(msg)
+
 
 			# add measurement on nodes element
 			for node in wifinodes:
@@ -391,30 +448,26 @@ def main(args):
 	listener_subscriber_thread.daemon = True
 	listener_subscriber_thread.start()
 
-	sequence = 0
-	EXPERIMENT_DURATION = 15
-	dt = 0
-	monitorThrValue = 0
-	try:
-		while True:
-			monitorThrValue += 5
-			msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
-			print('msg %s' % str(msg))
-			sequence = 1
-			kvmsg = KVMsg(sequence)
-			kvmsg.key = b"generic"
-			kvmsg.body = json.dumps(msg).encode('utf-8')
-			kvmsg.send(request)
-			gevent.sleep(5)
-			dt += 1
-			if dt > EXPERIMENT_DURATION:
-				break
-	except KeyboardInterrupt:
-		return
-
-
-	#remove this when the solution implementation is done
-	return
+	# sequence = 0
+	# EXPERIMENT_DURATION = 15
+	# dt = 0
+	# monitorThrValue = 0
+	# try:
+	# 	while True:
+	# 		monitorThrValue += 5
+	# 		msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
+	# 		print('msg %s' % str(msg))
+	# 		sequence = 1
+	# 		kvmsg = KVMsg(sequence)
+	# 		kvmsg.key = b"generic"
+	# 		kvmsg.body = json.dumps(msg).encode('utf-8')
+	# 		kvmsg.send(request)
+	# 		gevent.sleep(5)
+	# 		dt += 1
+	# 		if dt > EXPERIMENT_DURATION:
+	# 			break
+	# except KeyboardInterrupt:
+	# 	return
 
 
 	"""
@@ -503,6 +556,8 @@ def main(args):
 							if role[pos] == "AP":
 								print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
 								setAP(controller, nodes[jj], iface[pos], wlan_ip[pos], "wishful-interference")
+							elif role[pos] == "MON":
+								pass
 							elif role[pos] == "STA":
 								pass
 							else:
@@ -547,6 +602,7 @@ def main(args):
 				print("Error in node setup procedure")
 				do_run = False
 
+
 			"""
 			****** START LOCAL CONTROL PROGRAM ******
 			"""
@@ -562,7 +618,7 @@ def main(args):
 								# RUN REACT
 								print("start local control program on nodes")
 								lcpDescriptor_nodes.append(
-									controller.node(nodes[jj]).hc.start_local_control_program(program=read_busy_time))
+									controller.node(nodes[jj]).hc.start_local_control_program(program=remote_control_program))
 								msg = {"iface":  iface[pos], "i_time": time_update}
 								lcpDescriptor_nodes[ii].send(msg)
 								print("start thread for collect measurements from nodes")
@@ -614,77 +670,76 @@ def main(args):
 				"""
 				****** MAIN LOOP WITH interface commands management (start/stop iperf flows) ******
 				"""
-				# for jj in range(0, len(nodes)):
-				# 	pos = eth_ip.index(nodes[jj].ip)
-				# 	if label[pos] == 'B' or label[pos] == 'C':
-				# 		controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
-                #
-				# socket_command = start_command_connection()
-				# poller = zmq.Poller()
-				# poller.register(socket_command, flags=zmq.POLLIN)
-				# EXPERIMENT_DURATION = 30000000
+
+				# sequence = 0
+				# EXPERIMENT_DURATION = 15
 				# dt = 0
-				# while do_run:
-				# 	socket_list = poller.poll(1000)
-				# 	if socket_list:
-				# 		for socket_info in socket_list:
-				# 			if socket_info[1] == zmq.POLLIN:
-				# 				parsed_json = socket_command.recv_json()
-				# 				print('parsed_json : %s' % str(parsed_json))
-				# 				type = parsed_json['type']
-                #
-				# 				#parsed_json: {'type': 'find_topology', 'command': 'carrier_sense'}
-				# 				if type == 'find_topology':
-				# 					command = parsed_json['command']
-				# 					if command == 'carrier_sense':
-				# 						controller.nodes(nodes).net.stop_packetflow()
-				# 						# CS test
-				# 						log.info("Testing carrier sensing ...")
-				# 						CSmat = controller.blocking(True).wireless_topology.estimate_nodes_in_carrier_sensing_range(nodes, wlan_inject_iface, TAU=0.9)
-				# 						for jj in range(0, len(nodes)):
-				# 							log.info(" from node %s --> tp node %s [%s] " % (str(CSmat[jj][0].ip), str(CSmat[jj][1].ip), str(CSmat[jj][2])))
-				# 							CSmat[jj][0] = label[eth_ip.index(CSmat[jj][0].ip)]
-				# 							CSmat[jj][1] = label[eth_ip.index(CSmat[jj][1].ip)]
-                #
-				# 						msg = {"type": "find_topology", "measure": "carrier_sense_result", "value": CSmat}
-				# 						log.info("Recv: %s" % str(msg))
-				# 						socket_visualizer.send_json(msg)
-                #
-				# 				if type == 'microwave':
-				# 					for jj in range(0, len(nodes)):
-				# 						pos = eth_ip.index(nodes[jj].ip)
-				# 						if label[pos] == 'A':
-				# 							lcpDescriptor_nodes[jj].send(parsed_json)
-                #
-				# 				if type == 'traffic':
-				# 					node = parsed_json['src']
-				# 					node_src_index = all_nodes.index(node)
-                #
-				# 					command = parsed_json['command']
-				# 					# if off traffic is selected for a specific node
-				# 					if command == 'off_traffic':
-				# 						nodes_source_rate[node_src_index] = 0
-				# 						# call UPI to stop traffic on node
-				# 						controller.nodes(nodes[node_src_index]).net.stop_packetflow()
-				# 						break
-                #
-				# 					# if start traffic is selected for a specific node
-				# 					if command == 'set_traffic':
-				# 						node = parsed_json['dst']
-				# 						node_dst_index = all_nodes.index(node)
-				# 						value = parsed_json['value']
-				# 						nodes_source_rate[node_src_index] = value
-				# 						source_rate = float(nodes_source_rate[node_src_index])
-				# 						# call UPI to start traffic
-				# 						print(wlan_ip[node_dst_index])
-				# 						controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
-                #
-				# 	if not (dt % 10):
-				# 		log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
-				# 	dt += 1
-				# 	gevent.sleep(1)
-				# 	if dt > EXPERIMENT_DURATION:
-				# 		break
+				# monitorThrValue = 0
+				# try:
+				# 	while True:
+				# 		monitorThrValue += 5
+				# 		msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
+				# 		print('msg %s' % str(msg))
+				# 		sequence = 1
+				# 		kvmsg = KVMsg(sequence)
+				# 		kvmsg.key = b"generic"
+				# 		kvmsg.body = json.dumps(msg).encode('utf-8')
+				# 		kvmsg.send(request)
+				# 		gevent.sleep(5)
+				# 		dt += 1
+				# 		if dt > EXPERIMENT_DURATION:
+				# 			break
+				# except KeyboardInterrupt:
+				# 	return
+
+				for jj in range(0, len(nodes)):
+					pos = eth_ip.index(nodes[jj].ip)
+					if label[pos] == 'B' or label[pos] == 'C':
+						controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
+
+				socket_command = start_command_connection()
+				poller = zmq.Poller()
+				poller.register(socket_command, flags=zmq.POLLIN)
+				EXPERIMENT_DURATION = 30000000
+				dt = 0
+				while do_run:
+					socket_list = poller.poll(1000)
+					if socket_list:
+						for socket_info in socket_list:
+							if socket_info[1] == zmq.POLLIN:
+								parsed_json = socket_command.recv_json()
+								print('parsed_json : %s' % str(parsed_json))
+								type = parsed_json['type']
+
+								if type == 'traffic':
+									node = parsed_json['src']
+									node_src_index = all_nodes.index(node)
+
+									command = parsed_json['command']
+									# if off traffic is selected for a specific node
+									if command == 'off_traffic':
+										nodes_source_rate[node_src_index] = 0
+										# call UPI to stop traffic on node
+										controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+										break
+
+									# if start traffic is selected for a specific node
+									if command == 'set_traffic':
+										node = parsed_json['dst']
+										node_dst_index = all_nodes.index(node)
+										value = parsed_json['value']
+										nodes_source_rate[node_src_index] = value
+										source_rate = float(nodes_source_rate[node_src_index])
+										# call UPI to start traffic
+										print(wlan_ip[node_dst_index])
+										controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
+
+					if not (dt % 10):
+						log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
+					dt += 1
+					gevent.sleep(1)
+					if dt > EXPERIMENT_DURATION:
+						break
 
 			do_run = False
 			for jj in range(0, len(nodes)):

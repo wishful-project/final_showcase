@@ -192,6 +192,7 @@ def receive_data_plot(x):
     global bar_badfcs, bar_badplcp, bar_goodplcp, bar_goodfcs
     global bar_badfcs_norm, bar_badplcp_norm, bar_goodplcp_norm, bar_goodfcs_norm
     global all_nodes
+    global w
 
     reading_time = 1000
     reading_time_sec = 1
@@ -217,6 +218,10 @@ def receive_data_plot(x):
     poller = zmq.Poller()
     poller.register(socket_plot_remote_network, zmq.POLLIN)
 
+    logList = []
+    listStart = True
+    indexList = 0
+
     while True:    # Run until cancelled
         socks = dict(poller.poll(1000))
         if socket_plot_remote_network in socks:
@@ -233,51 +238,66 @@ def receive_data_plot(x):
             #     self.update_topology_carrier_sense_value = parsed_json['value']
 
             if parsed_json['type']=='statistics' and parsed_json['measure']:
+
+                if listStart:
+                    logList.append(str(parsed_json))
+                    w.ListboxLog.insert(END, logList[0])
+                    indexList += 1
+                    if indexList > 6:
+                        listStart = False
+                else:
+                    logList.pop(0)
+                    logList.append(str(parsed_json))
+                    w.ListboxLog.delete(0, END)  # clear listbox
+                    for log in logList:  # populate listbox again
+                        w.ListboxLog.insert(END, log)
+
                 label = parsed_json['label']
                 if label:
                     # print("%s %s" % (str(label) , str(parsed_json['measure'])))
                     measure = parsed_json['measure']
-                    errorMeasure = measure[0]
-                    thrMeasure = measure[1]
-                    if label == all_nodes[0] and len(errorMeasure)==19: #len(errorMeasure)==6: #check error only for labl A
-                        print("%s %s" % (str(label), str(parsed_json['measure'])))
-                        # [event_wifi_number_1, event_zigbee_number_1, event_other_number_1, event_wifi_number_2, event_lte_number_2, event_other_number_2]
-                        # event_wifi_number_1 = float(errorMeasure[0]); event_zigbee_number_1 = float(errorMeasure[1]); event_other_number_1 = float(errorMeasure[2]);
-                        # event_wifi_number_2 = float(errorMeasure[3]); event_lte_number_2 = float(errorMeasure[4]); event_other_number_2 = float(errorMeasure[5]);
+                    # thrMeasure = measure[1]
+                    if label == all_nodes[0]:
+                        errorMeasure = measure[0]
+                        if len(errorMeasure)==19: #len(errorMeasure)==6: #check error only for labl A
 
-                        # event_wifi_number = mean([event_wifi_number_1, event_wifi_number_2])
-                        # if event_other_number_1>event_zigbee_number_1 and event_other_number_2>event_lte_number_2:
-                        #     event_other_number = mean([event_other_number_1, event_other_number_2])
-                        # elif event_other_number_1>event_zigbee_number_1 and event_other_number_2<event_lte_number_2:
-                        #     event_other_number = event_other_number_2
-                        # elif event_other_number_1 < event_zigbee_number_1 and event_other_number_2 > event_lte_number_2:
-                        #     event_other_number = event_other_number_1
-                        # else:
-                        #     event_other_number = mean([event_other_number_1, event_other_number_2])
-                        # event_sum = event_wifi_number + event_zigbee_number_1 + event_lte_number_2 + event_other_number
-                        # bar_wifi=event_wifi_number/event_sum*100
-                        # bar_zigbee=event_zigbee_number_1/event_sum*100
-                        # bar_lte=event_lte_number_2/event_sum*100
-                        # bar_microwave=event_other_number/event_sum*100
+                            # [event_wifi_number_1, event_zigbee_number_1, event_other_number_1, event_wifi_number_2, event_lte_number_2, event_other_number_2]
+                            # event_wifi_number_1 = float(errorMeasure[0]); event_zigbee_number_1 = float(errorMeasure[1]); event_other_number_1 = float(errorMeasure[2]);
+                            # event_wifi_number_2 = float(errorMeasure[3]); event_lte_number_2 = float(errorMeasure[4]); event_other_number_2 = float(errorMeasure[5]);
 
-                        # event_sum = event_wifi_number_1 + event_zigbee_number_1 + event_other_number
-                        # bar_burst = event_sum
-                        # bar_wifi=event_wifi_number_1/event_sum*100
-                        # bar_zigbee=event_zigbee_number_1/event_sum*100
-                        # bar_lte=0
-                        # bar_microwave=event_other_number/event_sum*100
-                        # print(event_sum)
-                        # print([bar_wifi, bar_zigbee, bar_lte, bar_microwave])
+                            # event_wifi_number = mean([event_wifi_number_1, event_wifi_number_2])
+                            # if event_other_number_1>event_zigbee_number_1 and event_other_number_2>event_lte_number_2:
+                            #     event_other_number = mean([event_other_number_1, event_other_number_2])
+                            # elif event_other_number_1>event_zigbee_number_1 and event_other_number_2<event_lte_number_2:
+                            #     event_other_number = event_other_number_2
+                            # elif event_other_number_1 < event_zigbee_number_1 and event_other_number_2 > event_lte_number_2:
+                            #     event_other_number = event_other_number_1
+                            # else:
+                            #     event_other_number = mean([event_other_number_1, event_other_number_2])
+                            # event_sum = event_wifi_number + event_zigbee_number_1 + event_lte_number_2 + event_other_number
+                            # bar_wifi=event_wifi_number/event_sum*100
+                            # bar_zigbee=event_zigbee_number_1/event_sum*100
+                            # bar_lte=event_lte_number_2/event_sum*100
+                            # bar_microwave=event_other_number/event_sum*100
 
-                        # {'measure': [1509111511254766.8, 42484.30757322044, 0.0, 29932.280465072192, 395.0, 30987.524880730467, 23422.818805093048, 22074.31423967647, 0.0, 45105.3260244542, 33.0, 0.0, 0.0, 0.0,
-                        #              0.0, 0.0, 57253.20113108591, 0.0, 64.11999620865059]}
-                        # {'measure': [2021779.0, -18678.609999999997, 0.0, 0.9000000000014552, 0.0, 20.55000000000291, 19.650000000001455, 4.7299999999959255, 0.0, 74.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                        #              53.68999999999869, 0.0, 0.18999999999999773]}
+                            # event_sum = event_wifi_number_1 + event_zigbee_number_1 + event_other_number
+                            # bar_burst = event_sum
+                            # bar_wifi=event_wifi_number_1/event_sum*100
+                            # bar_zigbee=event_zigbee_number_1/event_sum*100
+                            # bar_lte=0
+                            # bar_microwave=event_other_number/event_sum*100
+                            # print(event_sum)
+                            # print([bar_wifi, bar_zigbee, bar_lte, bar_microwave])
 
-                        # leg = ['Bad FCS', 'Bad PLCP', 'Good PLCP', 'Good FCS']
-                        bar_badfcs = float(errorMeasure[6]); bar_badplcp=float(errorMeasure[7]); bar_goodplcp=float(errorMeasure[9]); bar_goodfcs=float(errorMeasure[16]);
-                        error_sum = bar_badfcs + bar_badplcp + bar_goodplcp + bar_goodfcs
-                        bar_badfcs_norm = bar_badfcs/error_sum*100; bar_badplcp_norm = bar_badplcp/error_sum*100; bar_goodplcp_norm = bar_goodplcp/error_sum*100; bar_goodfcs_norm = bar_goodfcs/error_sum*100;
+                            # {'measure': [1509111511254766.8, 42484.30757322044, 0.0, 29932.280465072192, 395.0, 30987.524880730467, 23422.818805093048, 22074.31423967647, 0.0, 45105.3260244542, 33.0, 0.0, 0.0, 0.0,
+                            #              0.0, 0.0, 57253.20113108591, 0.0, 64.11999620865059]}
+                            # {'measure': [2021779.0, -18678.609999999997, 0.0, 0.9000000000014552, 0.0, 20.55000000000291, 19.650000000001455, 4.7299999999959255, 0.0, 74.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            #              53.68999999999869, 0.0, 0.18999999999999773]}
+
+                            # leg = ['Bad FCS', 'Bad PLCP', 'Good PLCP', 'Good FCS']
+                            bar_badfcs = float(errorMeasure[6]); bar_badplcp=float(errorMeasure[7]); bar_goodplcp=float(errorMeasure[9]); bar_goodfcs=float(errorMeasure[16]);
+                            error_sum = bar_badfcs + bar_badplcp + bar_goodplcp + bar_goodfcs
+                            bar_badfcs_norm = bar_badfcs/error_sum*100; bar_badplcp_norm = bar_badplcp/error_sum*100; bar_goodplcp_norm = bar_goodplcp/error_sum*100; bar_goodfcs_norm = bar_goodfcs/error_sum*100;
 
 
                     else:
