@@ -150,8 +150,10 @@ def register_solution_to_solution_global_controller(request):
 
 	#create the json format message
 	solutionName = 'InterferenceDetection'
-	commandList = ["start", "stop"]
-	eventList = ["interferenceDetected"]
+	commandList = ["ON", "OFF"]
+	eventList = ["LTE interference", "NO interference"]
+	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList": eventList}
+
 	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList" : eventList}
 	print('msg --> %s' % str(msg))
 
@@ -229,8 +231,8 @@ def start_visualizer_connection():
 	print(controller.name)
 	socket_visualizer_port = "8501"
 	context = zmq.Context()
-	socket_visualizer = context.socket(zmq.PUB)
-	socket_visualizer.bind("tcp://*:%s" % socket_visualizer_port)
+	socket_visualizer = context.socket(zmq.PUSH)
+	socket_visualizer.connect("tcp://10.8.8.21:%s" % socket_visualizer_port)
 	print("Connecting to server on port %s ... ready to send information to experiment GUI" % socket_visualizer_port)
 
 	''' 
@@ -245,7 +247,7 @@ def start_visualizer_connection():
 	return socket_visualizer
 
 
-def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label):
+def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, request):
 	"""
 	****	SETUP Collect results funciton	****
 	This functions is used to collect information from remote local control program,
@@ -257,61 +259,92 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 	good_fcs_old = 0
 	busy_time_old = 0
 
+	interference_state = "NO interference"
 	receive_thread = threading.currentThread()
 	while getattr(receive_thread, "do_run", True):
 		msg = lcpDescriptor_node.recv(timeout=0.1)
 		if msg:
-			#log.info("Recv: %s" % str(msg))
-			for ii in range(0, len(mac_address)):
-				if msg['mac_address'] == mac_address[ii]:
-					# print('message = %s - mac = %s' % (msg['measure'], msg['mac_address']))
-					msg['label'] = label[ii]
-					msg['type'] = u'statistics'
+			# log.info("Recv: %s" % str(msg))
+			if "mac_address" in msg:
+				for ii in range(0, len(mac_address)):
+					if msg['mac_address'] == mac_address[ii]:
+						# print('message = %s - mac = %s' % (msg['measure'], msg['mac_address']))
+						msg['label'] = label[ii]
+						msg['type'] = u'statistics'
 
-					print(len(msg['measure'][0]))
+						if label[ii] == 'A' and len(msg['measure'][0]) == 19:  # len(errorMeasure)==6: #check error only for labl A
+							errorMeasure = msg['measure'][0]
+							# print("%s %s" % (str(label), errorMeasure))
+							print("execute ANN")
+							# fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
+							# reg = {'104' '106' '108' '10A' '10C' '110' '112' '11E' '100'}; % '102'};
+							# leg = {'Too Long' 'Too Short' 'Invalid MAC Header' 'Bad FCS' 'Bad PLCP'...
+							#		 % 'Preamble OK, bad Header' 'Good PLCP' 'Good FCS, matching RA' 'Good FCS, not matching RA' 'Busy Time'};
+							bad_plcp = errorMeasure[7]
+							good_plcp = errorMeasure[9]
+							bad_fcs = errorMeasure[6]
+							good_fcs = errorMeasure[16]
+							busy_time = errorMeasure[1]
+							print("take decision")
+							# print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
+							if busy_time > 350:
+								if bad_plcp > good_plcp and bad_fcs > good_fcs:
+									# LTE detection
+									print("detected LTE")
+									#send message to solution global controller
+									if interference_state !=  "LTE interference":
+										# create the json format message
+										solutionName = 'InterferenceDetection'
+										interference_state = "LTE interference"
+										msg_to_solution_global_controller = {"type": "eventReport", "eventType": interference_state,  "solution": solutionName}
+										print('msg_to_solution_global_controller --> %s' % str(msg_to_solution_global_controller))
+										# prepare the message
+										sequence = 1
+										kvmsg = KVMsg(sequence)
+										kvmsg.key = b"generic"
+										kvmsg.body = json.dumps(msg_to_solution_global_controller).encode('utf-8')
+										# send the message
+										kvmsg.send(request)
 
-					if label[ii] == 'A' and len(msg['measure'][0]) == 19:  # len(errorMeasure)==6: #check error only for labl A
-						errorMeasure = msg['measure'][0]
-						print("%s %s" % (str(label), errorMeasure))
+								elif bad_plcp < good_plcp and bad_fcs < good_fcs:
+									# WiFi detection
+									print("detected WiFi")
+									if interference_state !=  "NO interference":
+										# create the json format message
+										solutionName = 'InterferenceDetection'
+										interference_state = "NO interference"
+										msg_to_solution_global_controller = {"type": "eventReport", "eventType": interference_state, "solution": solutionName}
+										print('msg_to_solution_global_controller --> %s' % str(msg_to_solution_global_controller))
+										# prepare the message
+										sequence = 1
+										kvmsg = KVMsg(sequence)
+										kvmsg.key = b"generic"
+										kvmsg.body = json.dumps(msg_to_solution_global_controller).encode('utf-8')
+										# send the message
+										kvmsg.send(request)
 
-						print("execute ANN")
-
-						# fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
-						# reg = {'104' '106' '108' '10A' '10C' '110' '112' '11E' '100'}; % '102'};
-						# leg = {'Too Long' 'Too Short' 'Invalid MAC Header' 'Bad FCS' 'Bad PLCP'...
-						#		 % 'Preamble OK, bad Header' 'Good PLCP' 'Good FCS, matching RA' 'Good FCS, not matching RA' 'Busy Time'};
-
-						bad_plcp = errorMeasure[7] - bad_plcp_old
-						bad_plcp_old = errorMeasure[7]
-						good_plcp = errorMeasure[9] - good_plcp_old
-						good_plcp_old = errorMeasure[7]
-						bad_fcs = errorMeasure[6] - bad_fcs_old
-						bad_fcs_old = errorMeasure[6]
-						good_fcs = errorMeasure[11] - good_fcs_old
-						good_fcs_old = errorMeasure[11]
-						busy_time = errorMeasure[1] - busy_time_old
-						busy_time_old = errorMeasure[1]
-
-						print("take decision")
-
-						if busy_time > 500:
-							if bad_plcp > good_plcp and bad_fcs > good_fcs:
-								# LTE detection
-								print("detected LTE")
-								#send message to solution global controller
-							elif bad_plcp < good_plcp and bad_fcs < good_fcs:
-								# WiFi detection
-								print("detected WiFi")
-								#send message to solution global controller
+								else:
+									# no interference detected
+									print("no interference detected")
 
 							else:
-								# no interference detected
-								print("no interference detected")
+								print("detected channel idle")
+								if interference_state != "NO interference":
+									# create the json format message
+									solutionName = 'InterferenceDetection'
+									interference_state = "NO interference"
+									msg_to_solution_global_controller = {"type": "eventReport", "eventType": interference_state, "solution": solutionName}
+									print('msg_to_solution_global_controller --> %s' % str(msg_to_solution_global_controller))
+									# prepare the message
+									sequence = 1
+									kvmsg = KVMsg(sequence)
+									kvmsg.key = b"generic"
+									kvmsg.body = json.dumps(msg_to_solution_global_controller).encode('utf-8')
+									# send the message
+									kvmsg.send(request)
 
-
-
-					# print(msg)
-					socket_visualizer.send_json(msg)
+						# print(msg)
+						socket_visualizer.send_json(msg)
 
 
 			# add measurement on nodes element
@@ -622,7 +655,7 @@ def main(args):
 								msg = {"iface":  iface[pos], "i_time": time_update}
 								lcpDescriptor_nodes[ii].send(msg)
 								print("start thread for collect measurements from nodes")
-								reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label)))
+								reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, request)))
 								reading_thread[ii].start()
 								break
 

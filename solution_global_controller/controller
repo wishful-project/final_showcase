@@ -68,6 +68,21 @@ class Solution:
 			dikt[self.id] = self
 
 
+def start_visualizer_connection():
+	"""
+					****	SETUP LOG VISUALIZER	****
+	This function is used to setup the connection with the experiment GUI,
+	a ZMQ socket client is created on port 8501, able to send statistical information to GUI
+	"""
+	socket_visualizer_port = "8501"
+	context = zmq.Context()
+	socket_visualizer = context.socket(zmq.PUSH)
+	socket_visualizer.connect("tcp://10.8.8.21:%s" % socket_visualizer_port)
+	print("Connecting to server on port %s ... ready to send information to experiment GUI" % socket_visualizer_port)
+
+	return socket_visualizer
+
+
 def main(args):
 	#Init variables
 	kvmap = {}
@@ -92,6 +107,9 @@ def main(args):
 	poller = zmq.Poller()
 	poller.register(request, zmq.POLLIN)
 
+	# Init connection with GUI for LOG
+	socket_visualizer = start_visualizer_connection()
+
 	#Start main while, receive request and update information to solution
 	while True:
 		try:
@@ -110,10 +128,13 @@ def main(args):
 				continue
 
 			if "type" in received_request:
+				print(msg)
+				socket_visualizer.send_json(received_request)
 
 				#Process registration request
 				if received_request["type"] == "registerRequest":
-					print("***Received registration request*** : %s\n" % received_request)
+					# print("***Received registration request*** : %s\n" % received_request)
+					print("***Received registration request*** :\n" )
 					# {"solution": "InterferenceDetection", "eventList": ["interferenceDetected"], "commandList": ["start", "stop"], "type": "registerRequest"}
 					if "solution" in received_request and "eventList" in received_request and "commandList" in received_request:
 						solutionNum += 1
@@ -170,6 +191,34 @@ def main(args):
 					else:
 						print("Received monitor report but no solution is registered")
 
+				# Process monitoring Report
+				if received_request["type"] == "eventReport":
+					# print("*** Received event report *** : %s" % received_request)
+					print("*** Received event report *** : \n" )
+					if len(solutionCompatibilityMatrix) > 0:
+						# TOBE
+						"""
+						This is the main logic of the solution global controller, after receiving a event report, the 
+						solution global controller, check the solution compatibility matrix, in order to understand 
+						eventually conflict, and send update/command to solution.
+						Example: when it receive the report of detecting interference (LTE), send command to solution TDMA cross interference, if not conflict are detected  
+						"""
+
+						# Distribute as key-value message
+						sequence_publisher += 1
+						kvmsg = KVMsg(sequence_publisher)
+						kvmsg.key = b"generic"
+						solutionCompleteList = []
+						for key in solutionCompatibilityMatrix:
+							solutionCompleteList.append(solutionCompatibilityMatrix[key].name)
+						commandList = "activeTDMA"
+						msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompleteList, "commandList": commandList}
+						print('update message %s' % str(msg))
+						kvmsg.body = json.dumps(msg).encode('utf-8')
+						kvmsg.send(publisher)
+						print("sent update information with sequence %d" % sequence_publisher)
+					else:
+						print("Received event report but no solution is registered")
 
 				# Process command Report
 				if received_request["type"] == "commandReport":

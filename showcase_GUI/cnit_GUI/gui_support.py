@@ -142,9 +142,8 @@ def init(top, gui, *args, **kwargs):
     socket_plot_remote_network_port = 8501
     context2_remote_network = zmq.Context()
     print("Connecting to server on port 8501 ... ready to receive protocol information from demo experiment node")
-    socket_plot_remote_network = context2_remote_network.socket(zmq.SUB)
-    socket_plot_remote_network.connect("tcp://localhost:%s" % socket_plot_remote_network_port)
-    socket_plot_remote_network.setsockopt(zmq.SUBSCRIBE, b'')
+    socket_plot_remote_network = context2_remote_network.socket(zmq.PULL)
+    socket_plot_remote_network.bind("tcp://*:%s" % socket_plot_remote_network_port)
 
     socket_spectral_remote_network_port = 8502
     context3_remote_network = zmq.Context()
@@ -230,27 +229,29 @@ def receive_data_plot(x):
             continue
 
         # print('parsed_json : %s' % str(parsed_json))
-        # message = {"measure": [event_wifi_number_1, event_zigbee_number_1, event_other_number_1, event_wifi_number_2, event_lte_number_2, event_other_number_2]}
-
         if 'type' in parsed_json:
+            # print('parsed_json : %s' % str(parsed_json))
+
             # if parsed_json['type'] == 'find_topology':
             #     self.update_topology_carrier_sense = True
             #     self.update_topology_carrier_sense_value = parsed_json['value']
 
+            #{'measure': [[1513245709449775.5, 3558.99, 0.0, 3.76, 0.0, 36.59, 61.55, 23.05, 0.0, 197.79, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 132.51, 0.0, 1912.97], 0.0], 'mac_address': '00:14:a5:e9:12:7c',
+            # 'type': 'statistics', 'label': 'A'}
             if parsed_json['type']=='statistics' and parsed_json['measure']:
 
-                if listStart:
-                    logList.append(str(parsed_json))
-                    w.ListboxLog.insert(END, logList[0])
-                    indexList += 1
-                    if indexList > 6:
-                        listStart = False
-                else:
-                    logList.pop(0)
-                    logList.append(str(parsed_json))
-                    w.ListboxLog.delete(0, END)  # clear listbox
-                    for log in logList:  # populate listbox again
-                        w.ListboxLog.insert(END, log)
+                # if listStart:
+                #     logList.append(str(parsed_json))
+                #     w.ListboxLog.insert(END, logList[indexList])
+                #     indexList += 1
+                #     if indexList > 4:
+                #         listStart = False
+                # else:
+                #     logList.pop(0)
+                #     logList.append(str(parsed_json))
+                #     w.ListboxLog.delete(0, END)  # clear listbox
+                #     for log in logList:  # populate listbox again
+                #         w.ListboxLog.insert(END, log)
 
                 label = parsed_json['label']
                 if label:
@@ -307,6 +308,22 @@ def receive_data_plot(x):
                     # self.tv.item(item, text=label, values=(round(measure[1]*100)/100, round(measure[2]*100)/100, round(measure[3]*100)/100))
                 else:
                     print('Error in plot receive, no label present')
+
+            # {'eventList': ['interferenceDetected'], 'solution': 'InterferenceDetection', 'type': 'registerRequest', 'commandList': ['start', 'stop']}
+            if parsed_json['type'] == 'registerRequest' or  parsed_json['type'] == 'monitorReport' or parsed_json['type'] == 'eventReport' or parsed_json['type'] == 'command':
+                print('parsed_json : %s' % str(parsed_json))
+                if listStart:
+                    logList.append(str(parsed_json))
+                    w.ListboxLog.insert(END, logList[indexList])
+                    indexList += 1
+                    if indexList > 4:
+                        listStart = False
+                else:
+                    logList.pop(0)
+                    logList.append(str(parsed_json))
+                    w.ListboxLog.delete(0, END)  # clear listbox
+                    for log in logList:  # populate listbox again
+                        w.ListboxLog.insert(END, log)
 
 
 def plot_bar_detection(x):
