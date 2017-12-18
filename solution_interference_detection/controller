@@ -153,8 +153,6 @@ def register_solution_to_solution_global_controller(request):
 	commandList = ["ON", "OFF"]
 	eventList = ["LTE interference", "NO interference"]
 	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList": eventList}
-
-	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList" : eventList}
 	print('msg --> %s' % str(msg))
 
 	#prepare the message
@@ -285,6 +283,11 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							bad_fcs = errorMeasure[6]
 							good_fcs = errorMeasure[16]
 							busy_time = errorMeasure[1]
+
+							#ececute ANN
+
+
+
 							print("take decision")
 							# print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
 							if busy_time > 350:
@@ -518,8 +521,7 @@ def main(args):
 	if nodes_info_path:
 		[hosts, driver, eth_ip, freq,tx_power, wlan_ip, mac_address, label, role, iface]=set_hosts(nodes_info_path)
 		print([hosts, driver, eth_ip, freq, tx_power, wlan_ip, mac_address, label, role, iface])
-
-	controller.add_module(moduleName="wireless_topology", pyModuleName="wishful_module_wireless_topology", className="WirelessTopologyModule", importAs="wireless_topology")
+	# controller.add_module(moduleName="wireless_topology", pyModuleName="wishful_module_wireless_topology", className="WirelessTopologyModule", importAs="wireless_topology")
 
 	#Start controller
 	controller.start()
