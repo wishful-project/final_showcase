@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+wishful_controller.py: First implementation of WiSHFUL controller
+
+Usage:
+   wishful_controller.py [options] [-q | -v]
+
+Options:
+   --logfile name      Name of the logfile
+   --config configFile Config file path
+
+Example:
+   ./wishful_simple_local_controller -v --config ./config.yaml
+
+Other options:
+   -h, --help          show this help message and exit
+   -q, --quiet         print less text
+   -v, --verbose       print more text
+   --version           show version and exit
+"""
+
+import datetime
+import logging
+import wishful_controller
+import gevent
+import yaml
+from wiplus_control_program import wiplus_detector_cp
+from global_controller_proxy import GlobalSolutionControllerProxy
+
+__author__ = "Piotr Gawlowicz"
+__copyright__ = "Copyright (c) 2017, Technische Universität Berlin"
+__version__ = "0.1.0"
+__email__ = "gawlowicz@tkn.tu-berlin.de"
+
+
+log = logging.getLogger('wishful_agent.main')
+controller = wishful_controller.Controller()
+enabled = True
+nodes = []
+
+toStart = {}
+remoteLocalCtrPrograms = {}
+
+
+def start_local_ctr_program(node, ctr_program_ptr):
+    lcpDescriptor = controller.node(node).hc.start_local_control_program(program=ctr_program_ptr)
+    print("{} Local Control Progam Started, ID: {}".format(datetime.datetime.now(), lcpDescriptor.id))
+    remoteLocalCtrPrograms["WiPLUS"] = lcpDescriptor
+
+
+@controller.new_node_callback()
+def new_node(node):
+    nodes.append(node)
+    print("New node connected:", node.name)
+    if "WiPLUS" in node.name:
+        toStart["WiPLUS"] = node
+
+
+@controller.node_exit_callback()
+def node_exit(node, reason):
+    if node in nodes:
+        nodes.remove(node)
+    print("NodeExit : NodeID : {} Reason : {}".format(node.name, reason))
+
+
+def enable_solution():
+    print("Enabling solution")
+    global enabled
+    enabled = True
+
+
+def disable_solution():
+    print("Disable solution")
+    global enabled
+    enabled = False
+
+
+def main(args):
+    log.debug(args)
+
+    config_file_path = args['--config']
+    config = None
+    with open(config_file_path, 'r') as f:
+        config = yaml.load(f)
+
+    controller.load_config(config)
+    controller.start()
+
+    solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1",
+                                                     requestPort=7001,
+                                                     subPort=7000)
+    solutionName = controller.name
+    commands = {"ON": enable_solution, "OFF": disable_solution}
+    eventList = ["LTE_U_DETECTED",
+                 "WiFi_DETECTED",
+                 "ZigBee_DETECTED",
+                 "NO_interference"]
+    solutionCtrProxy.set_solution_attributes(solutionName,
+                                             commands,
+                                             eventList
+                                             )
+
+    # Register SpectrumSensing solution to global solution controller
+    response = solutionCtrProxy.register_solution()
+    if response:
+        print("Solution was correctly registered to GlobalSolutionController")
+        solutionCtrProxy.start_command_listener()
+    else:
+        print("Solution was not registered to Global Solution Controller")
+
+    # test reporting to global solution controller
+    # solutionCtrProxy.send_monitor_report("InterferenceClass", 'LTE', "None")
+    # solutionCtrProxy.send_event("LTE_DETECTED")
+
+    # control loop
+    while True:
+        if not enabled:
+            gevent.sleep(1)
+            continue
+
+        gevent.sleep(1)
+        print("Connected nodes", [str(node.name) for node in nodes])
+
+        discoveredInterferers = {}
+        if bool(toStart):
+            print("Start remote programs on new nodes:")
+            for key in list(toStart.keys()):
+                node = toStart[key]
+                if key == "WiPLUS":
+                    print("Start WiPLUS local control program on node: ", node.name)
+                    start_local_ctr_program(node, wiplus_detector_cp)
+                    # remove because was started
+                    del toStart[key]
+
+        # collect information about discovered interferers
+        if "WiPLUS" in remoteLocalCtrPrograms:
+            ctrProxy = remoteLocalCtrPrograms["WiPLUS"]
+            ctrProxy.send({"cmd": "get_interferers_info"})
+            msg = ctrProxy.recv()
+            response = msg['response']
+            discoveredInterferers["WiPLUS"] = []
+
+            print ("{} WiPLUS discovered :".format(datetime.datetime.now()))
+            for interferer, quality in response.items():
+                print(interferer, " with quality of: ", quality)
+                if quality > 0.5:
+                    discoveredInterferers["WiPLUS"].append(interferer)
+
+            ctrProxy.send({"cmd": "get_free_air_time"})
+            msg = ctrProxy.recv()
+            response = msg['response']
+            print ("{} WiPLUS - available air-time : {}".format(datetime.datetime.now(), response))
+
+        # merge all information about discovered interferers
+        interferers = []
+        if bool(discoveredInterferers):
+            print("Merge information about discovered interferers and translate to events")
+            interferers.append("LTE_U_DETECTED")
+
+        # notify Global Solution Controller about interferers
+        for i in interferers:
+            solutionCtrProxy.send_event(i)
+
+if __name__ == "__main__":
+    try:
+        from docopt import docopt
+    except Exception:
+        print("""
+        Please install docopt using:
+            pip install docopt==0.6.1
+        For more refer to:
+        https://github.com/docopt/docopt
+        """)
+        raise
+
+    args = docopt(__doc__, version=__version__)
+
+    log_level = logging.INFO  # default
+    if args['--verbose']:
+        log_level = logging.DEBUG
+    elif args['--quiet']:
+        log_level = logging.ERROR
+
+    logfile = None
+    if args['--logfile']:
+        logfile = args['--logfile']
+
+    logging.basicConfig(filename=logfile, level=log_level,
+        format='%(asctime)s - %(name)s.%(funcName)s() - %(levelname)s - %(message)s')
+
+    try:
+        main(args)
+    except KeyboardInterrupt:
+        log.debug("Controller exits")
+    finally:
+        log.debug("Exit")
+        for cp, proxy in remoteLocalCtrPrograms.items():
+            retVal = proxy.close()
+            print("{} Local Control Progam ID: {} was {}".format(datetime.datetime.now(), proxy.id, retVal))
+        gevent.sleep(1)
+        controller.stop()
