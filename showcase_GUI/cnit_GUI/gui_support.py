@@ -681,9 +681,10 @@ def change_state_zigbee(*args):
 
 
 def change_state_lte(*args):
-    global driver
-    print('gui_support.change_state_lte')
+    global driver, lteActivation
+    print('gui_support.change_state_lte : ' + lteActivation.get())
     sys.stdout.flush()
+    setTraffic("LTE")
 
 
 def change_state_microwave(*args):
@@ -704,7 +705,7 @@ def change_state_wifi(*args):
     global driver, wifiActivation
     print('gui_support.change_state_wifi : ' + wifiActivation.get())
     sys.stdout.flush()
-    setTraffic()
+    setTraffic("WIFI")
 
 
 def stopAllTraffic(self):
@@ -718,18 +719,30 @@ def stopAllTraffic(self):
         time.sleep(0.5)
 
 
-def setTraffic():
+def setTraffic(technology):
     global socket_command_remote_network, wifiActivation
+    MAX_SOURCE_TRAFFIC = 20000
+
     # print(src)
     # source_rate = int(val[self.all_nodes.index(src)].get())
     # dst = self.countryVar[self.all_nodes.index(src)].get()
-    dst = 'B'
-    src = 'C'
-    MAX_SOURCE_TRAFFIC = 20000
-    if wifiActivation.get()=='1':
-        source_rate = 5000
+
+    if technology=="WIFI":
+        dst = 'B'
+        src = 'C'
+        if wifiActivation.get() == '1':
+            source_rate = 2000
+        else:
+            source_rate = 0
+    elif technology=="LTE":
+        dst = 'E'
+        src = 'D'
+        if lteActivation.get()=='1':
+            source_rate = 2000
+        else:
+            source_rate = 0
     else:
-        source_rate = 0
+        return
 
     if src != dst:
         if 500 < source_rate and source_rate <= MAX_SOURCE_TRAFFIC:

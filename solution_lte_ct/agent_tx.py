@@ -75,12 +75,16 @@ agent.set_agent_info(name="ENB", info="Example tutorial Agent", iface=agent_PC_i
 #we specify interface and the name of the nodes group
 
 agent.add_module(moduleName="discovery", pyModule="wishful_module_discovery_pyre",
-                 className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"srslte"})
+                 className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"solution_lte_ct"})
 
 #add the net_linux module,
-agent.add_module(moduleName="srslte", pyModule="wishful_module_srslte",
-                 className="SrslteModule")
+agent.add_module(moduleName="srslte", pyModule="wishful_module_srslte", className="SrslteModule")
 
+#add the net_linux module,
+agent.add_module(moduleName="network", pyModule="wishful_module_net_linux", className="NetworkModule")
+
+#add the iperf module,
+agent.add_module(moduleName="iperf", pyModule="wishful_module_iperf", className="IperfModule")
 
 """ END WiSHFUL agent setting """
 
