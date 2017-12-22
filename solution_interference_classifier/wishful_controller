@@ -40,7 +40,7 @@ controller = wishful_controller.Controller()
 enabled = True
 nodes = []
 
-toStart = {}
+localCtrProgstoStart = {}
 remoteLocalCtrPrograms = {}
 
 
@@ -55,7 +55,7 @@ def new_node(node):
     nodes.append(node)
     print("New node connected:", node.name)
     if "WiPLUS" in node.name:
-        toStart["WiPLUS"] = node
+        localCtrProgstoStart["WiPLUS"] = node
 
 
 @controller.node_exit_callback()
@@ -124,15 +124,15 @@ def main(args):
         print("Connected nodes", [str(node.name) for node in nodes])
 
         discoveredInterferers = {}
-        if bool(toStart):
+        if bool(localCtrProgstoStart):
             print("Start remote programs on new nodes:")
-            for key in list(toStart.keys()):
-                node = toStart[key]
+            for key in list(localCtrProgstoStart.keys()):
+                node = localCtrProgstoStart[key]
                 if key == "WiPLUS":
                     print("Start WiPLUS local control program on node: ", node.name)
                     start_local_ctr_program(node, wiplus_detector_cp)
                     # remove because was started
-                    del toStart[key]
+                    del localCtrProgstoStart[key]
 
         # collect information about discovered interferers
         if "WiPLUS" in remoteLocalCtrPrograms:

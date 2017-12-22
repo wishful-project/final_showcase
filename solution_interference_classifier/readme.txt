@@ -1,7 +1,12 @@
-#run example controller
-#run with -v for debugging
+#start Solution Interference Classifier controller
+#start with -v for debugging
+cd ../solution_global_controller/
+python3 ./controller
+
+#start Solution Interference Classifier controller
+#start with -v for debugging
 ./wishful_controller --config ./controller_config.yaml
 
-#run example agent
-#run with -v for debugging
+#start WiPLUS agent
+#start with -v for debugging
 ./wishful_agent --config ./wiplus_agent_config.yaml
