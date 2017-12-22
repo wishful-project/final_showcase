@@ -15,16 +15,27 @@ def wiplus_detector_cp(controller):
     global lteu_detection_quality
     lteu_detection_quality = 0.0
 
+    global free_air_time_ratio
+    free_air_time_ratio = 1.0
+
+    global runControllerLoop
+    runControllerLoop = False
+
     def controller_loop():
+        global runControllerLoop
         global lteu_detection_quality
-        while True:
+        global free_air_time_ratio
+
+        while runControllerLoop:
             lteu_detection_quality = random.random()
+            free_air_time_ratio = random.random()
             print("WiPLUS detects LTE-U with quality: ", lteu_detection_quality)
             time.sleep(2)
 
     # control loop
     print(("Local Control Program - Name: {}, Id: {} - STARTED".format(controller.name, controller.id)))
 
+    runControllerLoop = True
     controllerLoop = threading.Thread(target=controller_loop)
     controllerLoop.daemon = True
     controllerLoop.start()
@@ -38,10 +49,10 @@ def wiplus_detector_cp(controller):
                 detected_interferers = {"LTE-U": lteu_detection_quality, "WiFi": 0.0, "ZigBee": 0.0}
                 controller.send_upstream({"response": detected_interferers})
             if cmd == "get_free_air_time":
-                free_air_time_ratio = 0.5
                 controller.send_upstream({"response": free_air_time_ratio})
         else:
             # print(("{} Waiting for message".format(datetime.datetime.now())))
             pass
 
+    runControllerLoop = False
     print(("Local Control Program - Name: {}, Id: {} - STOPPED".format(controller.name, controller.id)))
