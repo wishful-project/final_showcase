@@ -48,6 +48,7 @@ import wishful_controller
 import wishful_upis as upis
 from helper.MeasurementManager import MeasurementCollector
 from lib.kvsimple import KVMsg
+from lib.global_controller_proxy import GlobalSolutionControllerProxy
 from local_control_program import remote_control_program
 import wishful_module_srslte
 
@@ -190,53 +191,6 @@ def print_response(group, node, data):
     print("\n{} Print response : Group:{}, NodeIP:{}, Result:{}".format(datetime.datetime.now(), group, node.ip, data))
 
 
-def register_solution_to_solution_global_controller(request):
-    """
-    ****	SETUP SOLUTION GLOBAL CONTROLLER CONNECTION	****
-    This function is used to setup the connection with the experiment GUI,
-    a ZMQ socket server is created on port 8500, able to receive command from GUI
-    """
-    #Register solution to solution global controller
-    # Activation 	Event
-    # De - activation
-    # Event 	List 	of 	monitoring 	parameters
-    # List 	of 	control knobs / parameters
-
-    #create the json format message
-    solutionName = 'lte_ct'
-    commandList = ["ON", "OFF"]
-    eventList = [""]
-    msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList": eventList}
-    print('msg --> %s' % str(msg))
-
-    #prepare the message
-    sequence = 1
-    kvmsg = KVMsg(sequence)
-    kvmsg.key = b"generic"
-    kvmsg.body = json.dumps(msg).encode('utf-8')
-    #send the message
-    kvmsg.send(request)
-
-    #process the registerRespons
-    #TOBE
-    try:
-        kvmsg_reply = KVMsg.recv(request)
-    except:
-        return False
-
-    seq = kvmsg_reply.sequence
-    key = kvmsg_reply.key
-    body = kvmsg_reply.body
-    print(body)
-    parsed_json = json.loads(body.decode("utf-8"))
-    if "type" in parsed_json:
-        type = parsed_json["type"]
-        if type == "registerResponse":
-            print("Received registration respons")
-            return True
-    return False
-
-
 def listener_subscriber(arg,subscriber):
     sequence = 0
     kvmap = {}
@@ -293,7 +247,7 @@ def start_visualizer_connection():
 
     return socket_visualizer
 
-def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, request):
+def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, request, solutionCtrProxy):
     """
     ****	SETUP Collect results funciton	****
     This functions is used to collect information from remote local control program,
@@ -318,8 +272,11 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
                         msg['label'] = label[ii]
                         msg['type'] = u'statistics'
 
+                        if msg['label'] == 'C':
+                            solutionCtrProxy.send_monitor_report("WiFi-THR", msg["measure"][1], "Kbps")
+
                         # print(msg)
-                        socket_visualizer.send_json(msg)
+                        # socket_visualizer.send_json(msg)
 
             # add measurement on nodes element
             for node in wifinodes:
@@ -403,6 +360,37 @@ def set_hosts(host_file):
     return hosts, driver, eth_ip, freq, tx_power, wlan_ip, mac_address, label, role, iface
 
 
+def wifiStatus(state="DISABLE"):
+    print("change wifi state")
+    global wifiState
+    if state == "DISABLE":
+        wifiState = True
+    elif state == "ENABLE":
+        wifiState = False
+    else:
+        wifiState = False
+
+def lteStatus(state="DISABLE"):
+    print("change lte state")
+    global lteState
+    if state == "DISABLE":
+        lteState = True
+    elif state == "ENABLE":
+        lteState = False
+    else:
+        lteState = False
+
+def tdmaStatus(state="DISABLE"):
+    print("change TDMA state")
+    global tdmaState
+    if state == "DISABLE":
+        tdmaState = True
+    elif state == "ENABLE":
+        tdmaState = False
+    else:
+        tdmaState = False
+
+
 # Entry point after globals initialization
 def main(args):
     global nodes
@@ -419,26 +407,22 @@ def main(args):
     """
     ****** setup the communication with the solution global controller ******
     """
-    # # Prepare our context in order to communicate with solution global controller
-    # ctx = zmq.Context()
-    # # Prepare our REQ/REP socket
-    # request = ctx.socket(zmq.DEALER)
-    # request.linger = 0
-    # solution_global_controller = "127.0.0.1"
-    # request.connect("tcp://" + solution_global_controller + ":7001")
-    # # Prepare our SUBSCRIVER socket
-    # subscriber = ctx.socket(zmq.SUB)
-    # subscriber.linger = 0
-    # subscriber.setsockopt(zmq.SUBSCRIBE, b'')
-    # subscriber.connect("tcp://" + solution_global_controller + ":7000")
-    #
-    # # Register InterferenceDetection solution to global solution controller
-    # request_result = register_solution_to_solution_global_controller(request)
-    # if request_result:
-    #     print("solution is correctly registered")
-    # else:
-    #     print("solution is not correctly registered")
-    #     return False
+
+    solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
+    solutionName = "lte_ct"
+    commands = { "STOP_WIFI": wifiStatus, 	"STOP_LTE": lteStatus,	"STOP_TDMA": tdmaStatus, "START_WIFI": wifiStatus("ENABLE"), "START_LTE":lteStatus("ENABLE"), "START_TDMA":tdmaStatus("ENABLE")}
+    eventList = []
+    monitorList = ["WiFi-THR", "LTE-THR", "WiFi-PER", "LTE-PER"]
+    solutionCtrProxy.set_solution_attributes(solutionName, commands, eventList, monitorList )
+
+    # Register SpectrumSensing solution to global solution controller
+    response = solutionCtrProxy.register_solution()
+    if response:
+        print("Solution was correctly registered to GlobalSolutionController")
+        solutionCtrProxy.start_command_listener()
+    else:
+        print("Solution was not registered to Global Solution Controller")
+
 
     # # Start service for COMMAND/UPDATE from global solution controller
     # listener_subscriber_thread = threading.Thread(target=listener_subscriber, args=(0, subscriber))
@@ -515,7 +499,8 @@ def main(args):
             """
             try:
                 print("START nodes setup")
-                all_nodes = ['A', 'B', 'C', 'D', 'E']
+                # all_nodes = ['A', 'B', 'C', 'D', 'E']
+                all_nodes = ['B', 'C', 'D', 'E']
 
                 # SETUP AP NODES
                 for ii in range(0, len(hosts)):
@@ -616,7 +601,7 @@ def main(args):
                                     lcpDescriptor_nodes[ii].send(msg)
                                     print("start thread for collect measurements from nodes")
                                     # reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, request)))
-                                    reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, 0)))
+                                    reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, 0, solutionCtrProxy)))
                                     reading_thread[ii].start()
                                 break
 
@@ -630,27 +615,6 @@ def main(args):
                 """
                 ****** MAIN LOOP WITH interface commands management (start/stop iperf flows) ******
                 """
-                # sequence = 0
-                # EXPERIMENT_DURATION = 15
-                # dt = 0
-                # monitorThrValue = 0
-                # try:
-                # 	while True:
-                # 		monitorThrValue += 5
-                # 		msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
-                # 		print('msg %s' % str(msg))
-                # 		sequence = 1
-                # 		kvmsg = KVMsg(sequence)
-                # 		kvmsg.key = b"generic"
-                # 		kvmsg.body = json.dumps(msg).encode('utf-8')
-                # 		kvmsg.send(request)
-                # 		gevent.sleep(5)
-                # 		dt += 1
-                # 		if dt > EXPERIMENT_DURATION:
-                # 			break
-                # except KeyboardInterrupt:
-                # 	return
-
                 for jj in range(0, len(nodes)):
                     pos = eth_ip.index(nodes[jj].ip)
                     if label[pos] == 'B' or label[pos] == 'C':

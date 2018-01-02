@@ -286,8 +286,6 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 
 							#ececute ANN
 
-
-
 							print("take decision")
 							# print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
 							if busy_time > 350:

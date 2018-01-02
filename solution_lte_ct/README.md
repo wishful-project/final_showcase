@@ -69,15 +69,24 @@ sudo apt-get install python3-matplotlib
 
     ...rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../../../  -e ssh clapton:~/wishful-github-manifest-7/
     ...ssh clapton "mkdir -p wishful-github-manifest-7/examples"
+
     ...rsync -avz --delete  --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude '*/*' ../../interference_detection/  -e ssh clapton:~/wishful-github-manifest-7/examples/interference_detection/
     ...rsync -avz --delete  --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' ../../interference_detection/helper/  -e ssh clapton:~/wishful-github-manifest-7/examples/interference_detection/helper
     ...rsync -avz --delete  --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' ../../interference_detection/station-conf/  -e ssh clapton:~/wishful-github-manifest-7/examples/interference_detection/station-conf
+
 
  #connect to nodes
     ssh clapton.local
 
  #move on experiment directory
     cd wishful-github-manifest-4/final_showcase
+
+    cd helper
+     ex -sc $'%s/\r$//e|x' deploy_upis.sh
+     sh deploy_upis.sh root alix17,alix18  #deploy framework on alixnodes
+     ex -sc $'%s/\r$//e|x' sync_date.sh
+     sh sync_date.sh alix17,alix18  #sync nodes time
+     cd ..
 
  #sync clock nodes
     cd helper

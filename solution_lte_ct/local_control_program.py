@@ -99,15 +99,23 @@ def remote_control_program(controller):
         iperf_socket.connect("tcp://%s:%s" % (iperf_server_ip_address, iperf_port))
         iperf_socket.setsockopt_string(zmq.SUBSCRIBE, '')
 
+        # use poll for timeouts:
+        poller = zmq.Poller()
+        poller.register(iperf_socket, zmq.POLLIN)
+
         print('socket iperf started')
         while getattr(iperf_thread, "do_run", True):
-            parsed_json = iperf_socket.recv_json()
-            # print('my address %s - parsed_json : %s' % (str(wlan_ip_address), str(parsed_json)))
-            rcv_ip_address = parsed_json['ip_address']
-            if rcv_ip_address == wlan_ip_address:
-                print('parsed_json : %s' % str(parsed_json))
-                iperf_througputh[0] = float(parsed_json['throughput'])
-
+            # parsed_json = iperf_socket.recv_json()
+            if poller.poll(1000):  # 1s timeout in milliseconds
+                parsed_json = iperf_socket.recv_json()
+                # print('my address %s - parsed_json : %s' % (str(wlan_ip_address), str(parsed_json)))
+                rcv_ip_address = parsed_json['ip_address']
+                if rcv_ip_address == wlan_ip_address:
+                    print('parsed_json : %s' % str(parsed_json))
+                    iperf_througputh[0] = float(parsed_json['throughput'])
+            else:
+                # raise IOError("Timeout processing auth request")
+                iperf_througputh[0] = float(0)
 
     def reading_function(iface, time_interval):
         reading_thread = threading.currentThread()
@@ -255,8 +263,7 @@ def remote_control_program(controller):
                 iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
                 iperf_thread.do_run = True
                 iperf_thread.start()
-
-                print(iperf_througputh)
+                # print(iperf_througputh)
 
             # except (Exception) as err:
             #     if debug:

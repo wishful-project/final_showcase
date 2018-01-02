@@ -55,11 +55,12 @@ class Solution:
 	eventList = None
 	solutionCompatibilityList = None
 
-	def __init__(self, id, name, commandList=None, eventList=None, solutionCompatibilityList=None):
+	def __init__(self, id, name, commandList=None, eventList=None,  monitorList=None, solutionCompatibilityList=None):
 		self.id = id
 		self.name = name
 		self.commandList = commandList
 		self.eventList = eventList
+		self.monitorList = monitorList
 		self.solutionCompatibilityList = solutionCompatibilityList
 
 	def store(self, dikt):
@@ -128,7 +129,7 @@ def main(args):
 				continue
 
 			if "type" in received_request:
-				print(msg)
+				# print(msg)
 				socket_visualizer.send_json(received_request)
 
 				#Process registration request
@@ -136,9 +137,9 @@ def main(args):
 					# print("***Received registration request*** : %s\n" % received_request)
 					print("***Received registration request*** :\n" )
 					# {"solution": "InterferenceDetection", "eventList": ["interferenceDetected"], "commandList": ["start", "stop"], "type": "registerRequest"}
-					if "solution" in received_request and "eventList" in received_request and "commandList" in received_request:
+					if "solution" in received_request and "eventList" in received_request and "commandList" in received_request and "monitorList" in received_request:
 						solutionNum += 1
-						solution = Solution(solutionNum, received_request["solution"], received_request["commandList"], received_request["eventList"])
+						solution = Solution(solutionNum, received_request["solution"], received_request["commandList"], received_request["eventList"], received_request["monitorList"])
 						solution.store(solutionCompatibilityMatrix)
 
 						#TOBE
@@ -182,12 +183,14 @@ def main(args):
 						solutionCompleteList = []
 						for key in solutionCompatibilityMatrix:
 							solutionCompleteList.append(solutionCompatibilityMatrix[key].name)
-						commandList = "activeTDMA"
-						msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompleteList, "commandList": commandList}
-						print('update message %s' % str(msg))
-						kvmsg.body = json.dumps(msg).encode('utf-8')
-						kvmsg.send(publisher)
-						print("sent update information with sequence %d" % sequence_publisher)
+
+						# commandList = "activeTDMA"
+						# msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompleteList, "commandList": commandList}
+						# print('update message %s' % str(msg))
+						# kvmsg.body = json.dumps(msg).encode('utf-8')
+						# kvmsg.send(publisher)
+						# print("sent update information with sequence %d" % sequence_publisher)
+
 					else:
 						print("Received monitor report but no solution is registered")
 
