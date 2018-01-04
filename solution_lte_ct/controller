@@ -247,7 +247,7 @@ def start_visualizer_connection():
 
     return socket_visualizer
 
-def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, request, solutionCtrProxy):
+def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, solutionCtrProxy):
     """
     ****	SETUP Collect results funciton	****
     This functions is used to collect information from remote local control program,
@@ -600,8 +600,7 @@ def main(args):
                                     msg = {"iface": iface[pos], "i_time": time_update}
                                     lcpDescriptor_nodes[ii].send(msg)
                                     print("start thread for collect measurements from nodes")
-                                    # reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, request)))
-                                    reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, 0, solutionCtrProxy)))
+                                    reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, solutionCtrProxy)))
                                     reading_thread[ii].start()
                                 break
 
