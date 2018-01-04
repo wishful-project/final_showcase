@@ -232,7 +232,7 @@ proc vTclWindow.top34 {base} {
         -menu "$top.m37" -background {#ffffff} -highlightbackground wheat \
         -highlightcolor black 
     wm focusmodel $top passive
-    wm geometry $top 1448x944+230+40
+    wm geometry $top 1448x924+94+29
     update
     # set in toplevel.wgt.
     global vTcl
@@ -364,6 +364,24 @@ proc vTclWindow.top34 {base} {
         -highlightcolor black -indicatoron 0 -justify left -text On -value 1 \
         -variable lteActivation 
     vTcl:DefineAlias "$site_6_0.cpd49" "RadiobuttonLteOn" vTcl:WidgetProc "Toplevel1" 1
+    label $site_6_0.lab37 \
+        -background {#d9d9d9} -disabledforeground {#a3a3a3} \
+        -foreground {#000000} -text TDMA 
+    vTcl:DefineAlias "$site_6_0.lab37" "Label3" vTcl:WidgetProc "Toplevel1" 1
+    radiobutton $site_6_0.rad39 \
+        -activebackground {#f4bcb2} -activeforeground {#000000} \
+        -background {#d9d9d9} -disabledforeground {#a3a3a3} \
+        -foreground {#000000} -highlightbackground {#d9d9d9} \
+        -highlightcolor black -indicatoron 0 -justify left -text Off -value 0 \
+        -variable tdmaActivation 
+    vTcl:DefineAlias "$site_6_0.rad39" "RadiobuttonTdmaOff" vTcl:WidgetProc "Toplevel1" 1
+    radiobutton $site_6_0.cpd41 \
+        -activebackground {#f4bcb2} -activeforeground {#000000} \
+        -background {#d9d9d9} -disabledforeground {#a3a3a3} \
+        -foreground {#000000} -highlightbackground {#d9d9d9} \
+        -highlightcolor black -indicatoron 0 -justify left -text On -value 1 \
+        -variable tdmaActivation 
+    vTcl:DefineAlias "$site_6_0.cpd41" "RadiobuttonTdmaOn" vTcl:WidgetProc "Toplevel1" 1
     place $site_6_0.rad38 \
         -in $site_6_0 -x 151 -y 30 -width 56 -relwidth 0 -height 25 \
         -relheight 0 -anchor nw -bordermode ignore 
@@ -381,14 +399,25 @@ proc vTclWindow.top34 {base} {
     place $site_6_0.cpd49 \
         -in $site_6_0 -x 150 -y 92 -width 56 -height 25 -anchor nw \
         -bordermode ignore 
+    place $site_6_0.lab37 \
+        -in $site_6_0 -x 30 -y 150 -anchor nw -bordermode ignore 
+    place $site_6_0.rad39 \
+        -in $site_6_0 -x 84 -y 146 -width 58 -relwidth 0 -height 25 \
+        -relheight 0 -anchor nw -bordermode ignore 
+    place $site_6_0.cpd41 \
+        -in $site_6_0 -x 150 -y 146 -width 58 -height 25 -anchor nw \
+        -bordermode ignore 
     labelframe $site_5_0.lab38 \
         -foreground black -text {Solution Global Controller LOG} \
-        -background {#d9d9d9} -height 175 -width 1360 
+        -background {#d9d9d9} -height 175 -highlightbackground {#d9d9d9} \
+        -highlightcolor black -width 1360 
     vTcl:DefineAlias "$site_5_0.lab38" "LabelframeLog" vTcl:WidgetProc "Toplevel1" 1
     set site_6_0 $site_5_0.lab38
     listbox $site_6_0.lis40 \
         -background white -disabledforeground {#a3a3a3} -font font10 \
-        -foreground {#000000} -height 142 -width 1324 
+        -foreground {#000000} -height 142 -highlightbackground {#d9d9d9} \
+        -highlightcolor black -selectbackground {#c4c4c4} \
+        -selectforeground black -width 1324 
     .top34.tFr39.tNo40.t0.lab38.lis40 configure -font font10
     .top34.tFr39.tNo40.t0.lab38.lis40 insert end text
     vTcl:DefineAlias "$site_6_0.lis40" "ListboxLog" vTcl:WidgetProc "Toplevel1" 1

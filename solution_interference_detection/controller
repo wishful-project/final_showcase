@@ -53,6 +53,7 @@ import wishful_controller
 import wishful_upis as upis
 from helper.MeasurementManager import MeasurementCollector
 from lib.kvsimple import KVMsg
+from lib.global_controller_proxy import GlobalSolutionControllerProxy
 from local_control_program import remote_control_program
 
 __author__ = "Domenico Garlisi, ...."
@@ -136,52 +137,51 @@ def csResultCollector1(group, node, data):
 	log.info('1 - receives data msg at %s - %s' % (str(node.ip), str(messagedata) ))
 
 
-def register_solution_to_solution_global_controller(request):
-	"""
-	****	SETUP SOLUTION GLOBAL CONTROLLER CONNECTION	****
-	This function is used to setup the connection with the experiment GUI,
-	a ZMQ socket server is created on port 8500, able to receive command from GUI
-	"""
-	#Register solution to solution global controller
-	# Activation 	Event
-	# De - activation
-	# Event 	List 	of 	monitoring 	parameters
-	# List 	of 	control knobs / parameters
-
-	#create the json format message
-	solutionName = 'InterferenceDetection'
-	commandList = ["ON", "OFF"]
-	eventList = ["LTE interference", "NO interference"]
-	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList": eventList}
-	print('msg --> %s' % str(msg))
-
-	#prepare the message
-	sequence = 1
-	kvmsg = KVMsg(sequence)
-	kvmsg.key = b"generic"
-	kvmsg.body = json.dumps(msg).encode('utf-8')
-	#send the message
-	kvmsg.send(request)
-
-	#process the registerRespons
-	#TOBE
-	try:
-		kvmsg_reply = KVMsg.recv(request)
-	except:
-		return False
-
-	seq = kvmsg_reply.sequence
-	key = kvmsg_reply.key
-	body = kvmsg_reply.body
-	print(body)
-	parsed_json = json.loads(body.decode("utf-8"))
-	if "type" in parsed_json:
-		type = parsed_json["type"]
-		if type == "registerResponse":
-			print("Received registration respons")
-			return True
-	return False
-
+# def register_solution_to_solution_global_controller(request):
+# 	"""
+# 	****	SETUP SOLUTION GLOBAL CONTROLLER CONNECTION	****
+# 	This function is used to setup the connection with the experiment GUI,
+# 	a ZMQ socket server is created on port 8500, able to receive command from GUI
+# 	"""
+# 	#Register solution to solution global controller
+# 	# Activation 	Event
+# 	# De - activation
+# 	# Event 	List 	of 	monitoring 	parameters
+# 	# List 	of 	control knobs / parameters
+#
+# 	#create the json format message
+# 	solutionName = 'InterferenceDetection'
+# 	commandList = ["ON", "OFF"]
+# 	eventList = ["LTE interference", "NO interference"]
+# 	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList": eventList}
+# 	print('msg --> %s' % str(msg))
+#
+# 	#prepare the message
+# 	sequence = 1
+# 	kvmsg = KVMsg(sequence)
+# 	kvmsg.key = b"generic"
+# 	kvmsg.body = json.dumps(msg).encode('utf-8')
+# 	#send the message
+# 	kvmsg.send(request)
+#
+# 	#process the registerRespons
+# 	#TOBE
+# 	try:
+# 		kvmsg_reply = KVMsg.recv(request)
+# 	except:
+# 		return False
+#
+# 	seq = kvmsg_reply.sequence
+# 	key = kvmsg_reply.key
+# 	body = kvmsg_reply.body
+# 	print(body)
+# 	parsed_json = json.loads(body.decode("utf-8"))
+# 	if "type" in parsed_json:
+# 		type = parsed_json["type"]
+# 		if type == "registerResponse":
+# 			print("Received registration respons")
+# 			return True
+# 	return False
 
 def listener_subscriber(arg,subscriber):
 	sequence = 0
@@ -245,7 +245,7 @@ def start_visualizer_connection():
 	return socket_visualizer
 
 
-def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, request):
+def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, solutionCtrProxy):
 	"""
 	****	SETUP Collect results funciton	****
 	This functions is used to collect information from remote local control program,
@@ -287,62 +287,32 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							#ececute ANN
 
 							print("take decision")
+							#LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
 							# print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
 							if busy_time > 350:
 								if bad_plcp > good_plcp and bad_fcs > good_fcs:
 									# LTE detection
 									print("detected LTE")
 									#send message to solution global controller
-									if interference_state !=  "LTE interference":
-										# create the json format message
-										solutionName = 'InterferenceDetection'
-										interference_state = "LTE interference"
-										msg_to_solution_global_controller = {"type": "eventReport", "eventType": interference_state,  "solution": solutionName}
-										print('msg_to_solution_global_controller --> %s' % str(msg_to_solution_global_controller))
-										# prepare the message
-										sequence = 1
-										kvmsg = KVMsg(sequence)
-										kvmsg.key = b"generic"
-										kvmsg.body = json.dumps(msg_to_solution_global_controller).encode('utf-8')
-										# send the message
-										kvmsg.send(request)
+									if interference_state !=  "LTE_U_DETECTED":
+										interference_state = "LTE_U_DETECTED"
+										solutionCtrProxy.send_event(interference_state)
 
 								elif bad_plcp < good_plcp and bad_fcs < good_fcs:
 									# WiFi detection
 									print("detected WiFi")
-									if interference_state !=  "NO interference":
-										# create the json format message
-										solutionName = 'InterferenceDetection'
-										interference_state = "NO interference"
-										msg_to_solution_global_controller = {"type": "eventReport", "eventType": interference_state, "solution": solutionName}
-										print('msg_to_solution_global_controller --> %s' % str(msg_to_solution_global_controller))
-										# prepare the message
-										sequence = 1
-										kvmsg = KVMsg(sequence)
-										kvmsg.key = b"generic"
-										kvmsg.body = json.dumps(msg_to_solution_global_controller).encode('utf-8')
-										# send the message
-										kvmsg.send(request)
-
+									if interference_state !=  "WiFi_DETECTED":
+										interference_state = "WiFi_DETECTED"
+										solutionCtrProxy.send_event(interference_state)
 								else:
 									# no interference detected
 									print("no interference detected")
 
 							else:
 								print("detected channel idle")
-								if interference_state != "NO interference":
-									# create the json format message
-									solutionName = 'InterferenceDetection'
-									interference_state = "NO interference"
-									msg_to_solution_global_controller = {"type": "eventReport", "eventType": interference_state, "solution": solutionName}
-									print('msg_to_solution_global_controller --> %s' % str(msg_to_solution_global_controller))
-									# prepare the message
-									sequence = 1
-									kvmsg = KVMsg(sequence)
-									kvmsg.key = b"generic"
-									kvmsg.body = json.dumps(msg_to_solution_global_controller).encode('utf-8')
-									# send the message
-									kvmsg.send(request)
+								if interference_state != "NO_interference":
+									interference_state = "NO_interference"
+									solutionCtrProxy.send_event(interference_state)
 
 						# print(msg)
 						socket_visualizer.send_json(msg)
@@ -440,6 +410,18 @@ def set_hosts(host_file):
 # signal.signal(signal.SIGINT, signal_handler)
 
 
+def enable_solution():
+	print("Enabling solution")
+	global enabled
+	enabled = True
+
+
+def disable_solution():
+	print("Disable solution")
+	global enabled
+	enabled = False
+
+
 def main(args):
 	global nodes
 	global do_run
@@ -456,31 +438,20 @@ def main(args):
 	"""
 	****** setup the communication with the solution global controller ******
 	"""
-	# Prepare our context in order to communicate with solution global controller
-	ctx = zmq.Context()
-	# Prepare our REQ/REP socket
-	request = ctx.socket(zmq.DEALER)
-	request.linger = 0
-	solution_global_controller = "127.0.0.1"
-	request.connect("tcp://" + solution_global_controller + ":7001")
-	# Prepare our SUBSCRIVER socket
-	subscriber = ctx.socket(zmq.SUB)
-	subscriber.linger = 0
-	subscriber.setsockopt(zmq.SUBSCRIBE, b'')
-	subscriber.connect("tcp://" + solution_global_controller + ":7000")
-
-	#Register InterferenceDetection solution to global solution controller
-	request_result = register_solution_to_solution_global_controller(request)
-	if request_result:
-		print("solution is correctly registered")
+	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
+	solutionName = 'InterferenceDetection'
+	commands = {"ON": enable_solution, "OFF": disable_solution}
+	eventList = ["LTE_U_DETECTED", "WiFi_DETECTED", "ZigBee_DETECTED", "NO_interference"]
+	commandList = []
+	monitorList = []
+	solutionCtrProxy.set_solution_attributes(solutionName, commands, eventList, monitorList)
+	# Register SpectrumSensing solution to global solution controller
+	response = solutionCtrProxy.register_solution()
+	if response:
+		print("Solution was correctly registered to GlobalSolutionController")
+		solutionCtrProxy.start_command_listener()
 	else:
-		print("solution is not correctly registered")
-		return False
-
-	# Start service for COMMAND/UPDATE from global solution controller
-	listener_subscriber_thread = threading.Thread(target=listener_subscriber, args=(0,subscriber))
-	listener_subscriber_thread.daemon = True
-	listener_subscriber_thread.start()
+		print("Solution was not registered to Global Solution Controller")
 
 	# sequence = 0
 	# EXPERIMENT_DURATION = 15
@@ -655,7 +626,7 @@ def main(args):
 								msg = {"iface":  iface[pos], "i_time": time_update}
 								lcpDescriptor_nodes[ii].send(msg)
 								print("start thread for collect measurements from nodes")
-								reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, request)))
+								reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, solutionCtrProxy)))
 								reading_thread[ii].start()
 								break
 
@@ -681,91 +652,49 @@ def main(args):
 				# controller.delay(22*slot_time).nodes(nodes[2]).net.start_packetflow(dest_ip=wlan_ip[0] , port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
 
 				"""
-				****** MAIN LOOP WITHOUT interface commands management ******
-				"""
-				# EXPERIMENT_DURATION = 30*slot_time
-				# dt = 0
-                #
-				# while do_run:
-				# 	log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION) )
-				# 	dt += slot_time
-				# 	# read values every <x> second
-				# 	gevent.sleep(slot_time)
-                #
-				# 	for jj in range(0, len(nodes)):
-				# 		msg={"iface" : "wlan0", "i_time" : time_update}
-				# 		lcpDescriptor_nodes[jj].send(msg)
-                #
-				# 	if dt > EXPERIMENT_DURATION:
-				# 		log.warning("ending flows")
-				# 		break
-
-				"""
 				****** MAIN LOOP WITH interface commands management (start/stop iperf flows) ******
 				"""
-
-				# sequence = 0
-				# EXPERIMENT_DURATION = 15
-				# dt = 0
-				# monitorThrValue = 0
-				# try:
-				# 	while True:
-				# 		monitorThrValue += 5
-				# 		msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
-				# 		print('msg %s' % str(msg))
-				# 		sequence = 1
-				# 		kvmsg = KVMsg(sequence)
-				# 		kvmsg.key = b"generic"
-				# 		kvmsg.body = json.dumps(msg).encode('utf-8')
-				# 		kvmsg.send(request)
-				# 		gevent.sleep(5)
-				# 		dt += 1
-				# 		if dt > EXPERIMENT_DURATION:
-				# 			break
-				# except KeyboardInterrupt:
-				# 	return
-
 				for jj in range(0, len(nodes)):
 					pos = eth_ip.index(nodes[jj].ip)
 					if label[pos] == 'B' or label[pos] == 'C':
 						controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
 
-				socket_command = start_command_connection()
-				poller = zmq.Poller()
-				poller.register(socket_command, flags=zmq.POLLIN)
+				# socket_command = start_command_connection()
+				# poller = zmq.Poller()
+				# poller.register(socket_command, flags=zmq.POLLIN)
 				EXPERIMENT_DURATION = 30000000
 				dt = 0
 				while do_run:
-					socket_list = poller.poll(1000)
-					if socket_list:
-						for socket_info in socket_list:
-							if socket_info[1] == zmq.POLLIN:
-								parsed_json = socket_command.recv_json()
-								print('parsed_json : %s' % str(parsed_json))
-								type = parsed_json['type']
-
-								if type == 'traffic':
-									node = parsed_json['src']
-									node_src_index = all_nodes.index(node)
-
-									command = parsed_json['command']
-									# if off traffic is selected for a specific node
-									if command == 'off_traffic':
-										nodes_source_rate[node_src_index] = 0
-										# call UPI to stop traffic on node
-										controller.nodes(nodes[node_src_index]).net.stop_packetflow()
-										break
-
-									# if start traffic is selected for a specific node
-									if command == 'set_traffic':
-										node = parsed_json['dst']
-										node_dst_index = all_nodes.index(node)
-										value = parsed_json['value']
-										nodes_source_rate[node_src_index] = value
-										source_rate = float(nodes_source_rate[node_src_index])
-										# call UPI to start traffic
-										print(wlan_ip[node_dst_index])
-										controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
+					# socket_list = poller.poll(1000)
+					# if socket_list:
+					# 	for socket_info in socket_list:
+					# 		if socket_info[1] == zmq.POLLIN:
+					# 			parsed_json = socket_command.recv_json()
+					# 			print('parsed_json : %s' % str(parsed_json))
+					# 			type = parsed_json['type']
+					#
+					# 			if type == 'traffic':
+					# 				node = parsed_json['src']
+					# 				node_src_index = all_nodes.index(node)
+					#
+					# 				command = parsed_json['command']
+					# 				# if off traffic is selected for a specific node
+					# 				if command == 'off_traffic':
+					# 					nodes_source_rate[node_src_index] = 0
+					# 					# call UPI to stop traffic on node
+					# 					controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+					# 					break
+					#
+					# 				# if start traffic is selected for a specific node
+					# 				if command == 'set_traffic':
+					# 					node = parsed_json['dst']
+					# 					node_dst_index = all_nodes.index(node)
+					# 					value = parsed_json['value']
+					# 					nodes_source_rate[node_src_index] = value
+					# 					source_rate = float(nodes_source_rate[node_src_index])
+					# 					# call UPI to start traffic
+					# 					print(wlan_ip[node_dst_index])
+					# 					controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
 
 					if not (dt % 10):
 						log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))

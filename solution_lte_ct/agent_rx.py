@@ -62,7 +62,7 @@ agent.set_agent_info(name="UE", info="Example tutorial Agent", iface=agent_PC_in
 #we specify interface and the name of the nodes group
 
 agent.add_module(moduleName="discovery", pyModule="wishful_module_discovery_pyre",
-                 className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"wishful_4321"})
+                 className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"solution_lte_ct" })
 
 #add the net_linux module,
 agent.add_module(moduleName="srslte", pyModule="wishful_module_srslte",

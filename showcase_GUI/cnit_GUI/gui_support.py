@@ -50,11 +50,12 @@ from operator import itemgetter
 zigbeeActivation = None
 
 def set_Tk_var():
-    global wifiActivation, zigbeeActivation, lteActivation, microwaveActivation
+    global wifiActivation, zigbeeActivation, lteActivation, microwaveActivation, tdmaActivation
     wifiActivation = StringVar(None,"0")
     zigbeeActivation = StringVar(None,"0")
     lteActivation = StringVar(None,"0")
     microwaveActivation = StringVar(None,"0")
+    tdmaActivation = StringVar(None,"0")
 
 
 def OpenFileDialog():
@@ -114,7 +115,7 @@ def init(top, gui, *args, **kwargs):
     bar_goodfcs_norm=20
 
 
-    global driver, wifiActivation, zigbeeActivation, lteActivation, microwaveActivation
+    global driver, wifiActivation, zigbeeActivation, lteActivation, microwaveActivation, tdmaActivation
     chrome_driver = False
     if chrome_driver:
         path = "C:\Program Files\Python34\selenium\webdriver\chrome\chromedriver.exe"
@@ -126,6 +127,7 @@ def init(top, gui, *args, **kwargs):
     wifiActivation.trace("w", change_state_wifi)
     lteActivation.trace("w", change_state_lte)
     microwaveActivation.trace("w", change_state_microwave)
+    tdmaActivation.trace("w", change_state_tdma)
 
     # NETWORK SOCKET SETUP
     global socket_plot_remote_network, socket_command_remote_network, socket_spectral_remote_network
@@ -220,7 +222,7 @@ def receive_data_plot(x):
     logList = []
     listStart = True
     indexList = 0
-
+    lastType = None
     while True:    # Run until cancelled
         socks = dict(poller.poll(1000))
         if socket_plot_remote_network in socks:
@@ -312,18 +314,22 @@ def receive_data_plot(x):
             # {'eventList': ['interferenceDetected'], 'solution': 'InterferenceDetection', 'type': 'registerRequest', 'commandList': ['start', 'stop']}
             if parsed_json['type'] == 'registerRequest' or  parsed_json['type'] == 'monitorReport' or parsed_json['type'] == 'eventReport' or parsed_json['type'] == 'command':
                 print('parsed_json : %s' % str(parsed_json))
-                if listStart:
-                    logList.append(str(parsed_json))
-                    w.ListboxLog.insert(END, logList[indexList])
-                    indexList += 1
-                    if indexList > 4:
-                        listStart = False
+                if lastType == 'monitorReport' and parsed_json['type'] == 'monitorReport':
+                    pass
                 else:
-                    logList.pop(0)
-                    logList.append(str(parsed_json))
-                    w.ListboxLog.delete(0, END)  # clear listbox
-                    for log in logList:  # populate listbox again
-                        w.ListboxLog.insert(END, log)
+                    if listStart:
+                        logList.append(str(parsed_json))
+                        w.ListboxLog.insert(END, logList[indexList])
+                        indexList += 1
+                        if indexList > 4:
+                            listStart = False
+                    else:
+                        logList.pop(0)
+                        logList.append(str(parsed_json))
+                        w.ListboxLog.delete(0, END)  # clear listbox
+                        for log in logList:  # populate listbox again
+                            w.ListboxLog.insert(END, log)
+                lastType = parsed_json['type']
 
 
 def plot_bar_detection(x):
@@ -706,6 +712,12 @@ def change_state_wifi(*args):
     print('gui_support.change_state_wifi : ' + wifiActivation.get())
     sys.stdout.flush()
     setTraffic("WIFI")
+
+def change_state_tdma(*args):
+    global driver, tdmaActivation
+    print("gui_support.change_state_tdma : " + tdmaActivation.get())
+    sys.stdout.flush()
+    # setTdma()
 
 
 def stopAllTraffic(self):

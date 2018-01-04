@@ -87,6 +87,7 @@ class GlobalSolutionControllerProxy(object):
         while True:
             try:
                 kvmsg = KVMsg.recv(self.subSocket)
+                print("received command")
                 mdict = kvmsg.body.decode('utf-8')
                 mdict = json.loads(mdict)
                 involvedSolutions = mdict.get("involvedSolutions", [])

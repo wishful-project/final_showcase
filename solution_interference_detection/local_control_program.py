@@ -122,7 +122,7 @@ def remote_control_program(controller):
         print('socket iperf started')
         while getattr(iperf_thread, "do_run", True):
             parsed_json = iperf_socket.recv_json()
-            print('my address %s - parsed_json : %s' % (str(wlan_ip_address), str(parsed_json)))
+            # print('my address %s - parsed_json : %s' % (str(wlan_ip_address), str(parsed_json)))
             rcv_ip_address = parsed_json['ip_address']
             if rcv_ip_address == wlan_ip_address:
                 print('parsed_json : %s' % str(parsed_json))
@@ -272,9 +272,9 @@ def remote_control_program(controller):
 
                 iperf_througputh = []
                 iperf_througputh.append(0.0)
-                iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
-                iperf_thread.do_run = True
-                iperf_thread.start()
+                # iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
+                # iperf_thread.do_run = True
+                # iperf_thread.start()
 
                 reading_buffer = []
                 reading_buffer.append([0.0])

@@ -10,4 +10,4 @@ modules:
     discovery:
         module : wishful_module_discovery_pyre
         class_name : PyreDiscoveryControllerModule
-        kwargs: {"iface":"eth1", "groupName":"interference", "downlink":"tcp://10.8.9.3:8990", "uplink":"tcp://10.8.9.3:8989"}
+        kwargs: {"iface":"eth1", "groupName":"solution_interference_detection", "downlink":"tcp://10.8.9.3:8990", "uplink":"tcp://10.8.9.3:8989"}
