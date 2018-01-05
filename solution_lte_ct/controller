@@ -47,7 +47,6 @@ sys.path.append('../../controller_modules')
 import wishful_controller
 import wishful_upis as upis
 from helper.MeasurementManager import MeasurementCollector
-from lib.kvsimple import KVMsg
 from lib.global_controller_proxy import GlobalSolutionControllerProxy
 from local_control_program import remote_control_program
 import wishful_module_srslte
@@ -190,24 +189,6 @@ def print_response(group, node, data):
     """
     print("\n{} Print response : Group:{}, NodeIP:{}, Result:{}".format(datetime.datetime.now(), group, node.ip, data))
 
-
-def listener_subscriber(arg,subscriber):
-    sequence = 0
-    kvmap = {}
-    while True:
-        try:
-            kvmsg = KVMsg.recv(subscriber)
-        except KeyboardInterrupt:
-            return
-        except:
-            break  # Interrupted
-        if kvmsg.sequence > sequence:
-            sequence = kvmsg.sequence
-            print("*********")
-            print("received update information with sequence %d" % sequence)
-            print(kvmsg.body)
-            print("*********")
-            kvmsg.store(kvmap)
 
 def start_command_connection():
     """
@@ -415,20 +396,13 @@ def main(args):
     monitorList = ["WiFi-THR", "LTE-THR", "WiFi-PER", "LTE-PER"]
     solutionCtrProxy.set_solution_attributes(solutionName, commands, eventList, monitorList )
 
-    # Register SpectrumSensing solution to global solution controller
+    # Register lte_ct solution to global solution controller
     response = solutionCtrProxy.register_solution()
     if response:
         print("Solution was correctly registered to GlobalSolutionController")
         solutionCtrProxy.start_command_listener()
     else:
         print("Solution was not registered to Global Solution Controller")
-
-
-    # # Start service for COMMAND/UPDATE from global solution controller
-    # listener_subscriber_thread = threading.Thread(target=listener_subscriber, args=(0, subscriber))
-    # listener_subscriber_thread.daemon = True
-    # listener_subscriber_thread.start()
-
 
     """
     ****** Solution experiment controller ******

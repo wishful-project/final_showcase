@@ -35,6 +35,13 @@ class GlobalSolutionControllerProxy(object):
         self.cmdRxThread = None
 
     def set_solution_attributes(self, solutionName, commands, eventList, monitorList):
+        """
+        Set attribute of the solution
+        """
+        # Activation    Event
+        # De - activation
+        # Event     List    of  monitoring  parameters
+        # List  of  control knobs / parameters
         self.solutionName = solutionName
         self.commands = commands
         self.commandList = list(commands.keys())
@@ -43,12 +50,8 @@ class GlobalSolutionControllerProxy(object):
 
     def register_solution(self):
         """
-        SETUP SOLUTION GLOBAL CONTROLLER CONNECTION
-        This function is used to setup the connection with the experiment GUI,
-        a ZMQ socket server is created on port 8500,
-        able to receive command from GUI
+        Register solution to solution global controller
         """
-        # Register solution to solution global controller
         # Activation    Event
         # De - activation
         # Event     List    of  monitoring  parameters
@@ -109,12 +112,17 @@ class GlobalSolutionControllerProxy(object):
                 break  # Interrupted
 
     def start_command_listener(self):
-        # Start service for COMMAND/UPDATE from global solution controller
+        """
+        Start service for COMMAND/UPDATE from global solution controller
+        """
         self.cmdRxThread = threading.Thread(target=self.command_subscriber)
         self.cmdRxThread.daemon = True
         self.cmdRxThread.start()
 
     def send_monitor_report(self, mon_type, value, unit):
+        """
+        Send monitor information to the solution global controller
+        """
         msg = {'type': 'monitorReport',
                'monitorType': mon_type,
                'monitorValue': value,
@@ -127,6 +135,9 @@ class GlobalSolutionControllerProxy(object):
         kvmsg.send(self.requestSocket)
 
     def send_event(self, eventType):
+        """
+        Send monitor event detected to the solution global controller
+        """
         msg = {'type': 'eventReport',
                'solution': self.solutionName,
                'eventType': eventType,

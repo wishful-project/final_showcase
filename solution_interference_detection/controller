@@ -453,28 +453,6 @@ def main(args):
 	else:
 		print("Solution was not registered to Global Solution Controller")
 
-	# sequence = 0
-	# EXPERIMENT_DURATION = 15
-	# dt = 0
-	# monitorThrValue = 0
-	# try:
-	# 	while True:
-	# 		monitorThrValue += 5
-	# 		msg = {'type': 'monitorReport', 'monitorType': 'THR', 'monitorValue': monitorThrValue, 'monitorUnit': 'Mbps'}
-	# 		print('msg %s' % str(msg))
-	# 		sequence = 1
-	# 		kvmsg = KVMsg(sequence)
-	# 		kvmsg.key = b"generic"
-	# 		kvmsg.body = json.dumps(msg).encode('utf-8')
-	# 		kvmsg.send(request)
-	# 		gevent.sleep(5)
-	# 		dt += 1
-	# 		if dt > EXPERIMENT_DURATION:
-	# 			break
-	# except KeyboardInterrupt:
-	# 	return
-
-
 	"""
 	****** Solution experiment controller ******
 	"""
