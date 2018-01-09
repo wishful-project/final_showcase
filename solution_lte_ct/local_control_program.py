@@ -19,38 +19,39 @@ def remote_control_program(controller):
     sys.path.append('../../framework')
     sys.path.append('../../framework/wishful_framework/upi_arg_classes/')
     sys.path.append('../../agent')
-    import math
-    import scapy
     import binascii
     import getopt, sys
     import time
     import json
     import netifaces
     import zmq
-    import re
-    import signal
-
     import string, random
-    import glob
     import subprocess
     import _thread
     import threading
     import logging
+    import numpy as np
     import wishful_framework.upi_arg_classes.edca as edca
     from wishful_framework.classes import exceptions
     import upis.wishful_upis.meta_radio as radio
-    import inspect
+    from agent_modules.wifi_wmp.wmp_structure import UPI_R
+    from agent_modules.wifi_wmp.wmp_structure import execution_engine_t
+    from agent_modules.wifi_wmp.wmp_structure import radio_platform_t
+    from agent_modules.wifi_wmp.wmp_structure import radio_info_t
+    from agent_modules.wifi_wmp.wmp_structure import radio_program_t
+
+    SUCCESS = 0
+    FAILURE = 2
 
     #enable debug print
     debug = False
     debug_statistics = True
+    dryRun = True
 
     starttime=time.time()
-
     neigh_list = {}
     pkt_stats= {}
     report_stats= {}
-
 
     mon_iface="mon0"
 
@@ -81,6 +82,128 @@ def remote_control_program(controller):
     def getPHY(iface="wlan0"):
         phy="phy" + iface[4]
         return phy
+
+
+    def shift(l, n):
+        return l[n:] + l[:n]
+
+
+    def update_pattern(mask_int, L, est_slot):
+        mask_sum = 0
+        n_shift = 0
+        for x in list(mask_int):
+            mask_sum += x
+
+        target_mask = [1] * mask_sum + [0] * (L - mask_sum)
+        print("target_mask={}".format(target_mask))
+        print("mask_int={}".format(mask_int))
+
+        while n_shift < L:
+            if mask_int != target_mask:
+                mask_int = shift(mask_int, -1)
+                n_shift = n_shift + 1
+            else:
+                break
+
+        if n_shift < L:
+            if mask_sum < est_slot and est_slot < L:
+                print("---------")
+                print(mask_int)
+                print(mask_sum)
+                print(est_slot)
+                print("---------")
+
+                for i_mask in range(mask_sum, est_slot):
+                    print(i_mask)
+                    mask_int[i_mask] = 1
+
+                mask_int = shift(mask_int, n_shift - (mask_sum - est_slot))
+        print("mask_int={}".format(mask_int))
+        return mask_int
+
+    def rcv_from_reading_program(reading_buffer):
+        """
+        This function collects the reading buffer information
+        """
+        reading_thread = threading.currentThread()
+        print('start socket reading_program')
+        reading_port = "8901"
+        reading_server_ip_address = "127.0.0.1"
+        context = zmq.Context()
+        reading_socket = context.socket(zmq.SUB)
+        print("tcp://%s:%s" % (reading_server_ip_address, reading_port))
+        reading_socket.connect("tcp://%s:%s" % (reading_server_ip_address, reading_port))
+        reading_socket.setsockopt_string(zmq.SUBSCRIBE, '')
+
+        print('socket reading_program started')
+        while getattr(reading_thread, "do_run", True):
+            parsed_json = reading_socket.recv_json()
+            print('parsed_json : %s' % ( str(parsed_json)))
+
+            psucc = parsed_json['measure']
+            mask = ""
+            for x in psucc:
+                if x > 0.5:
+                    maskval = 1
+                elif np.isinf(x):
+                    maskval = 0
+                else:
+                    maskval = 0
+
+                mask = "{}{}".format(maskval, mask)
+                mask_int = [int(x) for x in list(mask)]
+            mask_sum = 0
+            for x in list(mask_int):
+                mask_sum += x
+
+            if mask == "0000000000":
+                mask = "1111111111"
+
+            EST_SLOT = 4
+            L = 10
+            print(mask)
+            p_insert = np.random.rand()
+            if mask_sum < EST_SLOT:
+                p_insert = 1
+                mask_int = update_pattern(mask_int, L, mask_sum + 1)
+            # else:
+            #			p_insert=0
+            #		if p_insert > 0.01:
+            #			mask_int=update_pattern(mask_int,L,mask_sum+1)
+            mask = ""
+            for x in mask_int:
+                mask = "{}{}".format(mask, x)
+            # count_round=0
+            print(mask_int)
+
+            if not dryRun:
+                # with fab.hide('output', 'running', 'warnings'), fab.settings(warn_only=True):
+                #     fab.run('bytecode-manager --set-tdma-mask {}'.format(mask))
+
+                # if inactive == 0:
+                #     position = '1'
+                # else:
+                #     position = '2'
+                # UPIargs = {'position': position, 'interface': 'wlan0'}
+                # rvalue = controller.radio.activate_radio_program(UPIargs)
+                # if rvalue == SUCCESS:
+                #     log.warning('Radio program activation successful')
+                # else:
+                #     log.warning('Error in radio program activation')
+                # suite.active_slot = inactive
+                # suite.slots[suite.active_slot] = protocol
+                # # print('load protocol : change slot')
+
+                UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: mask}
+                # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
+                rvalue = controller.radio.set_parameters(UPIargs)
+                if rvalue[0] == SUCCESS:
+                    log.warning('Radio program configuration succesfull')
+                else:
+                    log.warning('Error in radio program configuration')
+                    do_run = False
+
+            reading_buffer[0] = parsed_json['measure']
 
 
     # socket iperf pointer
@@ -208,6 +331,7 @@ def remote_control_program(controller):
 
             time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
+
     def run_command(command):
         '''
             Method to start the shell commands and get the output as iterater object
@@ -225,6 +349,9 @@ def remote_control_program(controller):
         # return [sp.returncode, out.decode("utf-8"), err.decode("utf-8")]
         return
 
+    """
+    MAIN
+    """
 
     log = logging.getLogger()
     log.info('*********** WISHFUL *************')
@@ -264,6 +391,12 @@ def remote_control_program(controller):
                 iperf_thread.do_run = True
                 iperf_thread.start()
                 # print(iperf_througputh)
+
+                reading_buffer = []
+                reading_buffer.append([0.0])
+                reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
+                reading_buffer_thread.do_run = True
+                reading_buffer_thread.start()
 
             # except (Exception) as err:
             #     if debug:

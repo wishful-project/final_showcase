@@ -27,8 +27,6 @@ import gevent
 import os
 import sys
 import time
-from itertools import cycle
-import math
 import json
 import zmq
 import yaml
@@ -51,44 +49,18 @@ from lib.global_controller_proxy import GlobalSolutionControllerProxy
 from local_control_program import remote_control_program
 import wishful_module_srslte
 
+from agent_modules.wifi_wmp.wmp_structure import UPI_R
+from agent_modules.wifi_wmp.wmp_structure import execution_engine_t
+from agent_modules.wifi_wmp.wmp_structure import radio_platform_t
+from agent_modules.wifi_wmp.wmp_structure import radio_info_t
+from agent_modules.wifi_wmp.wmp_structure import radio_program_t
+
+
 __author__ = "Domenico Garlisi, ...."
 __copyright__ = "Copyright (c) ..., "
 __version__ = "0.1.0"
 __email__ = "domenico.garlisi@cnit.it; ..."
 
-
-# """
-# Setting of controller node
-# """
-# controller_PC_IP_address = "192.168.5.64"
-# controller_PC_interface = "ens3"
-# """
-# END setting of controller nodes
-# """
-#
-# DL_address = "tcp://" + controller_PC_IP_address + ":8990"
-# UL_address = "tcp://" + controller_PC_IP_address + ":8989"
-#
-#
-# """ START Define logging controller """
-# """ we use the python logging system module (https://docs.python.org/2/library/logging.html) """
-# log = logging.getLogger('wishful_controller')
-#
-# #Create controller, we specify in the parameters the ip addresses and the ports used for downlink and uplink connection
-# #with the nodes tesbed, in this case we spcify the interface loopback and the port 8990 for the downlink and the
-# # interface loopback and the port 8989 for the uplink.
-# controller = wishful_controller.Controller(dl=DL_address, ul=UL_address)
-#
-# #Configure controller, we specify in the parameters the controller name and a string information related to the
-# #controller
-# controller.set_controller_info(name="WishfulController", info="WishfulControllerInfo")
-#
-# #add the discovery module, responsable for the nodes discovery procedure and nodes adding to the controllers
-# #we specify interface, the name of the nodes group, and the ip address and port for the downlink and uplink connection
-# controller.add_module(moduleName="discovery", pyModuleName="wishful_module_discovery_pyre",
-#                       className="PyreDiscoveryControllerModule",
-#                       kwargs={"iface":controller_PC_interface, "groupName":"wishful_4321", "downlink":DL_address, "uplink":UL_address})
-# """ END the WiSHFUL controller setting """
 
 class WiFiNode():
     """
@@ -131,6 +103,13 @@ class WiFiNode():
 
 log = logging.getLogger('wishful_agent.main')
 controller = wishful_controller.Controller()
+nodes_platform_info = None
+eth_ip = None
+role = None
+wifiState = "DISABLE"
+lteState = "DISABLE"
+tdmaState = "DISABLE"
+tdmaStateChange = False
 
 """
 Create MeasurementCollector object, to keep information about WiFiNode measurements and perform plotting result
@@ -144,6 +123,9 @@ TOTAL_NODES = 1 # We expect 2 nodes to connect: 'tx', and 'rx'.
 
 wifinodes = [] # list of WiSHFUL WiFI nodes
 do_run = None # used to keep alive all the controller threads
+
+SUCCESS = 0
+FAILURE = 2
 
 @controller.new_node_callback()
 def new_node(node):
@@ -341,41 +323,189 @@ def set_hosts(host_file):
     return hosts, driver, eth_ip, freq, tx_power, wlan_ip, mac_address, label, role, iface
 
 
-def wifiStatus(state="DISABLE"):
+def get_platform_information(node, log, controller):
+    """ Gives the node platform information and instantiates a object of radio_info_t class related to the node passed
+        by argument parameter. The function sues UPI get_radio_platforms to check if WMP platform is available for node
+        The function uses UPI get_radio_info to extracts node capabilities in terms of execution environment,
+        radio program and platform info (parameters and measurements).
+
+    :param node: node from get platform supported and capabilities
+    :param log: experiment logging module attribute
+    :param controller: experiment object controller
+    :return current_platform_info: return an object of class radio_info_t with all the node capabilities, false if the WMP
+                              platform is not supported by node or an error occurred.
+    """
+
+
+    #list initialization
+    current_radio_list = None
+    current_radio_list = [radio_platform_t() for i in range(2)]
+
+    current_platform_info = radio_info_t()
+    current_platform_info.platform_info = radio_platform_t()
+    current_platform_info.execution_engine_list = [execution_engine_t() for i in range(2) ]
+    current_platform_info.radio_program_list = [ radio_program_t() for i in range(2) ]
+
+    wmp_platform_index = None
+    #get radio platform for the node
+    current_radio_list_string = controller.nodes(node).radio.get_radio_platforms()
+
+    current_radio_list[0].platform_id =  current_radio_list_string[0]
+    current_radio_list[0].platform_type =  current_radio_list_string[1]
+
+    for ii in range(len(current_radio_list)):
+        log.info('INTERFACE : %s : SUPPORTED PLATFORM : %s' % (current_radio_list[ii].platform_id, current_radio_list[ii].platform_type) )
+        if current_radio_list[ii].platform_type == "WMP" :
+            wmp_platform_index = ii
+            break
+
+    # Check if the Node NIC support the WMP platform
+    if wmp_platform_index == None :
+        log.debug('No WMP platform is supported')
+        return False
+
+    # Gets available radio capabilities
+    current_platform_info_str = controller.nodes(node).radio.get_radio_info(current_radio_list[wmp_platform_index].platform_id)
+    log.debug('current_platform_str %s' % current_platform_info_str)
+
+    current_platform_info.platform_info.platform_id = current_platform_info_str['radio_info'][0]
+    current_platform_info.platform_info.platform_type = current_platform_info_str['radio_info'][1]
+
+    log.debug("Radio capabilities for %s " % str(node))
+    log.debug(" RADIO : %s - PLATFORM : %s" % (str(current_platform_info.platform_info.platform_id), str(current_platform_info.platform_info.platform_type) ) )
+
+    # Gets monitor measurements and parameters supported
+    current_platform_info.monitor_list = current_platform_info_str['monitor_list']
+    current_platform_info.param_list = current_platform_info_str['param_list']
+
+    # Gets supported execution environment supported
+    execution_engine_list_name = current_platform_info_str['exec_engine_list_name']
+    execution_engine_list_name = execution_engine_list_name[0]
+    execution_engine_list_pointer = current_platform_info_str['exec_engine_list_pointer']
+    execution_engine_list_pointer = execution_engine_list_pointer[0]
+    current_platform_info.execution_engine_list = [execution_engine_t() for i in range(len(execution_engine_list_name)) ]
+    for ii in range( len(execution_engine_list_name) ) :
+        current_platform_info.execution_engine_list[ii].execution_engine_name = execution_engine_list_name[ii]
+        current_platform_info.execution_engine_list[ii].execution_engine_pointer = execution_engine_list_pointer[ii]
+
+    # Gets radio program supported
+    radio_prg_list_name = current_platform_info_str['radio_prg_list_name']
+    radio_prg_list_name = radio_prg_list_name [0]
+    radio_prg_list_pointer = current_platform_info_str['radio_prg_list_pointer']
+    radio_prg_list_pointer = radio_prg_list_pointer[0]
+    current_platform_info.radio_program_list = [ radio_program_t() for i in range(len(radio_prg_list_name)) ]
+    for ii in range(len(radio_prg_list_name)):
+        current_platform_info.radio_program_list[ii].radio_prg_name = radio_prg_list_name[ii]
+        current_platform_info.radio_program_list[ii].radio_prg_pointer = radio_prg_list_pointer[ii]
+
+    return current_platform_info
+
+
+def active_TDMA_radio_program(node, log, controller, current_platform_info):
+    """ Set TDMA radio program and parameters on node. The TDMA radio program has three parameter, they are: superframe
+        size, number of sync slot and allocated slot, this function set them together.
+
+    :param node: Node or Nodes list
+    :param log: experiment logging object
+    :param controller: experiment object controller
+    :param current_platform_info: node capabilities
+    :return result: Result of setting (True = successful, False = failure)
+    """
+
+    radio_program_pointer_TDMA = ""
+    position = ""
+
+    # Find TDMA radio program pointer in current_platform_info capability list
+    for ii in range(len(current_platform_info.radio_program_list)):
+        if current_platform_info.radio_program_list[ii].radio_prg_name == "TDMAMASK" :
+            radio_program_pointer_TDMA = current_platform_info.radio_program_list[ii].radio_prg_pointer
+            position = '2'
+
+    # Active TDMA radio program
+    UPIargs = {'position' : position, 'radio_program_name' : 'TDMAMASK', 'path' : radio_program_pointer_TDMA, 'interface' : 'wlan0' }
+    rvalue = controller.nodes(node).radio.activate_radio_program(UPIargs)
+
+    # slot_index = 0
+    # slot_size = 2200 #slot size in ms
+    # superframe_size = slot_size * nodes_number # frame size in ms
+	#
+    # # Set the TDMA parameter
+    # UPIargs = { 'interface' : 'wlan0', UPI_R.TDMA_SUPER_FRAME_SIZE:superframe_size, UPI_R.TDMA_NUMBER_OF_SYNC_SLOT : nodes_number, UPI_R.TDMA_ALLOCATED_SLOT : slot_index }
+    # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
+
+    # gevent.sleep(1)
+    # Active new configuration
+    # UPIargs = {'radio_program_name' : 'TDMAMASK' }
+    # rvalue = controller.nodes(node).radio.activate_radio_program(UPIargs)
+
+    if rvalue != SUCCESS :
+        log.debug('Error in radio program activation')
+        return False
+    else:
+        log.warning('Radio program activation succesfull')
+
+    position = '1'
+    UPIargs = {'position': position, 'interface': 'wlan0'}
+    rvalue = controller.nodes(node).radio.activate_radio_program(UPIargs)
+    if rvalue != SUCCESS:
+        log.warning('Error in radio program activation')
+        return False
+    else:
+        log.warning('Radio program activation successful')
+
+    return True
+
+
+def wifiStatus():
     print("change wifi state")
     global wifiState
-    if state == "DISABLE":
-        wifiState = True
-    elif state == "ENABLE":
-        wifiState = False
+    if wifiState == "ENABLE":
+        wifiState = "DISABLE"
+    elif wifiState == "DISABLE":
+        wifiState = "ENABLE"
     else:
-        wifiState = False
+        wifiState = "DISABLE"
+        return
 
-def lteStatus(state="DISABLE"):
+def lteStatus():
     print("change lte state")
     global lteState
-    if state == "DISABLE":
-        lteState = True
-    elif state == "ENABLE":
-        lteState = False
+    if lteState == "ENABLE":
+        lteState = "DISABLE"
+    elif lteState == "DISABLE":
+        lteState = "ENABLE"
     else:
-        lteState = False
+        lteState = "DISABLE"
+        return
 
-def tdmaStatus(state="DISABLE"):
+def tdmaStatus():
     print("change TDMA state")
-    global tdmaState
-    if state == "DISABLE":
-        tdmaState = True
-    elif state == "ENABLE":
-        tdmaState = False
-    else:
-        tdmaState = False
+    global tdmaState, tdmaStateChange
 
+    print(tdmaState)
+    if tdmaState == "ENABLE":
+        tdmaState = "DISABLE"
+        position = '1'
+    elif tdmaState == "DISABLE":
+        tdmaState = "ENABLE"
+        position = '2'
+    else:
+        tdmaState = "DISABLE"
+        return
+
+    tdmaStateChange = True
 
 # Entry point after globals initialization
 def main(args):
     global nodes
     global do_run
+
+    # global controller
+    global nodes_platform_info
+    global eth_ip
+    global role
+
+    global tdmaState, tdmaStateChange
 
     # Init variables
     do_run = True
@@ -391,7 +521,7 @@ def main(args):
 
     solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
     solutionName = "lte_ct"
-    commands = { "STOP_WIFI": wifiStatus, 	"STOP_LTE": lteStatus,	"STOP_TDMA": tdmaStatus, "START_WIFI": wifiStatus("ENABLE"), "START_LTE":lteStatus("ENABLE"), "START_TDMA":tdmaStatus("ENABLE")}
+    commands = {"STOP_WIFI": wifiStatus, "STOP_LTE": lteStatus, "STOP_TDMA": tdmaStatus, "START_WIFI": wifiStatus, "START_LTE": lteStatus, "START_TDMA": tdmaStatus}
     eventList = []
     monitorList = ["WiFi-THR", "LTE-THR", "WiFi-PER", "LTE-PER"]
     solutionCtrProxy.set_solution_attributes(solutionName, commands, eventList, monitorList )
@@ -539,6 +669,17 @@ def main(args):
                                 print(connection_result)
                                 if connection_result == False:
                                     raise SystemExit('Unable to connect')
+
+                                # get node capabilities
+                                nodes_platform_info = get_platform_information(nodes[jj], log, controller)
+
+                                # get active radio program on station node
+                                # active_radio_program = controller.nodes(nodes[jj]).radio.get_running_radio_program()
+                                # print("radio program activated : %s (1=CSMA, 2=TDMA)" % str(active_radio_program))
+
+                                # active TDMA radio progrma on staiton node
+                                active_TDMA_radio_program(nodes[jj], log, controller, nodes_platform_info)
+
                             else:
                                 print("no station role found ")
                                 break
@@ -593,51 +734,71 @@ def main(args):
                     if label[pos] == 'B' or label[pos] == 'C':
                         controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
 
-                socket_command = start_command_connection()
-                poller = zmq.Poller()
-                poller.register(socket_command, flags=zmq.POLLIN)
+                # socket_command = start_command_connection()
+                # poller = zmq.Poller()
+                # poller.register(socket_command, flags=zmq.POLLIN)
                 EXPERIMENT_DURATION = 30000000
                 dt = 0
                 while do_run:
-                    socket_list = poller.poll(1000)
-                    if socket_list:
-                        for socket_info in socket_list:
-                            if socket_info[1] == zmq.POLLIN:
-                                parsed_json = socket_command.recv_json()
-                                print('parsed_json : %s' % str(parsed_json))
-                                type = parsed_json['type']
 
-                                if type == 'traffic':
-                                    node = parsed_json['src']
-                                    node_src_index = all_nodes.index(node)
-                                    command = parsed_json['command']
-                                    nodes_source_rate[node_src_index] = 0
-                                    if command == 'off_traffic':
-                                        # if off traffic is selected for a specific node
-                                        # call UPI to stop traffic on node
-                                        controller.nodes(nodes[node_src_index]).net.stop_packetflow()
-                                        if node == 'D':
-                                            #off LTE network
-                                            controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
-                                            pass
-                                        else:
-                                            pass
+                    if tdmaStateChange:
+                        if tdmaState == "ENABLE":
+                            position = '2'
+                        else:
+                            tdmaState = "DISABLE"
+                            position = '1'
+                        tdmaStateChange = False
+                        for jj in range(0, len(nodes)):
+                            print(eth_ip.index(nodes[jj].ip))
+                            pos = eth_ip.index(nodes[jj].ip)
+                            if role[pos] == "STA":
+                                UPIargs = {'position': position, 'interface': 'wlan0'}
+                                rvalue = controller.nodes(nodes[jj]).radio.activate_radio_program(UPIargs)
+                                if rvalue != SUCCESS:
+                                    log.warning('Error in radio program activation')
+                                    return
+                                else:
+                                    log.warning('Radio program activation successful')
 
-                                    # if start traffic is selected for a specific node
-                                    if command == 'set_traffic':
-                                        node = parsed_json['dst']
-                                        node_dst_index = all_nodes.index(node)
-                                        value = parsed_json['value']
-                                        nodes_source_rate[node_src_index] = value
-                                        source_rate = float(nodes_source_rate[node_src_index])
-                                        # call UPI to start traffic
-                                        if node == 'E':
-                                            controller.node(nodes[node_src_index]).radio.activate_radio_program('ENB')
-                                            gevent.sleep(5)
-                                            # controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", '3000', str(value), '1470')
-                                        else:
-                                            controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
 
+                        # socket_list = poller.poll(1000)
+                    # if socket_list:
+                    #     for socket_info in socket_list:
+                    #         if socket_info[1] == zmq.POLLIN:
+                    #             parsed_json = socket_command.recv_json()
+                    #             print('parsed_json : %s' % str(parsed_json))
+                    #             type = parsed_json['type']
+					#
+                    #             if type == 'traffic':
+                    #                 node = parsed_json['src']
+                    #                 node_src_index = all_nodes.index(node)
+                    #                 command = parsed_json['command']
+                    #                 nodes_source_rate[node_src_index] = 0
+                    #                 if command == 'off_traffic':
+                    #                     # if off traffic is selected for a specific node
+                    #                     # call UPI to stop traffic on node
+                    #                     controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+                    #                     if node == 'D':
+                    #                         #off LTE network
+                    #                         controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
+                    #                         pass
+                    #                     else:
+                    #                         pass
+					#
+                    #                 # if start traffic is selected for a specific node
+                    #                 if command == 'set_traffic':
+                    #                     node = parsed_json['dst']
+                    #                     node_dst_index = all_nodes.index(node)
+                    #                     value = parsed_json['value']
+                    #                     nodes_source_rate[node_src_index] = value
+                    #                     source_rate = float(nodes_source_rate[node_src_index])
+                    #                     # call UPI to start traffic
+                    #                     if node == 'E':
+                    #                         controller.node(nodes[node_src_index]).radio.activate_radio_program('ENB')
+                    #                         gevent.sleep(5)
+                    #                         # controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", '3000', str(value), '1470')
+                    #                     else:
+                    #                         controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
                     if not (dt % 10):
                         log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
                     dt += 1

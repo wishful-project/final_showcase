@@ -106,6 +106,7 @@ class GlobalSolutionControllerProxy(object):
                             function = self.commands[cmd]
                             function()
 
+
             except KeyboardInterrupt:
                 return
             except Exception:

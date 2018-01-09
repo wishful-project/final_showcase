@@ -717,7 +717,7 @@ def change_state_tdma(*args):
     global driver, tdmaActivation
     print("gui_support.change_state_tdma : " + tdmaActivation.get())
     sys.stdout.flush()
-    # setTdma()
+    setTdma()
 
 
 def stopAllTraffic(self):
@@ -768,8 +768,20 @@ def setTraffic(technology):
 
         print('command sent %s' % str(command_list))
         socket_command_remote_network.send_json(command_list)
-        command_sent = True
 
+def setTdma():
+    global socket_command_remote_network, tdmaActivation
+
+    if tdmaActivation.get() == '1':
+        command = 'on_tdma'
+        command_list = {'type': 'radio_program', 'command': command}
+    else:
+        round_val = 0
+        command = 'off_tdma'
+        command_list = {'type': 'radio_program', 'command': command}
+
+    print('command sent %s' % str(command_list))
+    socket_command_remote_network.send_json(command_list)
 
 if __name__ == '__main__':
     import gui

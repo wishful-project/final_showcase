@@ -106,6 +106,9 @@ def main(args):
 	log.info('******* 	WISHFUL *************')
 	log.info('********  Starting solution global controller ***************')
 
+	all_nodes = ['B', 'C', 'D', 'E']
+	nodes_source_rate = []
+
 	# Prepare our context and publisher socket
 	ctx = zmq.Context()
 
@@ -123,7 +126,8 @@ def main(args):
 	# Init connection with GUI for LOG
 	socket_visualizer = start_visualizer_connection()
 	# Init conneciton with GUI for command
-	# socket_command_visualizer = start_command_connection()
+	socket_command_visualizer = start_command_connection()
+	poller.register(socket_command_visualizer, flags=zmq.POLLIN)
 
 	#Start main while, receive request and update information to solution
 	while True:
@@ -132,7 +136,10 @@ def main(args):
 		except (zmq.ZMQError, KeyboardInterrupt):
 			break # interrupt/context shutdown
 
-		# Execute state request request
+
+		"""
+		**** RECEIVED MESSAGE FROM SHOWCASE SOLUTION
+		"""
 		if request in items:
 			msg = request.recv_multipart()
 			identity = msg[0]
@@ -272,6 +279,79 @@ def main(args):
 						pass
 					else:
 						print("Received command report but no solution is registered")
+
+
+		"""
+		**** RECEIVED COMMAND FROM SHOWCASE GUI
+		"""
+		if socket_command_visualizer in items:
+			parsed_json = socket_command_visualizer.recv_json()
+			print('parsed_json : %s' % str(parsed_json))
+			type = parsed_json['type']
+			if type == 'traffic':
+				node = parsed_json['src']
+				node_src_index = all_nodes.index(node)
+				command = parsed_json['command']
+				nodes_source_rate[node_src_index] = 0
+				if command == 'off_traffic':
+					# if off traffic is selected for a specific node
+					if node == 'D':
+						#off LTE network
+						pass
+					else:
+						# off WiFi network
+						pass
+
+				# if start traffic is selected for a specific node
+				if command == 'set_traffic':
+					node = parsed_json['dst']
+					node_dst_index = all_nodes.index(node)
+					value = parsed_json['value']
+					nodes_source_rate[node_src_index] = value
+					source_rate = float(nodes_source_rate[node_src_index])
+					# call UPI to start traffic
+					if node == 'E':
+						# on LTE network
+						pass
+					else:
+						# on WiFi network
+						pass
+
+			if type == 'radio_program':
+				command = parsed_json['command']
+				if command == 'on_tdma':
+					for key2 in solutionCompatibilityMatrix:
+						if solutionCompatibilityMatrix[key2].name == "lte_ct":
+							if "START_TDMA" in solutionCompatibilityMatrix[key2].commandList:
+								commandList = "START_TDMA"
+								# Distribute as key-value message
+								sequence_publisher += 1
+								kvmsg = KVMsg(sequence_publisher)
+								kvmsg.key = b"generic"
+								msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+								print('update message %s' % str(msg))
+								kvmsg.body = json.dumps(msg).encode('utf-8')
+								kvmsg.send(publisher)
+								print("sent update information with sequence %d" % sequence_publisher)
+							break
+				if command == 'off_tdma':
+					for key2 in solutionCompatibilityMatrix:
+						if solutionCompatibilityMatrix[key2].name == "lte_ct":
+							if "STOP_TDMA" in solutionCompatibilityMatrix[key2].commandList:
+								commandList = "STOP_TDMA"
+								# Distribute as key-value message
+								sequence_publisher += 1
+								kvmsg = KVMsg(sequence_publisher)
+								kvmsg.key = b"generic"
+								msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+								print('update message %s' % str(msg))
+								kvmsg.body = json.dumps(msg).encode('utf-8')
+								kvmsg.send(publisher)
+								print("sent update information with sequence %d" % sequence_publisher)
+							break
+
+
+
 
 
 if __name__ == "__main__":
