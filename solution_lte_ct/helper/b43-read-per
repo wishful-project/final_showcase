@@ -192,7 +192,7 @@ def main():
 
 		tx_count = []
 		rx_ack_count = []
-		for i in range([216, 218, 220, 222, 224, 226, 228, 230, 232, 234]):
+		for i in [216, 220, 224, 228, 232]:
 			val = b43.shmRead32(b43.B43_SHM_SHARED, i)
 			# outString = outString + str((val & 0x00FF) + ((val & 0xFF00))) + "," + str(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00)) + ","
 			tx_count.append((val & 0x00FF) + ((val & 0xFF00)))
@@ -224,14 +224,14 @@ def main():
 			if np.isnan(psucc[i]):
 				psucc[i] = 0
 				continue
-
 		psucc_tot = np.divide(np.sum(dack), np.sum(dtx))
-		print("rx_ack = {}".format(dack))
-		print("tx     = {}".format(dtx))
+
+		# print("rx_ack = {}".format(dack))
+		# print("tx     = {}".format(dtx))
 		np.set_printoptions(precision=1)
 		print("psucc  = {}".format(psucc))
 		print("psucc_tot={}".format(psucc_tot))
-		print("count_round={}".format(count_round))
+		# print("count_round={}".format(count_round))
 
 		# json_msg = {'time': time.time(), 'psucc': psucc_tot, 'mask': mask, 'enable_controller': enable_controller, 'mask_sum': mask_sum, 'psucc_list': list(psucc)}
 		# print(json_msg)
@@ -260,7 +260,7 @@ def main():
 		# diff = tsStop - tsLastProcess
 		# if diff.seconds > 1:
 		if True:
-			message = {"measure": psucc}
+			message = {"measure": psucc.tolist()}
 			print("%d - %s" % (sending_number, str(message)))
 			socket_zmq.send_json(message)
 			sending_number += 1

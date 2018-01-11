@@ -46,7 +46,7 @@ def remote_control_program(controller):
     #enable debug print
     debug = False
     debug_statistics = True
-    dryRun = True
+    dryRun = False
 
     starttime=time.time()
     neigh_list = {}
@@ -194,7 +194,7 @@ def remote_control_program(controller):
                 # suite.slots[suite.active_slot] = protocol
                 # # print('load protocol : change slot')
 
-                UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: mask}
+                UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
                 # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
                 rvalue = controller.radio.set_parameters(UPIargs)
                 if rvalue[0] == SUCCESS:

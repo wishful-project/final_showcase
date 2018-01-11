@@ -106,8 +106,8 @@ def main(args):
 	log.info('******* 	WISHFUL *************')
 	log.info('********  Starting solution global controller ***************')
 
-	all_nodes = ['B', 'C', 'D', 'E']
-	nodes_source_rate = []
+	# all_nodes = ['B', 'C', 'D', 'E']
+	# nodes_source_rate = []
 
 	# Prepare our context and publisher socket
 	ctx = zmq.Context()
@@ -290,32 +290,85 @@ def main(args):
 			type = parsed_json['type']
 			if type == 'traffic':
 				node = parsed_json['src']
-				node_src_index = all_nodes.index(node)
+				# node_src_index = all_nodes.index(node)
 				command = parsed_json['command']
-				nodes_source_rate[node_src_index] = 0
+				# nodes_source_rate[node_src_index] = 0
 				if command == 'off_traffic':
 					# if off traffic is selected for a specific node
 					if node == 'D':
 						#off LTE network
-						pass
+						commandList = "STOP_LTE"
+						for key2 in solutionCompatibilityMatrix:
+							if solutionCompatibilityMatrix[key2].name == "lte_ct":
+								if commandList in solutionCompatibilityMatrix[key2].commandList:
+									# Distribute as key-value message
+									sequence_publisher += 1
+									kvmsg = KVMsg(sequence_publisher)
+									kvmsg.key = b"generic"
+									msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+									print('update message %s' % str(msg))
+									kvmsg.body = json.dumps(msg).encode('utf-8')
+									kvmsg.send(publisher)
+									print("sent update information with sequence %d" % sequence_publisher)
+								break
 					else:
 						# off WiFi network
-						pass
+						commandList = "STOP_WIFI"
+						for key2 in solutionCompatibilityMatrix:
+							if solutionCompatibilityMatrix[key2].name == "lte_ct":
+								if commandList in solutionCompatibilityMatrix[key2].commandList:
+									# Distribute as key-value message
+									sequence_publisher += 1
+									kvmsg = KVMsg(sequence_publisher)
+									kvmsg.key = b"generic"
+									msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+									print('update message %s' % str(msg))
+									kvmsg.body = json.dumps(msg).encode('utf-8')
+									kvmsg.send(publisher)
+									print("sent update information with sequence %d" % sequence_publisher)
+								break
 
 				# if start traffic is selected for a specific node
 				if command == 'set_traffic':
 					node = parsed_json['dst']
-					node_dst_index = all_nodes.index(node)
-					value = parsed_json['value']
-					nodes_source_rate[node_src_index] = value
-					source_rate = float(nodes_source_rate[node_src_index])
+					# node_dst_index = all_nodes.index(node)
+					# value = parsed_json['value']
+					# nodes_source_rate[node_src_index] = value
+					# source_rate = float(nodes_source_rate[node_src_index])
 					# call UPI to start traffic
 					if node == 'E':
 						# on LTE network
-						pass
+						commandList = "START_LTE"
+						for key2 in solutionCompatibilityMatrix:
+							if solutionCompatibilityMatrix[key2].name == "lte_ct":
+								if commandList in solutionCompatibilityMatrix[key2].commandList:
+									# Distribute as key-value message
+									sequence_publisher += 1
+									kvmsg = KVMsg(sequence_publisher)
+									kvmsg.key = b"generic"
+									msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+									print('update message %s' % str(msg))
+									kvmsg.body = json.dumps(msg).encode('utf-8')
+									kvmsg.send(publisher)
+									print("sent update information with sequence %d" % sequence_publisher)
+								break
+
 					else:
 						# on WiFi network
-						pass
+						commandList = "START_WIFI"
+						for key2 in solutionCompatibilityMatrix:
+							if solutionCompatibilityMatrix[key2].name == "lte_ct":
+								if commandList in solutionCompatibilityMatrix[key2].commandList:
+									# Distribute as key-value message
+									sequence_publisher += 1
+									kvmsg = KVMsg(sequence_publisher)
+									kvmsg.key = b"generic"
+									msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+									print('update message %s' % str(msg))
+									kvmsg.body = json.dumps(msg).encode('utf-8')
+									kvmsg.send(publisher)
+									print("sent update information with sequence %d" % sequence_publisher)
+								break
 
 			if type == 'radio_program':
 				command = parsed_json['command']

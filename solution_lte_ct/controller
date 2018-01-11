@@ -106,8 +106,11 @@ controller = wishful_controller.Controller()
 nodes_platform_info = None
 eth_ip = None
 role = None
+
 wifiState = "DISABLE"
+wifiStateChange = False
 lteState = "DISABLE"
+lteStateChange = False
 tdmaState = "DISABLE"
 tdmaStateChange = False
 
@@ -263,7 +266,9 @@ def setAP(controller, node, iface, wlan_ip, essid):
     # set power
     rvalue = controller.nodes(node).radio.set_tx_power(15)
     # set modulation rate
-    rvalue = controller.nodes(node).radio.set_modulation_rate(6)
+    # rvalue = controller.nodes(node).radio.set_modulation_rate(6)
+    rvalue = controller.nodes(node).radio.set_modulation_rate(24)
+
 
 def setSTA(controller, node, iface, wlan_ip, essid):
     """ Associate node to infrastructure BSS
@@ -277,7 +282,8 @@ def setSTA(controller, node, iface, wlan_ip, essid):
     # set power
     rvalue = controller.nodes(node).radio.set_tx_power(15)
     # set modulation rate
-    rvalue = controller.nodes(node).radio.set_modulation_rate(6)
+    # rvalue = controller.nodes(node).radio.set_modulation_rate(6)
+    rvalue = controller.nodes(node).radio.set_modulation_rate(24)
     connected = False
     for ii in range(10):
         # associate station
@@ -425,6 +431,16 @@ def active_TDMA_radio_program(node, log, controller, current_platform_info):
     UPIargs = {'position' : position, 'radio_program_name' : 'TDMAMASK', 'path' : radio_program_pointer_TDMA, 'interface' : 'wlan0' }
     rvalue = controller.nodes(node).radio.activate_radio_program(UPIargs)
 
+    mask = "1111111111"
+    UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
+    rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
+    # rvalue = controller.radio.set_parameters(UPIargs)
+    if rvalue[0] == SUCCESS:
+        log.warning('Radio program configuration succesfull')
+    else:
+        log.warning('Error in radio program configuration')
+        do_run = False
+
     # slot_index = 0
     # slot_size = 2200 #slot size in ms
     # superframe_size = slot_size * nodes_number # frame size in ms
@@ -444,21 +460,21 @@ def active_TDMA_radio_program(node, log, controller, current_platform_info):
     else:
         log.warning('Radio program activation succesfull')
 
-    position = '1'
-    UPIargs = {'position': position, 'interface': 'wlan0'}
-    rvalue = controller.nodes(node).radio.activate_radio_program(UPIargs)
-    if rvalue != SUCCESS:
-        log.warning('Error in radio program activation')
-        return False
-    else:
-        log.warning('Radio program activation successful')
+    # position = '1'
+    # UPIargs = {'position': position, 'interface': 'wlan0'}
+    # rvalue = controller.nodes(node).radio.activate_radio_program(UPIargs)
+    # if rvalue != SUCCESS:
+    #     log.warning('Error in radio program activation')
+    #     return False
+    # else:
+    #     log.warning('Radio program activation successful')
 
     return True
 
 
 def wifiStatus():
     print("change wifi state")
-    global wifiState
+    global wifiState, wifiStateChange
     if wifiState == "ENABLE":
         wifiState = "DISABLE"
     elif wifiState == "DISABLE":
@@ -467,9 +483,11 @@ def wifiStatus():
         wifiState = "DISABLE"
         return
 
+    wifiStateChange = True
+
 def lteStatus():
     print("change lte state")
-    global lteState
+    global lteState, lteStateChange
     if lteState == "ENABLE":
         lteState = "DISABLE"
     elif lteState == "DISABLE":
@@ -477,18 +495,16 @@ def lteStatus():
     else:
         lteState = "DISABLE"
         return
+    lteStateChange = True
 
 def tdmaStatus():
     print("change TDMA state")
     global tdmaState, tdmaStateChange
 
-    print(tdmaState)
     if tdmaState == "ENABLE":
         tdmaState = "DISABLE"
-        position = '1'
     elif tdmaState == "DISABLE":
         tdmaState = "ENABLE"
-        position = '2'
     else:
         tdmaState = "DISABLE"
         return
@@ -505,7 +521,7 @@ def main(args):
     global eth_ip
     global role
 
-    global tdmaState, tdmaStateChange
+    global tdmaState, tdmaStateChange, wifiState, wifiStateChange, lteState, lteStateChange
 
     # Init variables
     do_run = True
@@ -521,7 +537,7 @@ def main(args):
 
     solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
     solutionName = "lte_ct"
-    commands = {"STOP_WIFI": wifiStatus, "STOP_LTE": lteStatus, "STOP_TDMA": tdmaStatus, "START_WIFI": wifiStatus, "START_LTE": lteStatus, "START_TDMA": tdmaStatus}
+    commands = {"STOP_WIFI": (lambda: wifiStatus()), "STOP_LTE": (lambda: lteStatus()), "STOP_TDMA": (lambda:tdmaStatus()), "START_WIFI": (lambda:wifiStatus()), "START_LTE": (lambda:lteStatus()), "START_TDMA": (lambda:tdmaStatus())}
     eventList = []
     monitorList = ["WiFi-THR", "LTE-THR", "WiFi-PER", "LTE-PER"]
     solutionCtrProxy.set_solution_attributes(solutionName, commands, eventList, monitorList )
@@ -744,12 +760,14 @@ def main(args):
                     if tdmaStateChange:
                         if tdmaState == "ENABLE":
                             position = '2'
-                        else:
-                            tdmaState = "DISABLE"
+                        elif tdmaState == "DISABLE":
                             position = '1'
+                        else:
+                            tdmaStateChange = False
+                            continue
+
                         tdmaStateChange = False
                         for jj in range(0, len(nodes)):
-                            print(eth_ip.index(nodes[jj].ip))
                             pos = eth_ip.index(nodes[jj].ip)
                             if role[pos] == "STA":
                                 UPIargs = {'position': position, 'interface': 'wlan0'}
@@ -759,6 +777,63 @@ def main(args):
                                     return
                                 else:
                                     log.warning('Radio program activation successful')
+
+                    if wifiStateChange:
+                        if wifiState == "ENABLE":
+                            parsed_json = {'value': 10000, 'dst': 'B', 'type': 'traffic', 'command': 'set_traffic', 'src': 'C'}
+                            #source
+                            node = parsed_json['src']
+                            node_src_index = all_nodes.index(node)
+                            # command = parsed_json['command']
+                            nodes_source_rate[node_src_index] = 0
+                            #destination
+                            node = parsed_json['dst']
+                            node_dst_index = all_nodes.index(node)
+                            value = parsed_json['value']
+                            nodes_source_rate[node_src_index] = value
+                            source_rate = float(nodes_source_rate[node_src_index])
+                            controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '500')
+                        elif wifiState == "DISABLE":
+                            parsed_json = {'dst': 'B', 'type': 'traffic', 'command': 'off_traffic', 'src': 'C'}
+                            # source
+                            node = parsed_json['src']
+                            node_src_index = all_nodes.index(node)
+                            controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+                        else:
+                            wifiStateChange = False
+                            continue
+                        wifiStateChange = False
+
+                    if lteStateChange:
+                        if lteState == "ENABLE":
+                            parsed_json = {'src': 'D', 'value': 2000, 'type': 'traffic', 'command': 'set_traffic', 'dst': 'E'}
+                            # source
+                            node = parsed_json['src']
+                            node_src_index = all_nodes.index(node)
+                            # command = parsed_json['command']
+                            nodes_source_rate[node_src_index] = 0
+                            # destination
+                            # node = parsed_json['dst']
+                            # node_dst_index = all_nodes.index(node)
+                            value = parsed_json['value']
+                            # nodes_source_rate[node_src_index] = value
+                            # source_rate = float(nodes_source_rate[node_src_index])
+                            controller.node(nodes[node_src_index]).radio.activate_radio_program('ENB')
+                            gevent.sleep(5)
+                            # iperf - c 127.0.0.1 - p 2000 - i 1 - t 10000
+                            controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", "3000", 0, '1470')
+                        elif lteState == "DISABLE":
+                            #off LTE network
+                            parsed_json = {'src': 'D', 'dst': 'E', 'type': 'traffic', 'command': 'off_traffic'}
+                            # source
+                            node = parsed_json['src']
+                            node_src_index = all_nodes.index(node)
+                            controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+                            controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
+                        else:
+                            lteStateChange = False
+                            continue
+                        lteStateChange = False
 
 
                         # socket_list = poller.poll(1000)

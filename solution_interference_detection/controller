@@ -34,7 +34,10 @@ import zmq
 import json
 import zmq
 import _thread
-import struct # for packing integers
+from sklearn.externals import joblib
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
+import numpy as np
 
 sys.path.append('../')
 sys.path.append('../../')
@@ -284,7 +287,16 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							good_fcs = errorMeasure[16]
 							busy_time = errorMeasure[1]
 
-							#ececute ANN
+							# #ececute ANN
+							# file_scaler = 'SCALER-mix'
+							# file_ann = 'ANN-mix'
+							#
+							# data = np.genfromtxt(fname='path_Dataset', delimiter=' ')
+							#
+							# scaler = joblib.load(file_scaler)
+							# ann = joblib.load(file_ann)
+							#
+							# valori_predetti = ann.predict(scaler.transform(data))
 
 							print("take decision")
 							#LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
