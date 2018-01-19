@@ -277,7 +277,7 @@ def remote_control_program(controller):
                 # iperf_thread.start()
 
                 reading_buffer = []
-                reading_buffer.append([0.0])
+                reading_buffer.append([[0.0]])
                 reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
                 reading_buffer_thread.do_run = True
                 reading_buffer_thread.start()

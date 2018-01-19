@@ -262,6 +262,14 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 
 	interference_state = "NO interference"
 	receive_thread = threading.currentThread()
+
+	#SETUP ANN
+	file_scaler = 'helper/SCALER-mix.pkl'
+	file_ann = 'helper/ANN-mix.pkl'
+	# data = np.genfromtxt(fname='path_Dataset', delimiter=' ')
+	scaler = joblib.load(file_scaler)
+	ann = joblib.load(file_ann)
+
 	while getattr(receive_thread, "do_run", True):
 		msg = lcpDescriptor_node.recv(timeout=0.1)
 		if msg:
@@ -269,62 +277,104 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 			if "mac_address" in msg:
 				for ii in range(0, len(mac_address)):
 					if msg['mac_address'] == mac_address[ii]:
-						# print('message = %s - mac = %s' % (msg['measure'], msg['mac_address']))
+						# print('len %d - message = %s - mac = %s' % (len(msg['measure'][0]), msg['measure'], msg['mac_address']))
 						msg['label'] = label[ii]
 						msg['type'] = u'statistics'
 
-						if label[ii] == 'A' and len(msg['measure'][0]) == 19:  # len(errorMeasure)==6: #check error only for labl A
-							errorMeasure = msg['measure'][0]
+						if label[ii] == 'A' and len(msg['measure'][0][0]) == 19:  # len(errorMeasure)==6: #check error only for labl A
+							# errorMeasure = msg['measure'][0]
 							# print("%s %s" % (str(label), errorMeasure))
-							print("execute ANN")
-							# fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
-							# reg = {'104' '106' '108' '10A' '10C' '110' '112' '11E' '100'}; % '102'};
-							# leg = {'Too Long' 'Too Short' 'Invalid MAC Header' 'Bad FCS' 'Bad PLCP'...
-							#		 % 'Preamble OK, bad Header' 'Good PLCP' 'Good FCS, matching RA' 'Good FCS, not matching RA' 'Busy Time'};
-							bad_plcp = errorMeasure[7]
-							good_plcp = errorMeasure[9]
-							bad_fcs = errorMeasure[6]
-							good_fcs = errorMeasure[16]
-							busy_time = errorMeasure[1]
+							# # bad_plcp = errorMeasure[7]
+							# good_plcp = errorMeasure[9]
+							# bad_fcs = errorMeasure[6]
+							# good_fcs = errorMeasure[16]
+							# busy_time = errorMeasure[1]
 
-							# #ececute ANN
-							# file_scaler = 'SCALER-mix'
-							# file_ann = 'ANN-mix'
-							#
-							# data = np.genfromtxt(fname='path_Dataset', delimiter=' ')
-							#
-							# scaler = joblib.load(file_scaler)
-							# ann = joblib.load(file_ann)
-							#
-							# valori_predetti = ann.predict(scaler.transform(data))
+							for jj in range(0, len(msg['measure'][0])):
+								errorMeasure = msg['measure'][0][jj]
+								# print("%s %s" % (str(label), errorMeasure))
+								print("execute ANN")
+								# fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
+								# too - long --> 104 --> 3
+								# Invalid - MAC - Header --> 108 --> 5
+								# Bad - FCS --> 10A --> 6
+								# Bad - PLCP --> 10C --> 7
+								# Good - PLCP --> 9
+								# Good - FCS, not -matching - RA --> 16
+								# reg = {'104' '106' '108' '10A' '10C' '110' '112' '11E' '100'}; % '102'};
+								# leg = {'Too Long' 'Too Short' 'Invalid MAC Header' 'Bad FCS' 'Bad PLCP'...
+								#		 % 'Preamble OK, bad Header' 'Good PLCP' 'Good FCS, matching RA' 'Good FCS, not matching RA' 'Busy Time'};
+								ann_input = [ errorMeasure[3],  errorMeasure[4],  errorMeasure[5],  errorMeasure[6],  errorMeasure[7],  errorMeasure[8],  errorMeasure[9],  errorMeasure[10],  errorMeasure[16]]
+								print(ann_input)
+								ann_imput_array = np.array(ann_input).reshape(1,9)
+								# print(ann_imput_array.shape)
+								#ececute ANN
+								predicted_value = ann.predict(scaler.transform(ann_imput_array))
+								print(predicted_value)
+								# 1000 --> WiFi
+								# 0100 --> LTE
+								# 0010 --> zigbee
+								# 0001 --> idle
+								# 1100 --> wifi + lte
+								# 1010 --> wifi + zigbee
+								# 0110 --> lte + zigbee
+								break # get only the first
 
 							print("take decision")
-							#LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
+							# LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
 							# print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
-							if busy_time > 350:
-								if bad_plcp > good_plcp and bad_fcs > good_fcs:
-									# LTE detection
-									print("detected LTE")
-									#send message to solution global controller
-									if interference_state !=  "LTE_U_DETECTED":
-										interference_state = "LTE_U_DETECTED"
-										solutionCtrProxy.send_event(interference_state)
-
-								elif bad_plcp < good_plcp and bad_fcs < good_fcs:
-									# WiFi detection
-									print("detected WiFi")
-									if interference_state !=  "WiFi_DETECTED":
-										interference_state = "WiFi_DETECTED"
-										solutionCtrProxy.send_event(interference_state)
-								else:
-									# no interference detected
-									print("no interference detected")
-
-							else:
+							if predicted_value=="1000":
+								# WiFi detection
+								print("detected WiFi")
+								if interference_state != "WiFi_DETECTED":
+									interference_state = "WiFi_DETECTED"
+									solutionCtrProxy.send_event(interference_state)
+							elif predicted_value=="0100":
+								# LTE detection
+								print("detected LTE")
+								# send message to solution global controller
+								if interference_state != "LTE_U_DETECTED":
+									interference_state = "LTE_U_DETECTED"
+									solutionCtrProxy.send_event(interference_state)
+							elif predicted_value == "0010":
+								# zigbee detection
+								print("detected zigbee")
+							elif predicted_value == "0001":
+								# idle detection
 								print("detected channel idle")
 								if interference_state != "NO_interference":
 									interference_state = "NO_interference"
 									solutionCtrProxy.send_event(interference_state)
+							else:
+								# no interference detected
+								print("no interference detected")
+
+							# #LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
+							# # print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
+							# if busy_time > 350:
+							# 	if bad_plcp > good_plcp and bad_fcs > good_fcs:
+							# 		# LTE detection
+							# 		print("detected LTE")
+							# 		#send message to solution global controller
+							# 		if interference_state !=  "LTE_U_DETECTED":
+							# 			interference_state = "LTE_U_DETECTED"
+							# 			solutionCtrProxy.send_event(interference_state)
+							#
+							# 	elif bad_plcp < good_plcp and bad_fcs < good_fcs:
+							# 		# WiFi detection
+							# 		print("detected WiFi")
+							# 		if interference_state !=  "WiFi_DETECTED":
+							# 			interference_state = "WiFi_DETECTED"
+							# 			solutionCtrProxy.send_event(interference_state)
+							# 	else:
+							# 		# no interference detected
+							# 		print("no interference detected")
+							#
+							# else:
+							# 	print("detected channel idle")
+							# 	if interference_state != "NO_interference":
+							# 		interference_state = "NO_interference"
+							# 		solutionCtrProxy.send_event(interference_state)
 
 						# print(msg)
 						socket_visualizer.send_json(msg)

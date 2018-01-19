@@ -16,14 +16,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-
-#define global variables
-matlab_engine_present = False
-try:
-	import matlab.engine
-except ImportError:
-	matlab_engine_present = False
-
 import getopt
 import sys
 import os
@@ -125,7 +117,7 @@ def main():
 	socket_zmq.bind("tcp://*:%s" % reading_port)
 
 	writeFile = False
-	outDebug = True
+	outDebug = False
 
 	out = StringIO.StringIO()
 	err = StringIO.StringIO()
@@ -161,9 +153,6 @@ def main():
 
 	fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
 	# [1513332326460587.2, 1591.32, 0.0,  0.0, 0.0,  0.0,  1.03,  0.0, 0.0,  -36.07, 0.0, 0.0, 0.0,  0.0, 0.0,  0.0,  1753.52, 0.0, 1888.88]
-	if matlab_engine_present:
-		print("Starting engine...")
-		matlab_eng = matlab.engine.start_matlab()
 
 	if writeFile:
 		file_name = "log"
@@ -178,6 +167,7 @@ def main():
 
 	event_wifi_number_1 = 0; event_zigbee_number_1 = 0; event_other_number_1 = 0; event_wifi_number_2 = 0; event_lte_number_2 = 0; event_other_number_2 = 0
 	sending_number  = 0
+	num_reading = 0
 	errorsMeanListOld = np.zeros((1,19))
 	errorsMeanListOld = errorsMeanListOld.tolist()[0]
 
@@ -185,26 +175,29 @@ def main():
 	local_starttime = reading_time
 	reading_interval = 0.1
 	column_old = []
-	val_incremental_old = 0
-	while 1:
+	val_incremental_old = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+	val_incremental_old_busy = 0
+
+	errorsMatrix = []
+	while True:
 		column = []
 		tsStart=datetime.now()
 		# stdout.write("\n%s," % tsStart.strftime('%s%f'))
 		outString = tsStart.strftime('%s%f') + ","
 		column.append(int(tsStart.strftime('%s%f')))
+		erroIndex = 0
+
 		for i in range(256, 286, 4):
 			if i == 256:
 				# read busy from physical register
 				val_incremental = b43.read16(b43.B43_MMIO_IFSMEDBUSYCTL)
-				val = val_incremental - val_incremental_old
+				val = val_incremental - val_incremental_old_busy
 				if val<0:
-					val = (65535 - val_incremental_old) + val_incremental
-				val_incremental_old = val_incremental
-				# val = 0
+					val = (65535 - val_incremental_old_busy) + val_incremental
+				val_incremental_old_busy = val_incremental
 				outString = outString + str(val) + ",0,"
 				column.append(val)
 				column.append(0)
-				
 			# print(column[1])
 			elif i == 276 or i == 280:
 				outString = outString + "0,0,"
@@ -212,9 +205,26 @@ def main():
 				column.append(0)
 			else:
 				val = b43.shmRead32(b43.B43_SHM_SHARED, i)
-				outString = outString + str((val & 0x00FF) + ((val & 0xFF00))) + "," + str(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00)) + ","
-				column.append((val & 0x00FF) + ((val & 0xFF00)))
-				column.append(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00))
+				# outString = outString + str((val & 0x00FF) + ((val & 0xFF00))) + "," + str(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00)) + ","
+				# column.append((val & 0x00FF) + ((val & 0xFF00)))
+				# column.append(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00))
+				error1 = ((val & 0x00FF) + ((val & 0xFF00)))
+				val1 = error1 - val_incremental_old[erroIndex]
+				if val1 < 0:
+					val1 = (65535 - val_incremental_old[erroIndex]) + error1
+				val_incremental_old[erroIndex] = error1
+				erroIndex += 1
+
+				error2 = (((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00))
+				val2 = error2 - val_incremental_old[erroIndex]
+				if val2 < 0:
+					val2 = (65535 - val_incremental_old[erroIndex]) + error2
+				val_incremental_old[erroIndex] = error2
+				erroIndex += 1
+
+				outString = outString + str(val1) + "," + str(val2) + ","
+				column.append(val1)
+				column.append(val2)
 
 		# tsStop=datetime.now();
 		diff = tsStart - tsStop
@@ -222,7 +232,6 @@ def main():
 		# stdout.write("%s,%d,%d" %(tsStop.strftime('%s%f'), diff.seconds,  diff.microseconds ) )
 		# outString = outString + str(tsStop.strftime('%s%f')) + "," + str(diff.seconds) + "," + str(diff.microseconds) + "\n"
 		outString = outString + str(diff.seconds) + "," + str(diff.microseconds) + "\n"
-
 		if writeFile:
 			out_file.write(outString)
 		if outDebug:
@@ -233,61 +242,40 @@ def main():
 		errors.append(column)
 
 		diff = tsStop - tsLastProcess
-		if diff.seconds > 1:
-			print('new error processing')
-			#call matlab
-			#if script_result != None and not script_result.done():
-			#	print("restarting...")
-			#	script_result.cancel()
-
-			if matlab_engine_present:
-				# script_result = matlab_eng.wifi_zigbee_detector('', nargout=0, async=True)
-				# script_result = matlab_eng.wifi_lte_detector('', nargout=0, async=True)
-
-				detection_result_1 = matlab_eng.wifi_zigbee_detector('', matlab.double(errors), stdout=out, stderr=err, nargout=3)
-				event_wifi_number_1 = len(detection_result_1[0])
-				event_zigbee_number_1 = len(detection_result_1[1])
-				event_other_number_1 = len(detection_result_1[2])
-
-				detection_result_2 = matlab_eng.wifi_lte_detector('', matlab.double(errors), stdout=out, stderr=err, nargout=3)
-				event_wifi_number_2 = len(detection_result_2[0])
-				event_lte_number_2 = len(detection_result_2[1])
-				event_other_number_2 = len(detection_result_2[2])
-
-				# print([event_wifi_number_1, event_zigbee_number_1, event_other_number_1, event_wifi_number_2, event_lte_number_2, event_other_number_2])
-				message = {"measure": [event_wifi_number_1, event_zigbee_number_1, event_other_number_1, event_wifi_number_2, event_lte_number_2, event_other_number_2]}
-
-			else:
-				errorsMatrix = np.array(errors)
-				errorsMean = errorsMatrix.mean(axis=0) #we not consider the 16 bit register issue
-				errorsMeanList = errorsMean.tolist()
-				errorsMeanDelta = []
-				# print(errorsMeanList)
-				for ii in range(0,len(errorsMeanList)):
-					# print(round(errorsMeanList[ii],2))
-
-					if ii == 0 or ii == 18 :
-						time_error = round(errorsMeanList[ii], 2)
-						errorsMeanDelta.append(time_error)
-					elif ii == 19:
-						time_error = round(errorsMeanList[ii], 2)
-						errorsMeanDelta.append(time_error)
-						# errorsMeanDelta.append(errors[0][len(errors[0])-1])
-					elif ii == 1:
-						time_error = round(errorsMeanList[ii], 2)
-						errorsMeanDelta.append(time_error)
-						# errorsMeanDelta.append(errors[0][1])
-					else:
-						delta_error = round((errorsMeanList[ii]-errorsMeanListOld[ii]),2)
-						errorsMeanDelta.append( delta_error )
-
-					errorsMeanListOld[ii]=errorsMeanList[ii]
-				message = {"measure": errorsMeanDelta}
-
-			print("%d - %s" % (sending_number, str(message)))
-			socket_zmq.send_json(message)
-			sending_number += 1
+		if diff.microseconds > 100000:
+		# if diff.seconds >= 1:
+		# 	print(errors[0])
+			errorsVector = []
+			currentErrorsMatrix = np.array(errors)
+			errorSum = currentErrorsMatrix.sum(axis=0) #we not consider the 16 bit register issue
+			errorMean = currentErrorsMatrix.mean(axis=0)
+			errorSumList = errorSum.tolist()
+			errorMeanList = errorMean.tolist()
+			# fieldnames = ['tsfStart' '100' '102' '104' '106' '108' '10A' '10C' '10E' '110' '112' '114' '116' '118' '11A' '11C' '11E' 'tsfDeltaSec' 'tsfDeltaus']
+			for ii in range(0,len(errorSumList)):
+				# print(round(errorSumList[ii],2))
+				if ii == 0 or ii == 17 or ii == 18 :
+					time_error = round(errorMeanList[ii], 2)
+					errorsVector.append(time_error)
+				elif ii == 1:
+					time_error = round(errorMeanList[ii], 2)
+					errorsVector.append(time_error)
+				else:
+					sum_error = round(errorSumList[ii],2)
+					errorsVector.append( sum_error )
+			errorsMatrix.append(errorsVector)
 			tsLastProcess = datetime.now()
+			num_reading += 1
+			if num_reading==10:
+			# if True:
+				print('new error processing')
+				message = {"measure": errorsMatrix}
+				# print("%d - %s" % (sending_number, str(message)))
+				print(errorsMatrix[0])
+				socket_zmq.send_json(message)
+				errorsMatrix = []
+				sending_number += 1
+				num_reading = 0
 
 			errors = []
 
