@@ -89,8 +89,9 @@ class GlobalSolutionControllerProxy(object):
     def command_subscriber(self):
         while True:
             try:
+                print("Wait for command")
                 kvmsg = KVMsg.recv(self.subSocket)
-                print("received command")
+                print("Received command")
                 mdict = kvmsg.body.decode('utf-8')
                 mdict = json.loads(mdict)
                 involvedSolutions = mdict.get("involvedSolutions", [])
@@ -105,11 +106,10 @@ class GlobalSolutionControllerProxy(object):
                             print("Execute command:", cmd)
                             function = self.commands[cmd]
                             function()
-
-
             except KeyboardInterrupt:
                 return
-            except Exception:
+            except Exception as ex:
+                print("Exception on command_subscriber loop: {}".format(ex))
                 break  # Interrupted
 
     def start_command_listener(self):
