@@ -44,7 +44,7 @@ matplotlib.use("TkAgg")
 import PIL
 from PIL import Image
 from selenium import webdriver
-# from spectral_acquire import spectral_recorder
+from spectral_acquire import spectral_recorder
 from operator import itemgetter
 
 zigbeeActivation = None
@@ -99,6 +99,7 @@ def init(top, gui, *args, **kwargs):
     # global bar_wifi, bar_zigbee, bar_microwave, bar_lte, bar_burst
     global bar_badfcs, bar_badplcp, bar_goodplcp, bar_goodfcs
     global bar_badfcs_norm, bar_badplcp_norm, bar_goodplcp_norm, bar_goodfcs_norm
+    global interference
 
     # bar_wifi = 20
     # bar_zigbee = 40
@@ -113,21 +114,29 @@ def init(top, gui, *args, **kwargs):
     bar_badplcp_norm=20
     bar_goodplcp_norm=20
     bar_goodfcs_norm=20
+    interference = "no interference"
 
 
     global driver, wifiActivation, zigbeeActivation, lteActivation, microwaveActivation, tdmaActivation
     chrome_driver = False
+
     if chrome_driver:
         path = "C:\Program Files\Python34\selenium\webdriver\chrome\chromedriver.exe"
         driver = webdriver.Chrome(path)
         # driver.get("http://10.8.8.22/energenie.html")
         driver.get("http://localhost:8001/energenie.html")
-        zigbeeActivation.trace("w", change_state_zigbee)
+        # zigbeeActivation.trace("w", change_state_zigbee)
+        tdmaActivation.trace("w", change_state_zigbee)
 
+    # tdma change state
+    # tdmaActivation.trace("w", change_state_tdma)
+
+    #WiFi change state
     wifiActivation.trace("w", change_state_wifi)
+    # LTE change state
     lteActivation.trace("w", change_state_lte)
-    microwaveActivation.trace("w", change_state_microwave)
-    tdmaActivation.trace("w", change_state_tdma)
+    # microwave change state
+    # microwaveActivation.trace("w", change_state_microwave)
 
     # NETWORK SOCKET SETUP
     global socket_plot_remote_network, socket_command_remote_network, socket_spectral_remote_network
@@ -163,10 +172,10 @@ def init(top, gui, *args, **kwargs):
     start_new_thread(plot_bar_detection, (99,))
 
     # PLOTTER channet time
-    # start_new_thread(plot_channel_time, (99,))
+    start_new_thread(plot_channel_time, (99,))
 
     # PLOTTER cdf time
-    # start_new_thread(receive_data_spectral, (99,))
+    start_new_thread(receive_data_spectral, (99,))
 
 
 def destroy_window():
@@ -193,6 +202,7 @@ def receive_data_plot(x):
     global bar_badfcs, bar_badplcp, bar_goodplcp, bar_goodfcs
     global bar_badfcs_norm, bar_badplcp_norm, bar_goodplcp_norm, bar_goodfcs_norm
     global all_nodes
+    global interference
     global w
 
     reading_time = 1000
@@ -240,6 +250,18 @@ def receive_data_plot(x):
 
             #{'measure': [[1513245709449775.5, 3558.99, 0.0, 3.76, 0.0, 36.59, 61.55, 23.05, 0.0, 197.79, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 132.51, 0.0, 1912.97], 0.0], 'mac_address': '00:14:a5:e9:12:7c',
             # 'type': 'statistics', 'label': 'A'}
+            # parsed_json: {'type': 'statistics', 'measure': [[[1518088745366487.0, 289.75, 0.0, 0.0, 0.0, 83.0, 111.0, 4.0, 0.0, 191.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 80.0, 0.0, 2103.67],
+            #                                                  [1518088745469307.8, 157.32, 0.0, 0.0, 0.0, 6.0, 9.0, 4.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 1876.7],
+            #                                                  [1518088745576156.8, 186.65, 0.0, 1.0, 0.0, 2.0, 3.0, 6.0, 0.0, 14.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 1874.32],
+            #                                                  [1518088745683504.0, 87.46, 0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 1882.3],
+            #                                                  [1518088745790300.0, 232.25, 0.0, 0.0, 0.0, 1.0, 3.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 1871.14],
+            #                                                  [1518088745896936.2, 130.86, 0.0, 2.0, 0.0, 3.0, 3.0, 3.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.0, 0.0, 1877.77],
+            #                                                  [1518088746003711.8, 117.63, 0.0, 2.0, 1.0, 2.0, 2.0, 3.0, 0.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 1869.95],
+            #                                                  [1518088746110414.5, 178.89, 0.0, 3.0, 0.0, 3.0, 0.0, 7.0, 0.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 1880.19],
+            #                                                  [1518088746217604.2, 161.45, 0.0, 1.0, 0.0, 1.0, 2.0, 5.0, 0.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 1896.09],
+            #                                                  [1518088746322109.0, 96.55, 0.0, 0.0, 0.0, 1.0, 2.0, 6.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 1926.4]], 0.0],
+            #               'mac_address': '00:14:a5:e9:12:7c', 'label': 'A'}
+
             if parsed_json['type']=='statistics' and parsed_json['measure']:
 
                 # if listStart:
@@ -261,7 +283,17 @@ def receive_data_plot(x):
                     measure = parsed_json['measure']
                     # thrMeasure = measure[1]
                     if label == all_nodes[0]:
-                        errorMeasure = measure[0]
+
+                        # errorMeasure = measure[0][0]
+
+                        currentErrorsMatrix = np.array(measure[0])
+                        errorSum = currentErrorsMatrix.sum(axis=0)  # we not consider the 16 bit register issue
+                        # errorMean = currentErrorsMatrix.mean(axis=0)
+                        errorSumList = errorSum.tolist()
+                        # errorMeanList = errorMean.tolist()
+
+                        errorMeasure = errorSumList
+
                         if len(errorMeasure)==19: #len(errorMeasure)==6: #check error only for labl A
 
                             # [event_wifi_number_1, event_zigbee_number_1, event_other_number_1, event_wifi_number_2, event_lte_number_2, event_other_number_2]
@@ -317,6 +349,9 @@ def receive_data_plot(x):
                 if lastType == 'monitorReport' and parsed_json['type'] == 'monitorReport':
                     pass
                 else:
+                    if parsed_json['type'] == 'eventReport':
+                        interference = parsed_json["eventType"]
+
                     if listStart:
                         logList.append(str(parsed_json))
                         w.ListboxLog.insert(END, logList[indexList])
@@ -337,6 +372,7 @@ def plot_bar_detection(x):
     global bar_badfcs, bar_badplcp, bar_goodplcp, bar_goodfcs
     global bar_badfcs_norm, bar_badplcp_norm, bar_goodplcp_norm, bar_goodfcs_norm
     global my_dpi, width, height
+    global interference
     global w
 
     init = 1
@@ -378,6 +414,13 @@ def plot_bar_detection(x):
                 barlist1[3].set_color('g') #rgbkymc
                 height_label_barlist1 = barlist1[3].get_height()
                 barlist1Text3 = ax1.text(barlist1[3].get_x() + barlist1[3].get_width() / 2, height_label_barlist1 + 80, [bar_goodfcs], ha='center', va='bottom')
+
+                # detectionText = ax1.text((barlist1[1].get_x() + (barlist1[2].get_x() - barlist1[1].get_x())) + barlist1[1].get_width() / 2,
+                #                          height_label_barlist1 + 60, "domi", ha='center', va='bottom')
+                print(barlist1[1].get_x())
+                print(barlist1[2].get_x())
+                print(barlist1[1].get_width())
+                detectionText = ax1.text( 2.5  , height_label_barlist1 + 60, interference, ha='center', va='bottom', color='red', fontsize=15)
 
                 ax1.set_ylim([0, 120])
                 ax1.set_xlim([0, 5])
@@ -425,6 +468,7 @@ def plot_bar_detection(x):
             barlist1Text2.set_text(bar_goodplcp)
             barlist1[3].set_height(bar_goodfcs_norm)
             barlist1Text3.set_text(bar_goodfcs)
+            detectionText.set_text(interference)
             figure_bar_detection.canvas.draw()
 
         time.sleep(1)
@@ -439,8 +483,8 @@ def plot_channel_time(x):
     im = None
     static = False
     init_loop_capture = True
-    location = 'http://127.0.0.1:8002/crewdemo/plots/usrp.png'
-    # location = 'http://10.8.9.3/crewdemo/plots/usrp.png'
+    # location = 'http://127.0.0.1:8002/crewdemo/plots/usrp.png'
+    location = 'http://10.8.9.3/crewdemo/plots/usrp.png'
     # location = 'http://10.8.8.4/crewdemo/plots/usrp.png'
     user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Ubuntu/12.04 Chromium/18.0.1025.168 Chrome/18.0.1025.168 Safari/535.19'
     #figure init
@@ -460,7 +504,7 @@ def plot_channel_time(x):
     while True:
         if not static:
             if init_loop_capture:
-                print('start usrp request')
+                # print('start usrp request')
                 try:
                     file = urllib.request.urlopen(urllib.request.Request(location, headers={'User-Agent': user_agent}))
                     img = Image.open(file)
@@ -534,13 +578,13 @@ def receive_data_spectral(x):
         if socket_spectral_remote_network in socks:
             #parsed_json = socket_spectral_remote_network.recv_json()
             spectral_raw = socket_spectral_remote_network.recv()
-            f = open('/tmp/demo.tlv', 'wb')
+            f = open('spectral_acquire/tmp/demo.tlv', 'wb')
             f.write(np.array(spectral_raw))
             f.close()
 
             try:
 
-                [measurements, spectrum_features, duration_energy_det_features, duration_features, freq,power_features] = sr.get_spectrum_scan_features( "/tmp/demo.tlv", T=500e3)
+                [measurements, spectrum_features, duration_energy_det_features, duration_features, freq,power_features] = sr.get_spectrum_scan_features( "spectral_acquire/tmp/demo.tlv", T=500e3)
                 exp_name = "WaterFall"
                 dd = np.array(list(map(itemgetter('duration'), duration_features)))  # duration detection via correlation
                 bb = np.array(list(map(itemgetter('bw'), spectrum_features)))  # bandwidth
@@ -693,18 +737,18 @@ def change_state_lte(*args):
     setTraffic("LTE")
 
 
-def change_state_microwave(*args):
-    global driver, microwaveActivation
-    print('gui_support.change_state_microwave')
-    sys.stdout.flush()
-    # driver.execute_script("ChangeState('4')")
-    if microwaveActivation.get()=='1':
-        command = 'set_wave'
-    else:
-        command = 'off_wave'
-    command_list = {'type': 'microwave', 'command': command}
-    print('command sent %s' % str(command_list))
-    socket_command_remote_network.send_json(command_list)
+# def change_state_microwave(*args):
+#     global driver, microwaveActivation
+#     print('gui_support.change_state_microwave')
+#     sys.stdout.flush()
+#     driver.execute_script("ChangeState('4')")
+    # if microwaveActivation.get()=='1':
+    #     command = 'set_wave'
+    # else:
+    #     command = 'off_wave'
+    # command_list = {'type': 'microwave', 'command': command}
+    # print('command sent %s' % str(command_list))
+    # socket_command_remote_network.send_json(command_list)
 
 
 def change_state_wifi(*args):

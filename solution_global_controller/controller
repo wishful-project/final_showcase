@@ -149,6 +149,7 @@ def main(args):
 				print("Received message not in json format")
 				continue
 
+			# print(received_request)
 			if "type" in received_request:
 				# print(msg)
 				socket_visualizer.send_json(received_request)
@@ -236,7 +237,7 @@ def main(args):
 													msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
 													print('update message %s' % str(msg))
 													kvmsg.body = json.dumps(msg).encode('utf-8')
-													kvmsg.send(publisher)
+													# kvmsg.send(publisher)
 													print("sent update information with sequence %d" % sequence_publisher)
 
 											if received_request["eventType"] == "LTE_DETECTED":
@@ -249,7 +250,20 @@ def main(args):
 													msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
 													print('update message %s' % str(msg))
 													kvmsg.body = json.dumps(msg).encode('utf-8')
-													kvmsg.send(publisher)
+													# kvmsg.send(publisher)
+													print("sent update information with sequence %d" % sequence_publisher)
+
+											if received_request["eventType"] == "ZIGBEE_DETECTED":
+												if "START_TDMA" in solutionCompatibilityMatrix[key2].commandList:
+													commandList = "START_TDMA"
+													# Distribute as key-value message
+													sequence_publisher += 1
+													kvmsg = KVMsg(sequence_publisher)
+													kvmsg.key = b"generic"
+													msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
+													print('update message %s' % str(msg))
+													kvmsg.body = json.dumps(msg).encode('utf-8')
+													# kvmsg.send(publisher)
 													print("sent update information with sequence %d" % sequence_publisher)
 
 											if received_request["eventType"] == "NO_interference":
@@ -262,7 +276,7 @@ def main(args):
 													msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
 													print('update message %s' % str(msg))
 													kvmsg.body = json.dumps(msg).encode('utf-8')
-													kvmsg.send(publisher)
+													# kvmsg.send(publisher)
 													print("sent update information with sequence %d" % sequence_publisher)
 											break
 

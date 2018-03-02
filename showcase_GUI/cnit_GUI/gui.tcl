@@ -142,9 +142,9 @@ catch {package require Img}
 
 foreach img {
 
-        {{$[pwd]/logo_wishful.png} {user image} user {}}
         {{$[pwd]/logo_cnit2.png} {user image} user {}}
         {{$[pwd]/topology_final.png} {user image} user {}}
+        {{$[pwd]/logo_wishful.png} {user image} user {}}
 
             } {
     eval set _file [lindex $img 0]
@@ -232,7 +232,7 @@ proc vTclWindow.top34 {base} {
         -menu "$top.m37" -background {#ffffff} -highlightbackground wheat \
         -highlightcolor black 
     wm focusmodel $top passive
-    wm geometry $top 1448x924+94+29
+    wm geometry $top 1448x904+102+71
     update
     # set in toplevel.wgt.
     global vTcl
@@ -242,8 +242,11 @@ proc vTclWindow.top34 {base} {
     wm overrideredirect $top 0
     wm resizable $top 1 1
     wm deiconify $top
-    wm title $top "Demo LORA Traffic Generator"
+    wm title $top "Showcase GUI"
     vTcl:DefineAlias "$top" "Toplevel1" vTcl:Toplevel:WidgetProc "" 1
+    ttk::style configure Menu -background #d9d9d9
+    ttk::style configure Menu -foreground #000000
+    ttk::style configure Menu -font TkDefaultFont
     menu $top.m37 \
         -activebackground {#d8d8d8} -activeforeground {#000000} \
         -background wheat -font TkMenuFont -foreground {#000000} -tearoff 0 
@@ -365,8 +368,10 @@ proc vTclWindow.top34 {base} {
         -variable lteActivation 
     vTcl:DefineAlias "$site_6_0.cpd49" "RadiobuttonLteOn" vTcl:WidgetProc "Toplevel1" 1
     label $site_6_0.lab37 \
+        -activebackground {#f9f9f9} -activeforeground black \
         -background {#d9d9d9} -disabledforeground {#a3a3a3} \
-        -foreground {#000000} -text TDMA 
+        -foreground {#000000} -highlightbackground {#d9d9d9} \
+        -highlightcolor black -text TDMA 
     vTcl:DefineAlias "$site_6_0.lab37" "Label3" vTcl:WidgetProc "Toplevel1" 1
     radiobutton $site_6_0.rad39 \
         -activebackground {#f4bcb2} -activeforeground {#000000} \

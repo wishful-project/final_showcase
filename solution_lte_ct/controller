@@ -819,15 +819,17 @@ def main(args):
                             # nodes_source_rate[node_src_index] = value
                             # source_rate = float(nodes_source_rate[node_src_index])
                             controller.node(nodes[node_src_index]).radio.activate_radio_program('ENB')
-                            gevent.sleep(5)
-                            # iperf - c 127.0.0.1 - p 2000 - i 1 - t 10000
+                            gevent.sleep(8)
+                            # iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
                             controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", "3000", 0, '1470')
                         elif lteState == "DISABLE":
                             #off LTE network
                             parsed_json = {'src': 'D', 'dst': 'E', 'type': 'traffic', 'command': 'off_traffic'}
                             # source
                             node = parsed_json['src']
+                            print(node)
                             node_src_index = all_nodes.index(node)
+                            print(node_src_index)
                             controller.nodes(nodes[node_src_index]).net.stop_packetflow()
                             controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
                         else:

@@ -1,56 +1,7 @@
 Wishful INTERFERENCE
 ============================
 
-### INTERFERENCE how-to on w-ilab.t
-
-### 0. Reserve and swap in the experiment
- EMULAB experiment link (atlas)
- https://www.wilab2.ilabt.iminds.be/showexp.php3?pid=cognitiveradio&eid=atlas
- 
-### 1. run the showcase 
- CONTROLLER
- nodezotach4,ath9k,10.11.16.39,5180,1,192.168.0.1,00:0e:8e:30:9e:ce,A
- 
- EXPERIMET NODES
- nodezotacd6,ath9k,10.11.16.54,5180,3,192.168.0.1,00:0e:8e:30:9c:ba,A
- nodezotacg6,ath9k,10.11.16.56,5180,3,192.168.0.2,00:0e:8e:30:9d:3c,B
- nodezotacj6,ath9k,10.11.16.59,5180,3,192.168.0.3,00:0e:8e:30:9c:ea,C
- nodezotacb1,ath9k,10.11.16.1,5180,3,192.168.0.4,00:0e:8e:30:9c:b3,D
- nodezotack1,ath9k,10.11.16.10,5180,3,192.168.0.5,00:0e:8e:30:9e:ea,E
- nodezotaci3,ath9k,10.11.16.29,5180,3,192.168.0.6,00:0e:8e:30:91:7b,F
-
- #move files on wilab (we need copy one time, the wilab testbed filesystem replace all user directory on testbed nodes)
- 
-  rsync -avz --delete  --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .repo/ ./wishful-github-manifest-4/  -e ssh user@ops.wilab2.ilabt.iminds.be:~/wishful-github-manifest-4/
-
- #connect to nodes
-  ssh user@ops.wilab2.ilabt.iminds.be
-  ssh user@zotacd6
-  ...
-  ssh user@zotach4
-
- #move on experiment directory
-  cd wishful-github-manifest-4/examples/interference_recognition/
-
- #sync clock nodes
-  sh sync_date.sh user zotacc6,zotacg6,zotack6,zotacb1,zotack1,zotaci3
-
- #start agent
-sudo python3 agent --config agent_cfg_wilab.yaml
-
-#controller (zotach4 (39) --> CONTROLLER)
-sudo python3 controller --config controller_cfg_wilab2_zotach4.yaml --nodes node_info_wilab2_4hop.txt
-
-if matplotlib module fails, please install it using
-
-~~~~
-sudo apt-get install python3-matplotlib
-~~~~
-
-
-
-
-### INTERFERENCE how-to on ttilab
+### INTERFERENCE how-to on mobile testbed
  
 ### 1. run the showcase 
  #CONTROLLER
@@ -60,9 +11,6 @@ sudo apt-get install python3-matplotlib
     alix03,b43,10.8.8.103,2412,20,192.168.0.3,00:14:a5:e9:12:7c,A,MON,wlan0
     alix04,b43,10.8.8.104,2412,20,192.168.0.4,00:14:a5:e9:0c:74,B,AP,wlan0
     alix05,b43,10.8.8.105,2412,20,192.168.0.5,00:14:a4:62:c8:21,C,STA,wlan0
-    ...clapton.local,ath9k,10.8.9.3,5180,20,192.168.0.1,a8:54:b2:69:3b:e3,A,AP,wlan0
-    ...nautilus.local,ath9k,10.8.8.1,5180,20,192.168.0.2,00:15:6d:85:75:b3,B,STA,wlan0
-    ...extensa.local,ath9k,10.8.8.5,5180,20,192.168.0.3,00:15:6d:85:90:2d,C,STA,wlan0
 
  #move files on ttilab
     rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.3:~/wishful-github-manifest-7/
@@ -90,9 +38,11 @@ sudo apt-get install python3-matplotlib
     cd ..
 
  #Solution Global Controller
+    (clapton)
     python3 ./controller
 
  #Solution
+    (clapton)
     python3 controller --config controller_cfg_wilab2_zotach4.yaml --nodes node_info_wilab2_4hop.txt
 
 
@@ -114,8 +64,8 @@ sudo apt-get install python3-matplotlib
 
     #starting reading tool
     ~~~~
-    cd wishful-github-manifest-7/examples/interference_detection/station-conf/reading-tool/
-    sudo ./b43-fwdump2
+    cd wishful-github-manifest/final_showcase/solution_interference_detection/helper/
+    ./b43-fwdump-ann
     ~~~~
 
 ~~~~

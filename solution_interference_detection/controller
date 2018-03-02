@@ -261,6 +261,7 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 	busy_time_old = 0
 
 	interference_state = "NO interference"
+	interference_state_story = 0
 	receive_thread = threading.currentThread()
 
 	#SETUP ANN
@@ -269,6 +270,15 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 	# data = np.genfromtxt(fname='path_Dataset', delimiter=' ')
 	scaler = joblib.load(file_scaler)
 	ann = joblib.load(file_ann)
+	ann_wifi = np.array([[1, 0, 0, 0]])
+	ann_lte = np.array([[0, 1, 0, 0]])
+	ann_zigbee = np.array([[0, 0, 1, 0]])
+	ann_lte_zigbee = np.array([[0, 1, 1, 0]])
+	ann_idle = np.array([[0, 0, 0, 1]])
+	num_wifi = 0
+	num_lte = 0
+	num_zigbee = 0
+	num_no_interference = 0
 
 	while getattr(receive_thread, "do_run", True):
 		msg = lcpDescriptor_node.recv(timeout=0.1)
@@ -289,7 +299,10 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							# bad_fcs = errorMeasure[6]
 							# good_fcs = errorMeasure[16]
 							# busy_time = errorMeasure[1]
-
+							num_wifi = 0
+							num_lte = 0
+							num_zigbee = 0
+							num_no_interference = 0
 							for jj in range(0, len(msg['measure'][0])):
 								errorMeasure = msg['measure'][0][jj]
 								# print("%s %s" % (str(label), errorMeasure))
@@ -318,35 +331,71 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 								# 1100 --> wifi + lte
 								# 1010 --> wifi + zigbee
 								# 0110 --> lte + zigbee
+
+
+								if np.array_equal(predicted_value, ann_wifi):  # 1000 --> WiFi
+									# WiFi detection
+									num_wifi += 1
+								elif np.array_equal(predicted_value, ann_lte):  # 0100 --> LTE
+									# LTE detection
+									num_lte += 1
+								elif np.array_equal(predicted_value, ann_zigbee) or np.array_equal(predicted_value, ann_lte_zigbee):  # 0010 --> zigbee
+									# zigbee detection
+									num_zigbee += 1
+								elif np.array_equal(predicted_value, ann_idle):  # 0001 --> idle
+									# idle detection
+									num_no_interference += 1
+								else:
+									# no interference detected
+									# 1100 --> wifi + lte
+									# 1010 --> wifi + zigbee
+									# 0110 --> lte + zigbee
+									print("no interference detected")
+
+
+
 								break # get only the first
 
 							print("take decision")
 							# LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
 							# print("%d - %d - %d - %d - %d" % (busy_time, bad_plcp, good_plcp, bad_fcs, good_fcs))
-							if predicted_value=="1000":
+
+							if num_wifi>num_zigbee and num_wifi>num_lte and num_wifi>num_no_interference : # 1000 --> WiFi
 								# WiFi detection
 								print("detected WiFi")
 								if interference_state != "WiFi_DETECTED":
 									interference_state = "WiFi_DETECTED"
+									interference_state_story = 0
 									solutionCtrProxy.send_event(interference_state)
-							elif predicted_value=="0100":
+							elif num_lte>num_zigbee and num_lte>num_wifi and num_lte>num_no_interference: # 0100 --> LTE
 								# LTE detection
 								print("detected LTE")
 								# send message to solution global controller
 								if interference_state != "LTE_U_DETECTED":
 									interference_state = "LTE_U_DETECTED"
+									interference_state_story = 0
 									solutionCtrProxy.send_event(interference_state)
-							elif predicted_value == "0010":
+							elif num_zigbee>num_lte and num_zigbee>num_wifi and num_zigbee>num_no_interference: # 0010 --> zigbee
 								# zigbee detection
 								print("detected zigbee")
-							elif predicted_value == "0001":
+								# send message to solution global controller
+								if interference_state != "ZIGBEE_DETECTED" and interference_state_story > 3:
+									interference_state = "ZIGBEE_DETECTED"
+									solutionCtrProxy.send_event(interference_state)
+								else:
+									interference_state_story += 1
+							elif num_no_interference>num_lte and num_no_interference>num_wifi and num_no_interference>num_zigbee: # 0001 --> idle
 								# idle detection
 								print("detected channel idle")
 								if interference_state != "NO_interference":
 									interference_state = "NO_interference"
+									interference_state_story = 0
 									solutionCtrProxy.send_event(interference_state)
 							else:
 								# no interference detected
+								# 1100 --> wifi + lte
+								# 1010 --> wifi + zigbee
+								# 0110 --> lte + zigbee
 								print("no interference detected")
 
 							# #LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
