@@ -45,6 +45,12 @@ from lib.zhelpers import zpipe
 
 log = logging.getLogger('wishful_agent.main')
 
+#clear = lambda: os.system('cls')
+clear = lambda: os.system('clear')
+do_run = True
+solutionCompatibilityMatrix = {}
+
+
 class Solution:
 	"""
 	Structure to store solutions in order to get compatibility matrix
@@ -96,10 +102,107 @@ def start_command_connection():
 	return socket_command_visualizer
 
 
+def forward_lines(stream, socket):
+	"""Read lines from `stream` and send them over `socket`."""
+
+
+	try:
+		line = stream.readline()
+		while line:
+			socket.send(line[:-1].encode('utf-8'))
+			line = stream.readline()
+		socket.send(''.encode('utf-8'))  # send "eof message".
+	finally:
+		# NOTE: `zmq.Context.term()` in the main thread will block until this
+		#       socket is closed, so we can't run this function in daemon
+		#       thread hoping that it will just close itself.
+		socket.close()
+
+
+def forward_standard_input(context):
+	"""Start a thread that will bridge the standard input to a 0MQ socket and
+	return an exclusive pair socket from which you can read lines retrieved
+	from the standard input.  You will receive a final empty line when the EOF
+	character is input to the keyboard."""
+	reader = context.socket(zmq.PAIR)
+	reader.connect('inproc://standard-input')
+	writer = context.socket(zmq.PAIR)
+	writer.bind('inproc://standard-input')
+	stdin_thread = threading.Thread(target=forward_lines, args=(sys.stdin, writer))
+	stdin_thread.start()
+	return [reader,stdin_thread]
+
+
+def print_menu():  ## Your menu design here
+	print(30 * "-", "MENU", 30 * "-")
+	print("1.Print registered solutions")
+	print("0. Quit")
+	print(67 * "-")
+	print("Enter your choice >>  ")
+
+def print_log(logString):  ## Your menu design here
+	if logString=="START":
+		print(30 * "-", "LOG", 30 * "-")
+	elif logString=="STOP":
+		print(67 * "-")
+	else:
+		print(logString)
+
+
+def print_solutions():
+	global solutionCompatibilityMatrix
+	if len(solutionCompatibilityMatrix) > 0:
+		for key in solutionCompatibilityMatrix:
+			print(str(solutionCompatibilityMatrix[key].name))
+
+	try:
+		ch=input("Press enter twice to continue")
+	except NameError:
+		pass
+
+	return
+
+# Exit program
+def exit():
+	global do_run
+	do_run = False
+	# sys.exit()
+
+# Back to main menu
+# def back():
+# 	menu_actions['main_menu']()
+
+# =======================
+#    MENUS DEFINITIONS
+# =======================
+# Menu definition
+menu_actions = {
+	# 'main_menu': main_menu,
+	'1': print_solutions,
+	# '9': back,
+	'0': exit,
+}
+
+# Execute menu
+def exec_menu(choice):
+	clear()
+	ch = choice.decode("utf-8").lower()
+	if ch == '':
+		return
+	else:
+		try:
+			menu_actions[ch]()
+		except KeyError:
+			print("Invalid selection, please try again.\n")
+	return
+
+
 def main(args):
+	global do_run
+	global solutionCompatibilityMatrix
+
 	#Init variables
 	kvmap = {}
-	solutionCompatibilityMatrix = {}
 	solutionNum = 0
 	sequence_publisher = 0
 
@@ -120,6 +223,7 @@ def main(args):
 	# Init Request socket
 	request = ctx.socket(zmq.ROUTER)
 	request.bind("tcp://*:7001")
+
 	poller = zmq.Poller()
 	poller.register(request, zmq.POLLIN)
 
@@ -129,18 +233,34 @@ def main(args):
 	socket_command_visualizer = start_command_connection()
 	poller.register(socket_command_visualizer, flags=zmq.POLLIN)
 
+	reader, stdin_thread = forward_standard_input(ctx)
+	poller.register(reader, zmq.POLLIN)
+
+	clear()
+	print_log("START")
+	print_log("STOP")
+	do_run = True
+
 	#Start main while, receive request and update information to solution
-	while True:
+	while do_run:
+		print_menu()  ## Displays menu
+
 		try:
 			items = dict(poller.poll())
 		except (zmq.ZMQError, KeyboardInterrupt):
 			break # interrupt/context shutdown
 
+		if items.get(reader, 0) & zmq.POLLIN:
+			line = reader.recv()
+			exec_menu(line)
 
 		"""
 		**** RECEIVED MESSAGE FROM SHOWCASE SOLUTION
 		"""
 		if request in items:
+			clear()
+			print_log("START")
+
 			msg = request.recv_multipart()
 			identity = msg[0]
 			try:
@@ -417,7 +537,8 @@ def main(args):
 								print("sent update information with sequence %d" % sequence_publisher)
 							break
 
-
+			print_log("STOP")
+	# stdin_thread._stop()
 
 
 
