@@ -143,36 +143,36 @@ def init(top, gui, *args, **kwargs):
     print('Network socket setup')
     command_list = {}
 
-    # connect to the wilabtestbed
+    # connect with solution global controller
     socket_command_remote_network_port = 8500
     context1_remote_network = zmq.Context()
     print("Connecting to server on port 8500 ... ready to send command to demo experiment node")
     socket_command_remote_network = context1_remote_network.socket(zmq.PAIR)
-    socket_command_remote_network.connect("tcp://localhost:%s" % socket_command_remote_network_port)
+    socket_command_remote_network.connect("tcp://10.8.9.13:%s" % socket_command_remote_network_port)
 
     socket_plot_remote_network_port = 8501
     context2_remote_network = zmq.Context()
     print("Connecting to server on port 8501 ... ready to receive protocol information from demo experiment node")
     socket_plot_remote_network = context2_remote_network.socket(zmq.PULL)
-    socket_plot_remote_network.bind("tcp://*:%s" % socket_plot_remote_network_port)
+    socket_plot_remote_network.bind("tcp://10.8.8.21:%s" % socket_plot_remote_network_port)
 
     socket_spectral_remote_network_port = 8502
     context3_remote_network = zmq.Context()
     print("Connecting to server on port 8502 ... ready to receive protocol information from Spectral Scan node")
     socket_spectral_remote_network = context3_remote_network.socket(zmq.SUB)
-    socket_spectral_remote_network.connect("tcp://10.8.8.5:%s" % socket_spectral_remote_network_port)
+    socket_spectral_remote_network.connect("tcp://10.8.9.13:%s" % socket_spectral_remote_network_port)
     #socket_spectral_remote_network.connect("tcp://localhost:%s" % socket_spectral_remote_network_port)
     socket_spectral_remote_network.setsockopt(zmq.SUBSCRIBE, b'')
 
 
 
-    start_new_thread(receive_data_plot, (99,))
+    # start_new_thread(receive_data_plot, (99,))
 
     # PLOTTER bar detection
-    start_new_thread(plot_bar_detection, (99,))
+    # start_new_thread(plot_bar_detection, (99,))
 
     # PLOTTER channet time
-    start_new_thread(plot_channel_time, (99,))
+    # start_new_thread(plot_channel_time, (99,))
 
     # PLOTTER cdf time
     start_new_thread(receive_data_spectral, (99,))
@@ -240,7 +240,7 @@ def receive_data_plot(x):
         else:
             continue
 
-        # print('parsed_json : %s' % str(parsed_json))
+        print('parsed_json : %s' % str(parsed_json))
         if 'type' in parsed_json:
             # print('parsed_json : %s' % str(parsed_json))
 

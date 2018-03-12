@@ -34,20 +34,20 @@ import numpy as np
 
 
 class SpectralRecorder:
-	phy = "phy0"
-	dev = "wlan0"
-	drv= "ath9k"
+	phy = "phy1"
+	dev = "wlan1"
+	drv= "ath9k_htc"
 	mode="manual"		#works
 	fft_period=15
 	spectral_count=100
 	spectral_period=1
 	short_repeat=1
 	f0=2437e6
-	def __init__(self, phy="self.phy0", dev="wlan0", drv="ath9k",
+	def __init__(self, phy="phy1", dev="wlan1", drv="ath9k_htc",
 			mode="manual", fft_period=15, spectral_count=100, 	spectral_period=1,short_repeat=1,
 		load=False,offline=True,freq=2437e6):
-		self.phy 		= self.phy
-		self.dev 		= self.dev
+		self.phy 		= phy
+		self.dev 		= dev
 		self.drv		= drv
 		self.mode		= mode
 		self.fft_period		= fft_period
@@ -110,12 +110,12 @@ class SpectralRecorder:
 				t=timestamp[i_t+1]
 				dt=t-t_
 
-				print("t[{}]={}".format(i_t,t))
-				print("t[{}]_={}".format(i_t,t_))
+				# print("t[{}]={}".format(i_t,t))
+				# print("t[{}]_={}".format(i_t,t_))
 				if abs(dt) > T:
 					#EMERGE ERROR, TSF chagnes
-					print("[E] t[{}]={}".format(i_t,t))
-					print("[E] t_[{}]={}".format(i_t,t_))
+					# print("[E] t[{}]={}".format(i_t,t))
+					# print("[E] t_[{}]={}".format(i_t,t_))
 					ret.pop(i_t+1)
 					decr=decr+1
 				else:
@@ -163,16 +163,11 @@ class SpectralRecorder:
 		take_all_samples=False;
 		if T == -1:
 			take_all_samples=True;
-
 		with open(filename, "rb") as file:
-			print("do")
 
 			data = file.read(76)
 			i_pos_tmp=0
 #			while data != "":
-
-			# print(str(data))
-
 			while data:
 
 
@@ -193,19 +188,15 @@ class SpectralRecorder:
 				measurements = array.array("B")
 				measurements.fromstring(data[20:])
 				squaresum = sum([(m << max_exp)**2 for m in measurements])
-
 				if squaresum == 0:
 				    data = file.read(76)
 				    continue
-
 				fft_sub=[]
 				for i, m in enumerate(measurements):
 					if m == 0 and max_exp == 0:
 						m = 1
 					v = 10.0**((noise + rssi + 20.0 * np.log10(m << max_exp) - 10.0 * np.log10(squaresum))/10.0)
 					fft_sub.append(v)
-
-				# print(str(fft_sub))
 				entry={}
 				entry['tsf']=tsf
 				timestamp.append(int(tsf))
@@ -222,13 +213,10 @@ class SpectralRecorder:
 						continue;
 					else:
 					    	break
-
-		with open(out_file, 'w') as file:
-			out_json=json.dumps(out_samp)
-			file.write(out_json)
-
+		#with open(out_file, 'w') as file:
+		#	out_json=json.dumps(out_samp)
+		#	file.write(out_json)
 		return out_samp
-
 
 	def get_feature(self,busy,timestamp):
 		W = 1e3; #usec
@@ -295,12 +283,11 @@ class SpectralRecorder:
 		duration_features = []
 		duration_energy_det_features = []
 		measurements = self.extract_samples(filename, out_file="not-in-use.json", T=T)
+
 		power_features=[]
 		mark_as_failure = False
-
 		csi_data = list(map(itemgetter('fft_sub'), measurements))
 		csi_data = np.array(csi_data)
-
 		freq = list(map(itemgetter('freq'), measurements))
 		tsf = list(map(itemgetter('tsf'), measurements))
 
@@ -308,20 +295,16 @@ class SpectralRecorder:
 		freq = freq[0]
 		ff = self.get_freq_list(freq)
 		y = np.array(csi_data[0])
+
 		y_ = y
 		y_nofilt_ = y
+
 		tt = tsf[0]
 		tt_ = tt;
-		PLOT = False
-		if PLOT:
-			fig = plt.figure();
-			plt.ion()
-			plt.show()
-		start_corr = True
 
+		start_corr = True
 		corr_duration = 0;
 		energy_det_duration = 0;
-
 		t_corr_start = 0;
 		t_energy_det_start = 0;
 
@@ -329,9 +312,8 @@ class SpectralRecorder:
 		P_av_w=[]
 		P_av_=0
 
-		# print("====================================");
+		print("====================================");
 		p_av_list = np.convolve(np.mean(csi_data, axis=1), np.array([1, 1, 1, 1])[::-1], 'same')
-
 
 		for ii, cc in enumerate(csi_data):
 			if ii==0:
@@ -370,12 +352,9 @@ class SpectralRecorder:
 			P_av = np.mean(y)
 			P_av_w = p_av_list[ii]
 
-			power_features.append(
-			{"tsf_p": tt, "p_av": P_av,"p_av_w": P_av_w})
+			power_features.append({"tsf_p": tt, "p_av": P_av,"p_av_w": P_av_w})
 
 			P_av=P_av_w
-
-
 
 			# if len(P_av_w) >N_av: #window size = 5
 			# 	P_av_w.pop(0) #window step=1
@@ -408,13 +387,13 @@ class SpectralRecorder:
 				if ii < len(tsf)-1:
 					if tsf[ii+1]-tsf[ii] > dt_thr:
 						mark_as_failure=True
-						print("[ii={}] failure dt={}".format(ii,tsf[ii+1]-tsf[ii]))
+						# print("[ii={}] failure dt={}".format(ii,tsf[ii+1]-tsf[ii]))
 
 			if P_av <= P_thr and finish_energy_det:
 				# if not mark_as_failure:
-				# 	print(" [ OK ] finish:{}", t_energy_det_stop-t_energy_det_start);
+					# print(" [ OK ] finish:{}", t_energy_det_stop-t_energy_det_start);
 				# else:
-				# 	print(" [FAIL] finish:{}", t_energy_det_stop - t_energy_det_start);
+					# print(" [FAIL] finish:{}", t_energy_det_stop - t_energy_det_start);
 				finish_energy_det=False
 				start_energy_det=True
 				if not mark_as_failure:
@@ -497,6 +476,7 @@ class SpectralRecorder:
 			#if P_av <= P_thr:
 			#	skip = True
 			#else:
+			# print(spectrum_features)
 
 		return measurements, spectrum_features, duration_energy_det_features, duration_features,freq,power_features
 

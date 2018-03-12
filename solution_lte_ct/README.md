@@ -14,7 +14,7 @@ Wishful FINAL SHOWCASE solution_lte_ct
 
  #move files on ttilab
     rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.3:~/wishful-github-manifest-7/
-    sync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.13:~/wishful-github-manifest-7/
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.13:~/wishful-github-manifest-7/
 
 
     ...rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../../../  -e ssh clapton:~/wishful-github-manifest-7/
@@ -37,11 +37,13 @@ Wishful FINAL SHOWCASE solution_lte_ct
 
  #sync clock nodes
     cd helper
-    sh sync_date.sh root alix03,alix04,alix05 # ,nuc1
+    #sh sync_date.sh root alix03,alix04,alix05 # ,nuc1
+    sh sync_date.sh root alix04,alix05 # ,nuc1
     sh sync_date.sh <user> clapton.local,nautilus.local,extensa.local
 
  #deploy directory on nodes
-    sh deploy_upis.sh root alix03,alix04,alix05
+    #sh deploy_upis.sh root alix03,alix04,alix05
+    sh deploy_upis.sh root alix04,alix05
     sh deploy_upis.sh <user> clapton.local,nautilus.local,extensa.local
     cd ..
 
@@ -65,9 +67,10 @@ Wishful FINAL SHOWCASE solution_lte_ct
     python3 agent_tx.py
     ~~~~
 
-    #controller (clapton --> CONTROLLER)
+    #controller (nuc1 --> CONTROLLER)
     ~~~~
-    sudo python3 controller --config controller_cfg_clapton.yaml --nodes node_info_ttilab_3full.txt
+    #sudo python3 controller --config controller_cfg_clapton.yaml --nodes node_info_ttilab_3full.txt
+    sudo python3 controller --config controller_cfg_nuc1.yaml --nodes node_info_ttilab_3full.txt
     ~~~~
 
     #starting reading tool
@@ -145,6 +148,15 @@ cd visualizer
     python3 agent_tx.py
     ~~~~
 
+
+ #Start LTE traffic
+    iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
+
+ #Change LTE pattern
+    python set_tx_lte_pattern.py -w "1,0,0,1,1,1,1,1,0,0"
+        ('UDP target IP:', '127.0.0.1')
+        ('UDP target port:', 8888)
+        1,0,0,1,1,1,1,1,0,0
 
 
 Tunnel :
