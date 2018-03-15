@@ -66,6 +66,7 @@ sudo apt-get install python3-matplotlib
 
  #move files on ttilab
     rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.3:~/wishful-github-manifest-7/
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.13:~/wishful-github-manifest-7/
 
     ...rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../../../  -e ssh clapton:~/wishful-github-manifest-7/
     ...ssh clapton "mkdir -p wishful-github-manifest-7/examples"
@@ -93,9 +94,6 @@ sudo apt-get install python3-matplotlib
     python3 ./controller
 
  #Solution
-    python3 controller --config controller_cfg_wilab2_zotach4.yaml --nodes node_info_wilab2_4hop.txt
-
-
     ~~~~
     #start agent
     ~~~~
@@ -109,6 +107,7 @@ sudo apt-get install python3-matplotlib
 
     #controller (clapton --> CONTROLLER)
     ~~~~
+    sudo python3 controller --config controller_cfg_nuc1.yaml --nodes node_info_ttilab_3full.txt
     sudo python3 controller --config controller_cfg_clapton.yaml --nodes node_info_ttilab_3full.txt
     ~~~~
 

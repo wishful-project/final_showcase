@@ -238,8 +238,8 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
                         msg['label'] = label[ii]
                         msg['type'] = u'statistics'
 
-                        if msg['label'] == 'C':
-                            solutionCtrProxy.send_monitor_report("WiFi-THR", msg["measure"][1], "Kbps")
+                        # if msg['label'] == 'C':
+                        #     solutionCtrProxy.send_monitor_report("WiFi-THR", msg["measure"][1], "Kbps")
 
                         # print(msg)
                         # socket_visualizer.send_json(msg)
@@ -722,8 +722,8 @@ def main(args):
                             print("search node %s - index %d" % (eth_ip[ii], ii))
                             if nodes[jj].ip == eth_ip[ii]:
                                 pos = eth_ip.index(nodes[jj].ip)
-                                # if label[pos] == 'B' or label[pos] == 'C':
-                                if True:
+                                if label[pos] == 'B' or label[pos] == 'C':
+                                # if True:
                                     # RUN local control program
                                     print("start local control program on nodes")
                                     lcpDescriptor_nodes.append(
@@ -818,17 +818,18 @@ def main(args):
                             value = parsed_json['value']
                             # nodes_source_rate[node_src_index] = value
                             # source_rate = float(nodes_source_rate[node_src_index])
-                            controller.node(nodes[node_src_index]).radio.activate_radio_program('ENB')
-                            gevent.sleep(5)
-                            # iperf - c 127.0.0.1 - p 2000 - i 1 - t 10000
-                            controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", "3000", 0, '1470')
+                            controller.delay(1).node(nodes[node_src_index]).radio.activate_radio_program('ENB')
+                            # iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
+                            # controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", "3000", 0, '1470')
                         elif lteState == "DISABLE":
                             #off LTE network
                             parsed_json = {'src': 'D', 'dst': 'E', 'type': 'traffic', 'command': 'off_traffic'}
                             # source
                             node = parsed_json['src']
+                            print(node)
                             node_src_index = all_nodes.index(node)
-                            controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+                            print(node_src_index)
+                            # controller.nodes(nodes[node_src_index]).net.stop_packetflow()
                             controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
                         else:
                             lteStateChange = False

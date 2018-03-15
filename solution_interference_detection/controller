@@ -38,6 +38,8 @@ from sklearn.externals import joblib
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+from operator import itemgetter
+
 
 sys.path.append('../')
 sys.path.append('../../')
@@ -58,6 +60,8 @@ from helper.MeasurementManager import MeasurementCollector
 from lib.kvsimple import KVMsg
 from lib.global_controller_proxy import GlobalSolutionControllerProxy
 from local_control_program import remote_control_program
+from spectral_acquire import spectral_recorder
+
 
 __author__ = "Domenico Garlisi, ...."
 __copyright__ = "Copyright (c) ..., "
@@ -386,6 +390,124 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 					node.measurements.append(msg['measure'])
 		gevent.sleep(1)
 
+#*****************
+#reveive data spectral from spectral node
+#*****************
+def receive_data_spectral(solutionCtrProxy):
+	sr = spectral_recorder.SpectralRecorder(load=False)
+	reading_time = 1000
+	reading_time_sec = 1
+	filename = "/tmp/demo.tlv"
+	phy = "phy1"
+	dev = "wlan1"
+	drv = "ath9k_htc"
+	sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
+	sr.acquire(filename, T_acquire=0.4)
+	dt = 0
+	EXPERIMENT_DURATION = 6000
+
+	# zigbee detection
+	# == == == == == == == == == == == == == == == == == ==
+	# 2.1875
+	# 2435.125
+	bbMedianThMinZigbee = np.float32(1.5)
+	bbMedianThMaxZigbee = np.float32(2.5)
+	ff2MedianThMinZigbee = np.float32(2430)
+	ff2MedianThMaxZigbee = np.float32(2536)
+	# LTE detection
+	# == == == == == == == == == == == == == == == == == ==
+	# 5.0
+	# 2437.15625
+	bbMedianThMinLte = np.float32(4)
+	bbMedianThMaxLte = np.float32(6)
+	ff2MedianThMinLte = np.float32(2436)
+	ff2MedianThMaxLte = np.float32(2440)
+	# WiFi detection
+	# == == == == == == == == == == == == == == == == == ==
+	# 16.875
+	# 2436.84375
+	bbMedianThMinWiFi = np.float32(10)
+	bbMedianThMaxWiFi = np.float32(20)
+	ff2MedianThMinWiFi = np.float32(2433)
+	ff2MedianThMaxWiFi = np.float32(2438)
+
+	predicted_value = "0000"
+	interference_state = "NO interference"
+	while True:
+		try:
+			sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
+			sr.acquire(filename, T_acquire=0.4)
+			[measurements, spectrum_features, duration_energy_det_features, duration_features, freq, power_features] = sr.get_spectrum_scan_features( filename, T=500e3)
+
+			# print([measurements, spectrum_features, duration_energy_det_features, duration_features, freq, power_features])
+			bb = np.array(list(map(itemgetter('bw'), spectrum_features)))  # bandwidth
+			bb = [j for i in bb for j in i]
+			ff2 = np.array(list(map(itemgetter('freq'), spectrum_features)))  # frequency
+			ff2 = [j for i in ff2 for j in i]
+
+			bbMedian = np.median(bb)
+			ff2Median = np.median(ff2)
+			if np.isnan(bbMedian):
+				bbMedian = 0
+			if np.isnan(ff2Median):
+				ff2Median = 0
+
+			print(bbMedian)
+			print(ff2Median)
+			print("take decision")
+
+			# LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
+			if   bbMedianThMinZigbee < bbMedian and bbMedian < bbMedianThMaxZigbee and ff2MedianThMinZigbee < ff2Median and ff2Median < ff2MedianThMaxZigbee:
+				predicted_value = "0010"
+				elif bbMedianThMinLte < bbMedian and bbMedian < bbMedianThMaxLte and ff2MedianThMinLte < ff2Median and ff2Median < ff2MedianThMaxLte:
+				predicted_value = "0100"
+			elif bbMedianThMinWiFi < bbMedian and bbMedian < bbMedianThMaxWiFi and ff2MedianThMinWiFi < ff2Median and ff2Median < ff2MedianThMaxWiFi:
+				predicted_value = "1000"
+			else:
+				predicted_value = "0001"
+
+			if predicted_value == "1000":
+				# WiFi detection
+				print("detected WiFi")
+				if interference_state != "WiFi_DETECTED":
+					interference_state = "WiFi_DETECTED"
+					solutionCtrProxy.send_event(interference_state)
+			elif predicted_value == "0100":
+				# LTE detection
+				# == == == == == == == == == == == == == == == == == ==
+				# 5.0
+				# 2437.15625
+				print("detected LTE")
+				# send message to solution global controller
+				if interference_state != "LTE_U_DETECTED":
+					interference_state = "LTE_U_DETECTED"
+					solutionCtrProxy.send_event(interference_state)
+			elif predicted_value == "0010":
+				# zigbee detection
+				# == == == == == == == == == == == == == == == == == ==
+				# 2.1875
+				# 2435.125
+				print("detected zigbee")
+			elif predicted_value == "0001":
+				# idle detection
+				print("detected channel idle")
+				if interference_state != "NO_interference":
+					interference_state = "NO_interference"
+					solutionCtrProxy.send_event(interference_state)
+			else:
+				# no interference detected
+				print("no interference detected")
+
+		except Exception as e:
+			print(e)
+
+		if not (dt % 10):
+			log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
+		dt += 1
+
+		time.sleep(1)
+
+
 
 def setAP(controller, node, iface, wlan_ip, essid):
 		""" Creates infrastructure BSS, uses node such as Access Point
@@ -484,6 +606,7 @@ def disable_solution():
 	enabled = False
 
 
+
 def main(args):
 	global nodes
 	global do_run
@@ -535,213 +658,217 @@ def main(args):
 	#Start controller
 	controller.start()
 
+	print(len(hosts))
+
 	#control loop
 	while do_run:
 		gevent.sleep(1)
 		print("\nConnected nodes", [str(node.id) for node in nodes])
 		if len(nodes) >= len(hosts):
-			time.sleep(1)
-			lcpDescriptor_nodes = []
-			reading_thread = []
+			if len(nodes) > 0:
+				time.sleep(1)
+				lcpDescriptor_nodes = []
+				reading_thread = []
 
-			# print("find node")
-			# for ii in range(0, len(nodes)):
-			# 	print("\t %s - index %d" % (nodes[ii].ip, ii) )
+				# print("find node")
+				# for ii in range(0, len(nodes)):
+				# 	print("\t %s - index %d" % (nodes[ii].ip, ii) )
 
-			nodes_sort = []
-			for ii in range(0, len(hosts)):
-				for jj in range(0, len(nodes)):
-					if nodes[jj].ip == eth_ip[ii]:
-						nodes_sort.append(nodes[jj])
-
-			print('sort nodes')
-			for ii in range(0, len(nodes_sort)):
-				print("\t %s - index %d" % (nodes_sort[ii].ip, ii) )
-
-			if len(nodes_sort) != len(hosts):
-				print('Error in build node list')
-				print('len(nodes_sort) != len(hosts) [%d != %d]' %(len(nodes_sort), len(hosts)))
-				break
-			else:
-				print('len(nodes_sort) == len(hosts) [%d == %d]' %(len(nodes_sort), len(hosts)))
-
-			nodes = nodes_sort
-
-			time_update = 1 #seconds
-			nodes_source_rate = []
-			nodes_temp = []
-
-			for ii in range(0, len(nodes)):
-				nodes_source_rate.append(0)
-				if not nodes[ii] in nodes_temp:
-					# print("node %s - index %d" % (nodes[ii].ip, ii) )
-					nodes_temp.append(nodes[ii])
-			nodes = nodes_temp
-
-			for ii in range(0, len(nodes)):
-				wifinodes.append(WiFiNode(nodes[ii], mac_address[ii] ))
-				
-			#START visualizer socket
-			socket_visualizer = start_visualizer_connection()
-
-			"""
-			****** setup network ******
-			"""
-			try:
-				print("START nodes setup")
-				all_nodes = ['A', 'B', 'C']
-
-				#SETUP AP NODES
+				nodes_sort = []
 				for ii in range(0, len(hosts)):
-					# print("search node %s - index %d" % (eth_ip[ii], ii) )
 					for jj in range(0, len(nodes)):
 						if nodes[jj].ip == eth_ip[ii]:
-							pos = eth_ip.index(nodes[jj].ip)
-							if role[pos] == "AP":
-								print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
-								setAP(controller, nodes[jj], iface[pos], wlan_ip[pos], "wishful-interference")
-							elif role[pos] == "MON":
-								pass
-							elif role[pos] == "STA":
-								pass
-							else:
-								print("no station role found ")
-								break
+							nodes_sort.append(nodes[jj])
 
-				# SETUP STATIONS NODES
-				for ii in range(0, len(hosts)):
-					print("search node %s - index %d" % (eth_ip[ii], ii) )
-					for jj in range(0, len(nodes)):
-						if nodes[jj].ip == eth_ip[ii]:
-							pos = eth_ip.index(nodes[jj].ip)
+				print('sort nodes')
+				for ii in range(0, len(nodes_sort)):
+					print("\t %s - index %d" % (nodes_sort[ii].ip, ii) )
 
-							#set up network nodes (ad-hoc)
-							# rvalue = controller.nodes(nodes[jj]).net.start_adhoc(driver[pos], "wlan0", "wishful-interference", freq[pos], tx_power[pos], "6", wlan_ip[pos], "250", "aa:bb:cc:dd:ee:ff", True)
-							# rvalue = controller.nodes(nodes[jj]).net.start_adhoc(driver[pos], "wlan0", "wishful-interference", freq[pos], tx_power[pos], "6", wlan_ip[pos], "off", "aa:bb:cc:dd:ee:ff", True)
+				if len(nodes_sort) != len(hosts):
+					print('Error in build node list')
+					print('len(nodes_sort) != len(hosts) [%d != %d]' %(len(nodes_sort), len(hosts)))
+					break
+				else:
+					print('len(nodes_sort) == len(hosts) [%d == %d]' %(len(nodes_sort), len(hosts)))
 
-							#setup infrastructured network (put interface in managed mode and disable network manager)
-							#set up network nodes (infrastructured)
-							if role[pos] == "AP":
-								pass
-							elif role[pos] == "MON":
-								rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
-								rvalue = controller.nodes(nodes[jj]).radio.set_channel(iface[pos], "6")
-							elif role[pos] == "STA":
-								print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
-								connection_result = setSTA(controller, nodes[jj], iface[pos], wlan_ip[pos], "wishful-interference")
-								print(connection_result)
-								if connection_result == False:
-									raise SystemExit('Unable to connect')
-							else:
-								print("no station role found ")
-								break
+				nodes = nodes_sort
 
-							#set up nodes monitor interface
-							# gevent.sleep(1)
-							# rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
+				time_update = 1 #seconds
+				nodes_source_rate = []
+				nodes_temp = []
 
-				print("END node setup")
-			except (Exception) as err:
-				print("exception", err)
-				print("Error in node setup procedure")
-				do_run = False
+				for ii in range(0, len(nodes)):
+					nodes_source_rate.append(0)
+					if not nodes[ii] in nodes_temp:
+						# print("node %s - index %d" % (nodes[ii].ip, ii) )
+						nodes_temp.append(nodes[ii])
+				nodes = nodes_temp
 
+				for ii in range(0, len(nodes)):
+					wifinodes.append(WiFiNode(nodes[ii], mac_address[ii] ))
 
-			"""
-			****** START LOCAL CONTROL PROGRAM ******
-			"""
-			if do_run:
+				#START visualizer socket
+				socket_visualizer = start_visualizer_connection()
+
+				"""
+				****** setup network ******
+				"""
 				try:
-					print("START local control program")
-					lcpDescriptor = None;
+					print("START nodes setup")
+					all_nodes = ['A', 'B', 'C']
+
+					#SETUP AP NODES
 					for ii in range(0, len(hosts)):
+						# print("search node %s - index %d" % (eth_ip[ii], ii) )
 						for jj in range(0, len(nodes)):
-							print("search node %s - index %d" % (eth_ip[ii], ii))
 							if nodes[jj].ip == eth_ip[ii]:
 								pos = eth_ip.index(nodes[jj].ip)
-								# RUN local control program
-								print("start local control program on nodes")
-								lcpDescriptor_nodes.append(
-									controller.node(nodes[jj]).hc.start_local_control_program(program=remote_control_program))
-								msg = {"iface":  iface[pos], "i_time": time_update}
-								lcpDescriptor_nodes[ii].send(msg)
-								print("start thread for collect measurements from nodes")
-								reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, solutionCtrProxy)))
-								reading_thread[ii].start()
-								break
+								if role[pos] == "AP":
+									print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
+									setAP(controller, nodes[jj], iface[pos], wlan_ip[pos], "wishful-interference")
+								elif role[pos] == "MON":
+									pass
+								elif role[pos] == "STA":
+									pass
+								else:
+									print("no station role found ")
+									break
 
-					print("END local control program setup")
+					# SETUP STATIONS NODES
+					for ii in range(0, len(hosts)):
+						print("search node %s - index %d" % (eth_ip[ii], ii) )
+						for jj in range(0, len(nodes)):
+							if nodes[jj].ip == eth_ip[ii]:
+								pos = eth_ip.index(nodes[jj].ip)
+
+								#set up network nodes (ad-hoc)
+								# rvalue = controller.nodes(nodes[jj]).net.start_adhoc(driver[pos], "wlan0", "wishful-interference", freq[pos], tx_power[pos], "6", wlan_ip[pos], "250", "aa:bb:cc:dd:ee:ff", True)
+								# rvalue = controller.nodes(nodes[jj]).net.start_adhoc(driver[pos], "wlan0", "wishful-interference", freq[pos], tx_power[pos], "6", wlan_ip[pos], "off", "aa:bb:cc:dd:ee:ff", True)
+
+								#setup infrastructured network (put interface in managed mode and disable network manager)
+								#set up network nodes (infrastructured)
+								if role[pos] == "AP":
+									pass
+								elif role[pos] == "MON":
+									rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
+									rvalue = controller.nodes(nodes[jj]).radio.set_channel(iface[pos], "6")
+								elif role[pos] == "STA":
+									print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
+									connection_result = setSTA(controller, nodes[jj], iface[pos], wlan_ip[pos], "wishful-interference")
+									print(connection_result)
+									if connection_result == False:
+										raise SystemExit('Unable to connect')
+								else:
+									print("no station role found ")
+									break
+
+								#set up nodes monitor interface
+								# gevent.sleep(1)
+								# rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
+
+					print("END node setup")
 				except (Exception) as err:
 					print("exception", err)
-					print("Error in node control program setup procedure")
+					print("Error in node setup procedure")
 					do_run = False
 
-				"""
-				****** SETUP STATIC IPERF FLOW ******
-				"""
-				#start ipert server on nodes
-				# for node in nodes:
-				# 	controller.delay(1).nodes(node).net.create_packetflow_sink('1234', '1', True, 'wlan0')
-                #
-				# #start iperf client traffic
-				# log.warning("starting flows")
-				# slot_time = 5
-                #
-				# # controller.delay(2*slot_time).nodes(nodes[0]).net.start_packetflow(dest_ip=wlan_ip[1]	 , port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
-				# controller.delay(12*slot_time).nodes(nodes[1]).net.start_packetflow(dest_ip=wlan_ip[2]	, port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
-				# controller.delay(22*slot_time).nodes(nodes[2]).net.start_packetflow(dest_ip=wlan_ip[0] , port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
 
 				"""
-				****** MAIN LOOP WITH interface commands management (start/stop iperf flows) ******
+				****** START LOCAL CONTROL PROGRAM ******
 				"""
-				for jj in range(0, len(nodes)):
-					pos = eth_ip.index(nodes[jj].ip)
-					if label[pos] == 'B' or label[pos] == 'C':
-						controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
+				if do_run:
+					try:
+						print("START local control program")
+						lcpDescriptor = None;
+						for ii in range(0, len(hosts)):
+							for jj in range(0, len(nodes)):
+								print("search node %s - index %d" % (eth_ip[ii], ii))
+								if nodes[jj].ip == eth_ip[ii]:
+									pos = eth_ip.index(nodes[jj].ip)
+									# RUN local control program
+									print("start local control program on nodes")
+									lcpDescriptor_nodes.append(controller.node(nodes[jj]).hc.start_local_control_program(program=remote_control_program))
+									msg = {"iface":  iface[pos], "i_time": time_update}
+									lcpDescriptor_nodes[ii].send(msg)
+									print("start thread for collect measurements from nodes")
+									reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, solutionCtrProxy)))
+									reading_thread[ii].start()
+									break
 
-				# socket_command = start_command_connection()
-				# poller = zmq.Poller()
-				# poller.register(socket_command, flags=zmq.POLLIN)
-				EXPERIMENT_DURATION = 30000000
-				dt = 0
-				while do_run:
-					# socket_list = poller.poll(1000)
-					# if socket_list:
-					# 	for socket_info in socket_list:
-					# 		if socket_info[1] == zmq.POLLIN:
-					# 			parsed_json = socket_command.recv_json()
-					# 			print('parsed_json : %s' % str(parsed_json))
-					# 			type = parsed_json['type']
-					#
-					# 			if type == 'traffic':
-					# 				node = parsed_json['src']
-					# 				node_src_index = all_nodes.index(node)
-					#
-					# 				command = parsed_json['command']
-					# 				# if off traffic is selected for a specific node
-					# 				if command == 'off_traffic':
-					# 					nodes_source_rate[node_src_index] = 0
-					# 					# call UPI to stop traffic on node
-					# 					controller.nodes(nodes[node_src_index]).net.stop_packetflow()
-					# 					break
-					#
-					# 				# if start traffic is selected for a specific node
-					# 				if command == 'set_traffic':
-					# 					node = parsed_json['dst']
-					# 					node_dst_index = all_nodes.index(node)
-					# 					value = parsed_json['value']
-					# 					nodes_source_rate[node_src_index] = value
-					# 					source_rate = float(nodes_source_rate[node_src_index])
-					# 					# call UPI to start traffic
-					# 					print(wlan_ip[node_dst_index])
-					# 					controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
+						print("END local control program setup")
+					except (Exception) as err:
+						print("exception", err)
+						print("Error in node control program setup procedure")
+						do_run = False
 
-					if not (dt % 10):
-						log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
-					dt += 1
-					gevent.sleep(1)
-					if dt > EXPERIMENT_DURATION:
-						break
+					"""
+					****** SETUP STATIC IPERF FLOW ******
+					"""
+					#start ipert server on nodes
+					# for node in nodes:
+					# 	controller.delay(1).nodes(node).net.create_packetflow_sink('1234', '1', True, 'wlan0')
+					#
+					# #start iperf client traffic
+					# log.warning("starting flows")
+					# slot_time = 5
+					#
+					# # controller.delay(2*slot_time).nodes(nodes[0]).net.start_packetflow(dest_ip=wlan_ip[1]	 , port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
+					# controller.delay(12*slot_time).nodes(nodes[1]).net.start_packetflow(dest_ip=wlan_ip[2]	, port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
+					# controller.delay(22*slot_time).nodes(nodes[2]).net.start_packetflow(dest_ip=wlan_ip[0] , port='1234', time_duration=str(3*slot_time), bandwidth = '6M', frame_length='1470')
+
+					"""
+					****** MAIN LOOP WITH interface commands management (start/stop iperf flows) ******
+					"""
+					for jj in range(0, len(nodes)):
+						pos = eth_ip.index(nodes[jj].ip)
+						if label[pos] == 'B' or label[pos] == 'C':
+							controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
+
+			# socket_command = start_command_connection()
+			# poller = zmq.Poller()
+			# poller.register(socket_command, flags=zmq.POLLIN)
+			EXPERIMENT_DURATION = 30000000
+			dt = 0
+			while do_run:
+				# socket_list = poller.poll(1000)
+				# if socket_list:
+				# 	for socket_info in socket_list:
+				# 		if socket_info[1] == zmq.POLLIN:
+				# 			parsed_json = socket_command.recv_json()
+				# 			print('parsed_json : %s' % str(parsed_json))
+				# 			type = parsed_json['type']
+				#
+				# 			if type == 'traffic':
+				# 				node = parsed_json['src']
+				# 				node_src_index = all_nodes.index(node)
+				#
+				# 				command = parsed_json['command']
+				# 				# if off traffic is selected for a specific node
+				# 				if command == 'off_traffic':
+				# 					nodes_source_rate[node_src_index] = 0
+				# 					# call UPI to stop traffic on node
+				# 					controller.nodes(nodes[node_src_index]).net.stop_packetflow()
+				# 					break
+				#
+				# 				# if start traffic is selected for a specific node
+				# 				if command == 'set_traffic':
+				# 					node = parsed_json['dst']
+				# 					node_dst_index = all_nodes.index(node)
+				# 					value = parsed_json['value']
+				# 					nodes_source_rate[node_src_index] = value
+				# 					source_rate = float(nodes_source_rate[node_src_index])
+				# 					# call UPI to start traffic
+				# 					print(wlan_ip[node_dst_index])
+				# 					controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
+
+				receive_data_spectral(solutionCtrProxy)
+
+				if not (dt % 10):
+					log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
+				dt += 1
+				gevent.sleep(1)
+				if dt > EXPERIMENT_DURATION:
+					break
 
 			do_run = False
 			for jj in range(0, len(nodes)):
