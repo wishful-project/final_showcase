@@ -120,14 +120,29 @@ class GlobalSolutionControllerProxy(object):
         self.cmdRxThread.daemon = True
         self.cmdRxThread.start()
 
-    def send_monitor_report(self, mon_type, value, unit):
+    def send_monitor_report(self, mon_type, value):
         """
         Send monitor information to the solution global controller
         """
+
+        """
+            EXAMPLE:
+                    msg = {'type': 'monitorReport',
+                                    'solution': SolutionName,
+                                    'monitorType': ‘interference’,
+                                    'monitorValue': {
+                        	            “LTE”: { “2467”:True,  “2484”:False}
+                    		            “ZigBee”: { “2467”:False,  “2484”:True}
+                    		            “Busy”: { “2467”:False,  “2484”:True}
+                        	        },
+                    }
+
+        """
+
         msg = {'type': 'monitorReport',
+               'solutionName' : self.solutionName,
                'monitorType': mon_type,
                'monitorValue': value,
-               'monitorUnit': unit,
                }
         sequence = 0
         kvmsg = KVMsg(sequence)

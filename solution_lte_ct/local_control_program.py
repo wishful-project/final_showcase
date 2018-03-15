@@ -95,8 +95,8 @@ def remote_control_program(controller):
             mask_sum += x
 
         target_mask = [1] * mask_sum + [0] * (L - mask_sum)
-        print("target_mask={}".format(target_mask))
-        print("mask_int={}".format(mask_int))
+        #print("target_mask={}".format(target_mask))
+        #print("mask_int={}".format(mask_int))
 
         while n_shift < L:
             if mask_int != target_mask:
@@ -107,18 +107,19 @@ def remote_control_program(controller):
 
         if n_shift < L:
             if mask_sum < est_slot and est_slot < L:
+                """
                 print("---------")
                 print(mask_int)
                 print(mask_sum)
                 print(est_slot)
                 print("---------")
-
+                """
                 for i_mask in range(mask_sum, est_slot):
                     print(i_mask)
                     mask_int[i_mask] = 1
 
                 mask_int = shift(mask_int, n_shift - (mask_sum - est_slot))
-        print("mask_int={}".format(mask_int))
+        #print("mask_int={}".format(mask_int))
         return mask_int
 
     def rcv_from_reading_program(reading_buffer):
@@ -136,9 +137,11 @@ def remote_control_program(controller):
         reading_socket.setsockopt_string(zmq.SUBSCRIBE, '')
 
         print('socket reading_program started')
+        cycle = 0
         while getattr(reading_thread, "do_run", True):
             parsed_json = reading_socket.recv_json()
-            print('parsed_json : %s' % ( str(parsed_json)))
+            print( str(cycle) +  '  parsed_json : %s' % ( str(parsed_json)))
+            cycle += 1
 
             psucc = parsed_json['measure']
             mask = ""
@@ -161,7 +164,7 @@ def remote_control_program(controller):
 
             EST_SLOT = 4
             L = 10
-            print(mask)
+            #print(mask)
             p_insert = np.random.rand()
             if mask_sum < EST_SLOT:
                 p_insert = 1
@@ -174,7 +177,7 @@ def remote_control_program(controller):
             for x in mask_int:
                 mask = "{}{}".format(mask, x)
             # count_round=0
-            print(mask_int)
+            #print(mask_int)
 
             if not dryRun:
                 # with fab.hide('output', 'running', 'warnings'), fab.settings(warn_only=True):

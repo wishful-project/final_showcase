@@ -111,7 +111,7 @@ cd visualizer
  #deploy experiment files
     rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.13:~/wishful-github-manifest-7/
     rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.3:~/wishful-github-manifest-7/
-
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh dgarlisi@172.16.16.10:/groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/
  #CONTROLLER
     nuc1
 
@@ -134,6 +134,8 @@ cd visualizer
 
  #Solution
     python3 controller --config controller_cfg_clapton.yaml --nodes node_info_ttilab_3full.txt
+    python3 controller --config controller_cfg_nuc12.yaml --nodes node_info_ttilab_3full.txt
+    python3 controller --config controller_cfg_nuc10.yaml --nodes node_info_ttilab_3full.txt
 
     ~~~~
     #start agent

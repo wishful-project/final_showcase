@@ -48,7 +48,7 @@ __email__ = "kistm@tcd.ie"
 """
 Setting of agent node
 """
-agent_PC_interface = "eth0"
+agent_PC_interface = "eno1"
 """
 END setting of agent node
 """

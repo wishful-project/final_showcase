@@ -394,17 +394,6 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 #reveive data spectral from spectral node
 #*****************
 def receive_data_spectral(solutionCtrProxy):
-	sr = spectral_recorder.SpectralRecorder(load=False)
-	reading_time = 1000
-	reading_time_sec = 1
-	filename = "/tmp/demo.tlv"
-	phy = "phy1"
-	dev = "wlan1"
-	drv = "ath9k_htc"
-	sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
-	sr.acquire(filename, T_acquire=0.4)
-	dt = 0
-	EXPERIMENT_DURATION = 6000
 
 	# zigbee detection
 	# == == == == == == == == == == == == == == == == == ==
@@ -431,10 +420,56 @@ def receive_data_spectral(solutionCtrProxy):
 	ff2MedianThMinWiFi = np.float32(2433)
 	ff2MedianThMaxWiFi = np.float32(2438)
 
+	"""
+	                    msg = {'type': 'monitorReport',
+                                    'solution': SolutionName,
+                                    'monitorType': ‘interference’,
+                                    'monitorValue': {
+                        	            “LTE”: { “2467”:True,  “2484”:False}
+                    		            “ZigBee”: { “2467”:False,  “2484”:True}
+                    		            “Busy”: { “2467”:False,  “2484”:True}
+                        	        },
+                    }
+
+	2412 2417 2422 2427 2432 2437 2442 2447 2452 2457 2462 2467 2472 2484 (WIFI)
+	2405 2410 2415 2420 2425 2430 2435 2440 2445 2450 2455 2460 2465 2470 	2475 2480 (ZigBee)
+
+	"""
+
 	predicted_value = "0000"
 	interference_state = "NO interference"
+	monitorValue = {}
+#								"LTE”: { “2467”:True,  “2484”:False}
+#	                            “ZigBee”: { “2467”:False,  “2484”:True}
+#	                            “Busy”: { “2467”:False,  “2484”:True}
+
+	#sr = spectral_recorder.SpectralRecorder(load=False)
+	reading_time = 1000
+	reading_time_sec = 1
+	filename = "/tmp/demo.tlv"
+
+	#phy = "phy0"
+	#dev = "wlan0"
+	#drv = "ath9k"
+
+	#phy = "phy1"
+	#dev = "wlan1"
+	#drv = "ath9k"
+
+	phy = "phy2"
+	dev = "wlan2"
+	drv = "ath9k_htc"
+
+	print("start spectral acquire")
+	sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
+	sr.acquire(filename, T_acquire=0.4)
+	print("started")
+	dt = 0
+	EXPERIMENT_DURATION = 6000
+
 	while True:
 		try:
+			monitorValue = {}
 			sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
 			sr.acquire(filename, T_acquire=0.4)
 			[measurements, spectrum_features, duration_energy_det_features, duration_features, freq, power_features] = sr.get_spectrum_scan_features( filename, T=500e3)
@@ -459,7 +494,7 @@ def receive_data_spectral(solutionCtrProxy):
 			# LTE_U_DETECTED	WiFi_DETECTED	ZigBee_DETECTED	NO_interference
 			if   bbMedianThMinZigbee < bbMedian and bbMedian < bbMedianThMaxZigbee and ff2MedianThMinZigbee < ff2Median and ff2Median < ff2MedianThMaxZigbee:
 				predicted_value = "0010"
-				elif bbMedianThMinLte < bbMedian and bbMedian < bbMedianThMaxLte and ff2MedianThMinLte < ff2Median and ff2Median < ff2MedianThMaxLte:
+			elif bbMedianThMinLte < bbMedian and bbMedian < bbMedianThMaxLte and ff2MedianThMinLte < ff2Median and ff2Median < ff2MedianThMaxLte:
 				predicted_value = "0100"
 			elif bbMedianThMinWiFi < bbMedian and bbMedian < bbMedianThMaxWiFi and ff2MedianThMinWiFi < ff2Median and ff2Median < ff2MedianThMaxWiFi:
 				predicted_value = "1000"
@@ -471,7 +506,9 @@ def receive_data_spectral(solutionCtrProxy):
 				print("detected WiFi")
 				if interference_state != "WiFi_DETECTED":
 					interference_state = "WiFi_DETECTED"
-					solutionCtrProxy.send_event(interference_state)
+					#solutionCtrProxy.send_event(interference_state)
+				monitorValue["WiFi"] = {str(round(ff2Median)): True}
+
 			elif predicted_value == "0100":
 				# LTE detection
 				# == == == == == == == == == == == == == == == == == ==
@@ -481,19 +518,25 @@ def receive_data_spectral(solutionCtrProxy):
 				# send message to solution global controller
 				if interference_state != "LTE_U_DETECTED":
 					interference_state = "LTE_U_DETECTED"
-					solutionCtrProxy.send_event(interference_state)
+					#solutionCtrProxy.send_event(interference_state)
+				monitorValue["LTE"] = { str(round(ff2Median)) : True}
+
 			elif predicted_value == "0010":
 				# zigbee detection
 				# == == == == == == == == == == == == == == == == == ==
 				# 2.1875
 				# 2435.125
 				print("detected zigbee")
+				if interference_state != "ZigBee_U_DETECTED":
+					interference_state = "ZigBee_U_DETECTED"
+				monitorValue["ZigBee"] = {str(round(ff2Median)): True}
+
 			elif predicted_value == "0001":
 				# idle detection
 				print("detected channel idle")
 				if interference_state != "NO_interference":
 					interference_state = "NO_interference"
-					solutionCtrProxy.send_event(interference_state)
+					#solutionCtrProxy.send_event(interference_state)
 			else:
 				# no interference detected
 				print("no interference detected")
@@ -502,7 +545,10 @@ def receive_data_spectral(solutionCtrProxy):
 			print(e)
 
 		if not (dt % 10):
+			solutionCtrProxy.send_monitor_report("interference", monitorValue)
+
 			log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
+
 		dt += 1
 
 		time.sleep(1)
@@ -623,7 +669,7 @@ def main(args):
 	"""
 	****** setup the communication with the solution global controller ******
 	"""
-	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
+	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
 	solutionName = 'InterferenceDetection'
 	commands = {"ON": enable_solution, "OFF": disable_solution}
 	eventList = ["LTE_U_DETECTED", "WiFi_DETECTED", "ZigBee_DETECTED", "NO_interference"]

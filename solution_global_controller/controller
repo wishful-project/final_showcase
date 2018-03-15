@@ -205,7 +205,7 @@ def print_menu_command():  ## Your menu design here
             return
 
     for ii in  range(0,len(solutionCompatibilityMatrix[solutionIndex].commandList)):
-        print("     " + str(ii) + " :" + str(solutionCompatibilityMatrix[key].commandList[ii]))
+        print("     " + str(ii) + " :" + str(solutionCompatibilityMatrix[solutionIndex].commandList[ii]))
     print("insert command number : ")
     try:
         items = dict(poller.poll())
@@ -226,12 +226,24 @@ def print_menu_command():  ## Your menu design here
             return
 
     # send command
-    commandToSend = solutionCompatibilityMatrix[key].commandList[commandIndex]
+    commandToSend = solutionCompatibilityMatrix[solutionIndex].commandList[commandIndex]
     # Distribute as key-value message
     # sequence_publisher += 1
+
+    """
+        {
+        "type": "publisherUpdate", 
+        "involvedSolutions": "TSCH", 
+        "commandList": { “TRAFFIC”: True},
+        }
+        
+        commands = {"STOP_WIFI": (lambda: wifiStatus()), "STOP_LTE": (lambda: lteStatus()), "STOP_TDMA": (lambda:tdmaStatus()), "START_WIFI": (lambda:wifiStatus()), "START_LTE": (lambda:lteStatus()), "START_TDMA": (lambda:tdmaStatus())}
+    """
+
+
     kvmsg = KVMsg(sequence_publisher)
     kvmsg.key = b"generic"
-    msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key].name, "commandList": commandToSend}
+    msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[solutionIndex].name, "commandList": commandToSend}
     print('update message %s' % str(msg))
     kvmsg.body = json.dumps(msg).encode('utf-8')
     kvmsg.send(publisher)
@@ -407,7 +419,7 @@ def main(args):
 
                 # Process monitoring Report
                 if received_request["type"] == "monitorReport":
-                    # print("*** Received monitoring report *** : %s" % received_request)
+                    print("*** Received monitoring report *** : %s" % received_request)
                     if len(solutionCompatibilityMatrix)>0:
                         #TOBE
                         """
