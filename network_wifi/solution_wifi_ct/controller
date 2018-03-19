@@ -34,13 +34,15 @@ import threading
 
 sys.path.append('../')
 sys.path.append('../../')
-sys.path.append("../../agent_modules/iperf/")
-sys.path.append("../../agent_modules/module_srslte/")
-sys.path.append('../../upis')
-sys.path.append('../../framework')
-sys.path.append('../../agent')
-sys.path.append('../../controller')
-sys.path.append('../../controller_modules')
+sys.path.append('../../../')
+sys.path.append("../../../agent_modules/iperf/")
+sys.path.append("../../../agent_modules/module_srslte/")
+sys.path.append('../../../upis')
+sys.path.append('../../../framework')
+sys.path.append('../../../agent')
+sys.path.append('../../../controller')
+sys.path.append('../../../controller_modules')
+
 
 import wishful_controller
 import wishful_upis as upis

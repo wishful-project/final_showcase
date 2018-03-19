@@ -43,16 +43,17 @@ from operator import itemgetter
 
 sys.path.append('../')
 sys.path.append('../../')
-sys.path.append("../../agent_modules/wifi_ath")
-sys.path.append("../../agent_modules/wifi_wmp")
-sys.path.append("../../agent_modules/wifi")
-sys.path.append("../../agent_modules/iperf/")
-sys.path.append('../../upis')
-sys.path.append('../../framework')
-sys.path.append('../../agent')
-sys.path.append('../../controller')
-sys.path.append('../../controller_modules')
-sys.path.append('../../controller_modules/wireless_topology')
+sys.path.append('../../../')
+sys.path.append("../../../agent_modules/wifi_ath")
+sys.path.append("../../../agent_modules/wifi_wmp")
+sys.path.append("../../../agent_modules/wifi")
+sys.path.append("../../../agent_modules/iperf/")
+sys.path.append('../../../upis')
+sys.path.append('../../../framework')
+sys.path.append('../../../agent')
+sys.path.append('../../../controller')
+sys.path.append('../../../controller_modules')
+sys.path.append('../../../controller_modules/wireless_topology')
 
 import wishful_controller
 import wishful_upis as upis
