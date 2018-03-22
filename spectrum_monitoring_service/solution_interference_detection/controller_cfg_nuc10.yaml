@@ -3,11 +3,11 @@
 controller:
     name: "Controller"
     info: "WiSHFUL Controller"
-    dl: "tcp://10.8.9.13:8992"
-    ul: "tcp://10.8.9.13:8991"
+    dl: "tcp://172.16.16.10:8992"
+    ul: "tcp://172.16.16.10:8991"
 
 modules:
     discovery:
         module : wishful_module_discovery_pyre
         class_name : PyreDiscoveryControllerModule
-        kwargs: {"iface":"eth0", "groupName":"solution_lte_ct", "downlink":"tcp://10.8.9.13:8992", "uplink":"tcp://10.8.9.13:8991"}
+        kwargs: {"iface":"eth0", "groupName":"solution_lte_ct", "downlink":"tcp://172.16.16.10:8992", "uplink":"tcp://172.16.16.10:8991"}

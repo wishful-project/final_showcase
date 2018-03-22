@@ -28,7 +28,7 @@ from sklearn import preprocessing
 
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -45,7 +45,7 @@ class SpectralRecorder:
 	f0=2437e6
 	def __init__(self, phy="phy1", dev="wlan1", drv="ath9k_htc",
 			mode="manual", fft_period=15, spectral_count=100, 	spectral_period=1,short_repeat=1,
-		load=False,offline=True,freq=2437e6):
+		load=False, offline=True, freq=2437e6):
 		self.phy 		= phy
 		self.dev 		= dev
 		self.drv		= drv
@@ -78,9 +78,7 @@ class SpectralRecorder:
 		call("echo "+ str(self.spectral_count-1) 	+ " > /sys/kernel/debug/ieee80211/" +self.phy+ "/"+ self.drv +"/spectral_count",shell=True)
 		call("echo "+ str(self.spectral_period)		+ " > /sys/kernel/debug/ieee80211/" +self.phy+ "/"+ self.drv +"/spectral_period",shell=True)
 
-
 	def acquire(self,filename="data",T_acquire=1,T=0.1):
-		
 		call("cat /sys/kernel/debug/ieee80211/" + self.phy + "/"+ self.drv +"/spectral_scan0 > {}".format(filename), shell=True)
 		time.sleep(T)
 		t0=time.time()

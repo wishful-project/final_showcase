@@ -154,13 +154,14 @@ def init(top, gui, *args, **kwargs):
     context2_remote_network = zmq.Context()
     print("Connecting to server on port 8501 ... ready to receive protocol information from demo experiment node")
     socket_plot_remote_network = context2_remote_network.socket(zmq.PULL)
-    socket_plot_remote_network.bind("tcp://10.8.8.21:%s" % socket_plot_remote_network_port)
+    #socket_plot_remote_network.bind("tcp://10.8.8.21:%s" % socket_plot_remote_network_port)
+    socket_plot_remote_network.bind("tcp://127.0.0.1:%s" % socket_plot_remote_network_port)
 
     socket_spectral_remote_network_port = 8502
     context3_remote_network = zmq.Context()
     print("Connecting to server on port 8502 ... ready to receive protocol information from Spectral Scan node")
     socket_spectral_remote_network = context3_remote_network.socket(zmq.SUB)
-    socket_spectral_remote_network.connect("tcp://10.8.9.13:%s" % socket_spectral_remote_network_port)
+    socket_spectral_remote_network.connect("tcp://127.0.0.1:%s" % socket_spectral_remote_network_port)
     #socket_spectral_remote_network.connect("tcp://localhost:%s" % socket_spectral_remote_network_port)
     socket_spectral_remote_network.setsockopt(zmq.SUBSCRIBE, b'')
 
