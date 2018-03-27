@@ -26,16 +26,19 @@ import signal
 import sys, os
 import yaml
 
+sys.path.append('../')
 sys.path.append('../../')
-sys.path.append("../../agent_modules/wifi_ath")
-sys.path.append("../../agent_modules/wifi_wmp")
-sys.path.append("../../agent_modules/wifi")
-sys.path.append("../../agent_modules/iperf")
-sys.path.append("../../agent_modules/net_linux")
-sys.path.append("../../agent_modules/module_srslte/")
-sys.path.append('../../upis')
-sys.path.append('../../framework')
-sys.path.append('../../agent')
+sys.path.append('../../../')
+sys.path.append("../../../agent_modules/wifi_ath")
+sys.path.append("../../../agent_modules/wifi_wmp")
+sys.path.append("../../../agent_modules/wifi")
+sys.path.append("../../../agent_modules/iperf")
+sys.path.append("../../../agent_modules/net_linux")
+sys.path.append('../../../upis')
+sys.path.append('../../../framework')
+sys.path.append('../../../agent')
+sys.path.append("../../../agent_modules/module_srslte/")
+
 
 import wishful_upis as upis
 import wishful_agent
@@ -75,7 +78,7 @@ agent.set_agent_info(name="ENB", info="Example tutorial Agent", iface=agent_PC_i
 #we specify interface and the name of the nodes group
 
 agent.add_module(moduleName="discovery", pyModule="wishful_module_discovery_pyre",
-                 className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"solution_lte_ct"})
+                 className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"network_lte_cnit"})
 
 #add the net_linux module,
 agent.add_module(moduleName="srslte", pyModule="wishful_module_srslte", className="SrslteModule")

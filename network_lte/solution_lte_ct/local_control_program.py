@@ -218,7 +218,7 @@ def remote_control_program(controller):
         iperf_thread = threading.currentThread()
         print('start socket iperf')
         iperf_port = "8301"
-        iperf_server_ip_address = "10.8.8.104"
+        iperf_server_ip_address = "172.16.16.11"
         context = zmq.Context()
         iperf_socket = context.socket(zmq.SUB)
         print("tcp://%s:%s" % (iperf_server_ip_address, iperf_port))
@@ -395,11 +395,11 @@ def remote_control_program(controller):
                 iperf_thread.start()
                 # print(iperf_througputh)
 
-                reading_buffer = []
-                reading_buffer.append([0.0])
-                reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
-                reading_buffer_thread.do_run = True
-                reading_buffer_thread.start()
+                # reading_buffer = []
+                # reading_buffer.append([0.0])
+                # reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
+                # reading_buffer_thread.do_run = True
+                # reading_buffer_thread.start()
 
             # except (Exception) as err:
             #     if debug:
@@ -412,18 +412,14 @@ def remote_control_program(controller):
     while not controller.is_stopped():
         msg = controller.recv(timeout=1)
         if msg:
-            print('0')
             log.info("Receive message %s" % str(msg))
             if 'i_time' in msg:
                 i_time[0] = msg['i_time']
-            # {'command': 'set_wave', 'type': 'microwave'}
 
         #send statistics to controller
         # if 'reading_time' in report_stats:
         if True:
-            # controller.send_upstream({"measure": [[report_stats['reading_time'], report_stats['busy_time'], report_stats['tx_activity'], report_stats['num_tx'], report_stats['num_tx_success']]], "mac_address": (my_mac)})
-            # controller.send_upstream({"measure": [[report_stats['reading_time'], reading_buffer[0], report_stats['num_tx'], report_stats['num_tx_success']]], "mac_address": (my_mac)})
-            controller.send_upstream({"measure": [0, iperf_througputh[0]], "mac_address": (my_mac)})
+            controller.send_upstream({"measure": [time.time(), iperf_througputh[0]], "mac_address": (my_mac)})
 
     iperf_thread.do_run = False
     iperf_thread.join()

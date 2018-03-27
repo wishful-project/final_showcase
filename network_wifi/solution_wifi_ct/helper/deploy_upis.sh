@@ -15,11 +15,11 @@ if [ 1 -eq 1 ]; then
 
     for sta in $stations
     do
-        rsync -avz  --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude examples/* --exclude agent_modules/*  --exclude .repo/ ../../../  -e ssh $user@$sta:~/wishful-github-manifest/
-        rsync -avz  ../../../agent_modules/iperf/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/iperf/
-        rsync -avz  ../../../agent_modules/wifi_wmp/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/wifi_wmp/
-        rsync -avz  ../../../agent_modules/wifi/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/wifi/
-        rsync -avz  ../../../agent_modules/net_linux/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/net_linux/
+        rsync -avz  --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude examples/* --exclude agent_modules/*  --exclude .repo/ ../../../../  -e ssh $user@$sta:~/wishful-github-manifest/
+        rsync -avz  ../../../../agent_modules/iperf/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/iperf/
+        rsync -avz  ../../../../agent_modules/wifi_wmp/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/wifi_wmp/
+        rsync -avz  ../../../../agent_modules/wifi/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/wifi/
+        rsync -avz  ../../../../agent_modules/net_linux/  -e ssh $user@$sta:~/wishful-github-manifest/agent_modules/net_linux/
         #ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/'
         #ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/wmp'
         #ssh $user@$sta 'mkdir ~/wishful-github-manifest/examples/wmp/WiSHFUL_Second_Example'
