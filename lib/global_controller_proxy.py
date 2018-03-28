@@ -14,7 +14,8 @@ class GlobalSolutionControllerProxy(object):
     def __init__(self, ip_address="127.0.0.1", requestPort=7001, subPort=7000):
         super(GlobalSolutionControllerProxy, self).__init__()
 
-        self.solutionName = None
+        self.networkName = None
+        self.solutionName = []
         self.commandList = []
         self.eventList = []
         self.commands = {}
@@ -34,7 +35,7 @@ class GlobalSolutionControllerProxy(object):
         self.subSocket.connect(url)
         self.cmdRxThread = None
 
-    def set_solution_attributes(self, solutionName, commands, eventList, monitorList):
+    def set_solution_attributes(self, networkName, solutionName, commands, monitorList):
         """
         Set attribute of the solution
         """
@@ -42,10 +43,10 @@ class GlobalSolutionControllerProxy(object):
         # De - activation
         # Event     List    of  monitoring  parameters
         # List  of  control knobs / parameters
+        self.networkName = networkName
         self.solutionName = solutionName
         self.commands = commands
         self.commandList = list(commands.keys())
-        self.eventList = eventList
         self.monitorList = monitorList
 
     def register_solution(self):
@@ -58,10 +59,17 @@ class GlobalSolutionControllerProxy(object):
         # List  of  control knobs / parameters
 
         # create the json format message
+        # old json format
+        # msg = {"type": "registerRequest",
+        #        "solution": self.solutionName,
+        #        "commandList": self.commandList,
+        #        "eventList": self.eventList,
+        #        "monitorList": self.monitorList}
+        # new json format
         msg = {"type": "registerRequest",
+               "networkController": self.networkName,
                "solution": self.solutionName,
                "commandList": self.commandList,
-               "eventList": self.eventList,
                "monitorList": self.monitorList}
 
         sequence = 1
@@ -91,21 +99,26 @@ class GlobalSolutionControllerProxy(object):
             try:
                 print("Wait for command")
                 kvmsg = KVMsg.recv(self.subSocket)
-                print("Received command")
+                # update message {'involvedSolutions': 'WIFI', 'type': 'publisherUpdate', 'commandList': 'START_WIFI'}
+                # {'involvedController': ['WIFI'], 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'type': 'publisherUpdate'}
                 mdict = kvmsg.body.decode('utf-8')
                 mdict = json.loads(mdict)
-                involvedSolutions = mdict.get("involvedSolutions", [])
+                print("received command : " + str(mdict))
+                # {'type': 'publisherUpdate', 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'involvedController': ['WIFI']}
+                involvedController = mdict.get("involvedController", [])
+                if self.networkName in involvedController:
+                    commandList = mdict.get("commandList", {} )
+                    print(commandList) # 'WIFI_CT': {'START_WIFI': {'2437': True}}
+                    for solution in commandList:
+                        # if isinstance(commandList, str):
+                        #     commandList = [commandList]
+                        for cmd in commandList[solution]:
+                            print(cmd)
+                            if cmd in self.commands:
+                                print("Execute command:", cmd)
+                                function = self.commands[cmd]
+                                function()
 
-                if self.solutionName in involvedSolutions:
-                    commandList = mdict.get("commandList", [])
-                    if isinstance(commandList, str):
-                        commandList = [commandList]
-
-                    for cmd in commandList:
-                        if cmd in self.commands:
-                            print("Execute command:", cmd)
-                            function = self.commands[cmd]
-                            function()
             except KeyboardInterrupt:
                 return
             except Exception as ex:
@@ -125,25 +138,38 @@ class GlobalSolutionControllerProxy(object):
         Send monitor information to the solution global controller
         """
 
+        #old version
         """
-            EXAMPLE:
-                    msg = {'type': 'monitorReport',
-                                    'solution': SolutionName,
-                                    'monitorType': ‘interference’,
-                                    'monitorValue': {
-                        	            “LTE”: { “2467”:True,  “2484”:False}
-                    		            “ZigBee”: { “2467”:False,  “2484”:True}
-                    		            “Busy”: { “2467”:False,  “2484”:True}
-                        	        },
-                    }
-
-        """
-
-        msg = {'type': 'monitorReport',
+                msg = {'type': 'monitorReport',
                'solutionName' : self.solutionName,
                'monitorType': mon_type,
                'monitorValue': value,
                }
+        """
+
+        #new version
+        """
+        msg = {'type': 'monitorReport',
+                ‘networkController ': controllerName,
+                'monitorType': ‘performance’,
+                'monitorValue': {
+                    “WiFi”: { “THR”:2.2,  “PER”:0.4}
+                    “ZigBee”: {“THR”:2.2,  “PER”:0.4}
+            },
+        }
+        msg = {'type': 'monitorReport',
+               ‘networkController': controllerName,
+               ‘timestamp’: time
+               'monitorType': ‘performance’,
+               'monitorValue': {
+                              “NetworkID 1”: {“WiFi”, “THR”:2.2,  “PER”:0.4}
+                              “NetworkID 2”: {“ZigBee” , “THR”:2.2,  “PER”:0.4}
+                              “NetworkID 3”: {“LTE” “THR”:2.2,  “PER”:0.4}
+               },
+        }
+        """
+
+        msg = {'type': 'monitorReport', 'networkController': self.networkName, 'monitorType': mon_type, 'monitorValue': value }
         sequence = 0
         kvmsg = KVMsg(sequence)
         kvmsg.key = b"generic"

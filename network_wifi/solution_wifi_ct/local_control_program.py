@@ -20,7 +20,7 @@ def remote_control_program(controller):
     sys.path.append('../../framework/wishful_framework/upi_arg_classes/')
     sys.path.append('../../agent')
     import binascii
-    import getopt, sys
+    import getopt
     import time
     import json
     import netifaces
@@ -39,6 +39,7 @@ def remote_control_program(controller):
     from agent_modules.wifi_wmp.wmp_structure import radio_platform_t
     from agent_modules.wifi_wmp.wmp_structure import radio_info_t
     from agent_modules.wifi_wmp.wmp_structure import radio_program_t
+    from helper.b43_library.libb43 import B43
 
     SUCCESS = 0
     FAILURE = 2
@@ -46,7 +47,7 @@ def remote_control_program(controller):
     #enable debug print
     debug = False
     debug_statistics = True
-    dryRun = False
+    dryRun = True
 
     starttime=time.time()
     neigh_list = {}
@@ -115,7 +116,7 @@ def remote_control_program(controller):
                 print("---------")
                 """
                 for i_mask in range(mask_sum, est_slot):
-                    print(i_mask)
+                    # print(i_mask)
                     mask_int[i_mask] = 1
 
                 mask_int = shift(mask_int, n_shift - (mask_sum - est_slot))
@@ -123,27 +124,88 @@ def remote_control_program(controller):
         return mask_int
 
     def rcv_from_reading_program(reading_buffer):
+
         """
         This function collects the reading buffer information
         """
-        reading_thread = threading.currentThread()
-        print('start socket reading_program')
-        reading_port = "8901"
-        reading_server_ip_address = "127.0.0.1"
-        context = zmq.Context()
-        reading_socket = context.socket(zmq.SUB)
-        print("tcp://%s:%s" % (reading_server_ip_address, reading_port))
-        reading_socket.connect("tcp://%s:%s" % (reading_server_ip_address, reading_port))
-        reading_socket.setsockopt_string(zmq.SUBSCRIBE, '')
+        # reading_thread = threading.currentThread()
+        # print('start socket reading_program')
+        # reading_port = "8901"
+        # reading_server_ip_address = "127.0.0.1"
+        # context = zmq.Context()
+        # reading_socket = context.socket(zmq.SUB)
+        # print("tcp://%s:%s" % (reading_server_ip_address, reading_port))
+        # reading_socket.connect("tcp://%s:%s" % (reading_server_ip_address, reading_port))
+        # reading_socket.setsockopt_string(zmq.SUBSCRIBE, '')
+        # print('socket reading_program started')
 
-        print('socket reading_program started')
-        cycle = 0
-        while getattr(reading_thread, "do_run", True):
-            parsed_json = reading_socket.recv_json()
-            print( str(cycle) +  '  parsed_json : %s' % ( str(parsed_json)))
-            cycle += 1
+        """
+        This function collects the reading buffer information from shared memory
+        """
+        b43_phy = None
+        b43 = B43(b43_phy)
+        print("Starting psuc reading...")
+        reading_time = time.time()
+        local_starttime = reading_time
+        reading_interval = 1
+        column_old = []
+        val_incremental_old = 0
+        tx_count_ = 0
+        rx_ack_count_ = 0
+        count_round = 0
 
-            psucc = parsed_json['measure']
+        while True:
+            tx_count = []
+            rx_ack_count = []
+            for i in [216, 220, 224, 228, 232]:
+                val = b43.shmRead32(b43.B43_SHM_SHARED, i)
+                # outString = outString + str((val & 0x00FF) + ((val & 0xFF00))) + "," + str(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00)) + ","
+                tx_count.append((val & 0x00FF) + ((val & 0xFF00)))
+                tx_count.append(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00))
+
+                val = b43.shmRead32(b43.B43_SHM_SHARED, i + 20)
+                rx_ack_count.append((val & 0x00FF) + ((val & 0xFF00)))
+                rx_ack_count.append(((val >> 16) & 0x00FF) + ((val >> 16) & 0xFF00))
+
+            tx_count = [float(i) for i in tx_count]
+            rx_ack_count = [float(i) for i in rx_ack_count]
+            tx_count = np.array(tx_count)
+            rx_ack_count = np.array(rx_ack_count)
+
+            # print(tx_count)
+            # print(rx_ack_count)
+
+            count_round = count_round + 1
+            dtx = np.mod(tx_count - tx_count_, 0xFFFF)
+            dack = np.mod(rx_ack_count - rx_ack_count_, 0xFFFF)
+            tx_count_ = tx_count
+            rx_ack_count_ = rx_ack_count
+            psucc = np.divide(dack, dtx)
+
+            for i in range(0, len(psucc)):
+                if np.isinf(psucc[i]):
+                    psucc[i] = 0
+                    continue
+                if np.isnan(psucc[i]):
+                    psucc[i] = 0
+                    continue
+            psucc_tot = np.divide(np.sum(dack), np.sum(dtx))
+
+            # print("rx_ack = {}".format(dack))
+            # print("tx     = {}".format(dtx))
+            # np.set_printoptions(precision=1)
+            # print("psucc  = {}".format(psucc))
+            # print("psucc_tot={}".format(psucc_tot))
+            # print("count_round={}".format(count_round))
+
+            # cycle = 0
+            # while getattr(reading_thread, "do_run", True):
+            #     parsed_json = reading_socket.recv_json()
+            #     print( str(cycle) +  '  parsed_json : %s' % ( str(parsed_json)))
+            #     cycle += 1
+            #
+            #     psucc = parsed_json['measure']
+
             mask = ""
             for x in psucc:
                 if x > 0.5:
@@ -206,8 +268,9 @@ def remote_control_program(controller):
                     log.warning('Error in radio program configuration')
                     do_run = False
 
-            reading_buffer[0] = parsed_json['measure']
-
+            # reading_buffer[0] = parsed_json['measure']
+            reading_buffer[0] = 1-np.mean(psucc)
+            time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
     # socket iperf pointer
     iperf_socket = None
@@ -218,7 +281,7 @@ def remote_control_program(controller):
         iperf_thread = threading.currentThread()
         print('start socket iperf')
         iperf_port = "8301"
-        iperf_server_ip_address = "10.8.8.104"
+        iperf_server_ip_address = "172.16.16.31"
         context = zmq.Context()
         iperf_socket = context.socket(zmq.SUB)
         print("tcp://%s:%s" % (iperf_server_ip_address, iperf_port))
@@ -393,7 +456,6 @@ def remote_control_program(controller):
                 iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
                 iperf_thread.do_run = True
                 iperf_thread.start()
-                # print(iperf_througputh)
 
                 reading_buffer = []
                 reading_buffer.append([0.0])
@@ -412,18 +474,16 @@ def remote_control_program(controller):
     while not controller.is_stopped():
         msg = controller.recv(timeout=1)
         if msg:
-            print('0')
             log.info("Receive message %s" % str(msg))
             if 'i_time' in msg:
                 i_time[0] = msg['i_time']
-            # {'command': 'set_wave', 'type': 'microwave'}
 
         #send statistics to controller
         # if 'reading_time' in report_stats:
         if True:
             # controller.send_upstream({"measure": [[report_stats['reading_time'], report_stats['busy_time'], report_stats['tx_activity'], report_stats['num_tx'], report_stats['num_tx_success']]], "mac_address": (my_mac)})
             # controller.send_upstream({"measure": [[report_stats['reading_time'], reading_buffer[0], report_stats['num_tx'], report_stats['num_tx_success']]], "mac_address": (my_mac)})
-            controller.send_upstream({"measure": [0, iperf_througputh[0]], "mac_address": (my_mac)})
+            controller.send_upstream({"measure": [time.time(), iperf_througputh[0], reading_buffer[0]], "mac_address": (my_mac)})
 
     iperf_thread.do_run = False
     iperf_thread.join()
