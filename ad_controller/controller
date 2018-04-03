@@ -176,6 +176,7 @@ def print_menu_command():  ## Your menu design here
     global sequence_publisher
     global publisher
 
+    # Command menu (choice of network)
     print(30 * "-", "COMMAND MENU", 30 * "-")
     if len(solutionCompatibilityMatrix) > 0:
         solutionIndex = 1
@@ -189,6 +190,7 @@ def print_menu_command():  ## Your menu design here
     print(67 * "-")
     print("insert network number : ")
 
+    # Poll for input on network choice:
     while True:
         try:
             items = dict(poller.poll())
@@ -201,18 +203,20 @@ def print_menu_command():  ## Your menu design here
         else:
             continue
 
-    ch = line.decode("utf-8").lower()
-    if ch == '':
+    # Parse the selected network:
+    network_choice = line.decode("utf-8").lower()
+    if network_choice == '':
         return
     else:
         try:
-            solutionIndex = int(ch)
+            solutionIndex = int(network_choice)
         except KeyError:
             print("Invalid selection, please try again.\n")
             return
 
-    for ii in  range(0,len(solutionCompatibilityMatrix[solutionIndex].commandList)):
-        print("     " + str(ii) + " :" + str(solutionCompatibilityMatrix[solutionIndex].commandList[ii]))
+    # Pass the commands of the network to the output:
+    for command_index in  range(0,len(solutionCompatibilityMatrix[solutionIndex].commandList)):
+        print("     " + str(command_index) + " :" + str(solutionCompatibilityMatrix[solutionIndex].commandList[command_index]))
     print("insert command number : ")
 
     while True:
@@ -223,19 +227,15 @@ def print_menu_command():  ## Your menu design here
         if items.get(reader, 0) & zmq.POLLIN:
             line = reader.recv()
             break
-        # if request in items:
-        #     print("8")
-        #     msg = request.recv_multipart()
-        #     identity = msg[0]
         else:
             continue
 
-    ch = line.decode("utf-8").lower()
-    if ch == '':
+    command_choice = line.decode("utf-8").lower()
+    if command_choice == '':
         return
     else:
         try:
-            commandIndex = int(ch)
+            commandIndex = int(command_choice)
         except KeyError:
             print("Invalid selection, please try again.\n")
             return
@@ -256,17 +256,26 @@ def print_menu_command():  ## Your menu design here
     #          “WiFi”: { “2467”:False,  “2484”:True}}},
     #
     # }
-    msg = None
-    msg = {"type": "publisherUpdate", "involvedController": [solutionCompatibilityMatrix[solutionIndex].name], "commandList": {}}
-    msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {}}
 
-    if commandToSend == "START_WIFI":
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_WIFI": {}}
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_WIFI"]= {"2437": True}
+    msg = {
+        "type": "publisherUpdate",
+        "involvedController": [solutionCompatibilityMatrix[solutionIndex].name],
+        "commandList": {}
+    }
 
-    if commandToSend == "STOP_WIFI":
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_WIFI": {}}
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_WIFI"]= {"2437": False}
+    if commandToSend == "TRAFFIC":
+        msg["commandList"] = {
+            "TRAFFIC" : 1 # OFF, LOW, MEDIUM, HIGH
+        }
+
+    else:
+        msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {}}
+        if commandToSend == "START_WIFI":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_WIFI": {}}
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_WIFI"]= {"2437": True}
+        elif commandToSend == "STOP_WIFI":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_WIFI": {}}
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_WIFI"]= {"2437": False}
 
     if msg:
         print('update message %s' % str(msg))

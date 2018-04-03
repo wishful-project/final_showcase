@@ -109,15 +109,10 @@ class GlobalSolutionControllerProxy(object):
                 if self.networkName in involvedController:
                     commandList = mdict.get("commandList", {} )
                     print(commandList) # 'WIFI_CT': {'START_WIFI': {'2437': True}}
-                    for solution in commandList:
-                        # if isinstance(commandList, str):
-                        #     commandList = [commandList]
-                        for cmd in commandList[solution]:
-                            print(cmd)
-                            if cmd in self.commands:
-                                print("Execute command:", cmd)
-                                function = self.commands[cmd]
-                                function()
+                    for command_name, command_parameter in commandList.items():
+                        print("Execute command:", command_name)
+                        function = self.commands[command_name]
+                        function(command_parameter)
 
             except KeyboardInterrupt:
                 return
