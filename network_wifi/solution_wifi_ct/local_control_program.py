@@ -148,11 +148,9 @@ def remote_control_program(controller):
         reading_time = time.time()
         local_starttime = reading_time
         reading_interval = 1
-        column_old = []
-        val_incremental_old = 0
         tx_count_ = 0
         rx_ack_count_ = 0
-        count_round = 0
+        # count_round = 0
 
         while True:
             tx_count = []
@@ -169,19 +167,19 @@ def remote_control_program(controller):
 
             tx_count = [float(i) for i in tx_count]
             rx_ack_count = [float(i) for i in rx_ack_count]
+
             tx_count = np.array(tx_count)
             rx_ack_count = np.array(rx_ack_count)
 
             # print(tx_count)
             # print(rx_ack_count)
 
-            count_round = count_round + 1
+            # count_round = count_round + 1
             dtx = np.mod(tx_count - tx_count_, 0xFFFF)
             dack = np.mod(rx_ack_count - rx_ack_count_, 0xFFFF)
             tx_count_ = tx_count
             rx_ack_count_ = rx_ack_count
             psucc = np.divide(dack, dtx)
-
             for i in range(0, len(psucc)):
                 if np.isinf(psucc[i]):
                     psucc[i] = 0
@@ -217,59 +215,44 @@ def remote_control_program(controller):
 
                 mask = "{}{}".format(maskval, mask)
                 mask_int = [int(x) for x in list(mask)]
-            mask_sum = 0
-            for x in list(mask_int):
-                mask_sum += x
 
             if mask == "0000000000":
                 mask = "1111111111"
 
-            EST_SLOT = 4
-            L = 10
-            #print(mask)
-            p_insert = np.random.rand()
-            if mask_sum < EST_SLOT:
-                p_insert = 1
-                mask_int = update_pattern(mask_int, L, mask_sum + 1)
+            print("----------")
+            print(mask)
+
+            mask_sum = 0
+            for x in list(mask_int):
+                mask_sum += x
+
+            # EST_SLOT = 4
+            # L = 10
+            # p_insert = np.random.rand()
+            # if mask_sum < EST_SLOT:
+            #     p_insert = 1
+            #     mask_int = update_pattern(mask_int, L, mask_sum + 1)
             # else:
-            #			p_insert=0
-            #		if p_insert > 0.01:
-            #			mask_int=update_pattern(mask_int,L,mask_sum+1)
-            mask = ""
-            for x in mask_int:
-                mask = "{}{}".format(mask, x)
-            # count_round=0
-            #print(mask_int)
+            #     p_insert=0
+            #     if p_insert > 0.01:
+            #         mask_int=update_pattern(mask_int,L,mask_sum+1)
+			#
+            # mask = ""
+            # for x in mask_int:
+            #     mask = "{}{}".format(mask, x)
+			#
+            # if not dryRun:
+            #     UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
+            #     # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
+            #     rvalue = controller.radio.set_parameters(UPIargs)
+            #     if rvalue[0] == SUCCESS:
+            #         log.warning('Radio program configuration succesfull')
+            #     else:
+            #         log.warning('Error in radio program configuration')
+            #         do_run = False
 
-            if not dryRun:
-                # with fab.hide('output', 'running', 'warnings'), fab.settings(warn_only=True):
-                #     fab.run('bytecode-manager --set-tdma-mask {}'.format(mask))
-
-                # if inactive == 0:
-                #     position = '1'
-                # else:
-                #     position = '2'
-                # UPIargs = {'position': position, 'interface': 'wlan0'}
-                # rvalue = controller.radio.activate_radio_program(UPIargs)
-                # if rvalue == SUCCESS:
-                #     log.warning('Radio program activation successful')
-                # else:
-                #     log.warning('Error in radio program activation')
-                # suite.active_slot = inactive
-                # suite.slots[suite.active_slot] = protocol
-                # # print('load protocol : change slot')
-
-                UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
-                # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
-                rvalue = controller.radio.set_parameters(UPIargs)
-                if rvalue[0] == SUCCESS:
-                    log.warning('Radio program configuration succesfull')
-                else:
-                    log.warning('Error in radio program configuration')
-                    do_run = False
-
-            # reading_buffer[0] = parsed_json['measure']
             reading_buffer[0] = 1-np.mean(psucc)
+            reading_buffer[1] = mask
             time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
     # socket iperf pointer
@@ -458,7 +441,8 @@ def remote_control_program(controller):
                 iperf_thread.start()
 
                 reading_buffer = []
-                reading_buffer.append([0.0])
+                reading_buffer.append(0.0)
+                reading_buffer.append("0000000000")
                 reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
                 reading_buffer_thread.do_run = True
                 reading_buffer_thread.start()
@@ -483,7 +467,7 @@ def remote_control_program(controller):
         if True:
             # controller.send_upstream({"measure": [[report_stats['reading_time'], report_stats['busy_time'], report_stats['tx_activity'], report_stats['num_tx'], report_stats['num_tx_success']]], "mac_address": (my_mac)})
             # controller.send_upstream({"measure": [[report_stats['reading_time'], reading_buffer[0], report_stats['num_tx'], report_stats['num_tx_success']]], "mac_address": (my_mac)})
-            controller.send_upstream({"measure": [time.time(), iperf_througputh[0], reading_buffer[0]], "mac_address": (my_mac)})
+            controller.send_upstream({"measure": [time.time(), iperf_througputh[0], reading_buffer[0], reading_buffer[1]], "mac_address": (my_mac)})
 
     iperf_thread.do_run = False
     iperf_thread.join()

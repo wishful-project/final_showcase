@@ -237,7 +237,7 @@ def remote_control_program(controller):
                 # print('my address %s - parsed_json : %s' % (str(wlan_ip_address), str(parsed_json)))
                 rcv_ip_address = parsed_json['ip_address']
                 if rcv_ip_address == wlan_ip_address:
-                    print('parsed_json : %s' % str(parsed_json))
+                    # print('parsed_json : %s' % str(parsed_json))
                     iperf_througputh[0] = float(parsed_json['throughput'])
             else:
                 # raise IOError("Timeout processing auth request")
@@ -378,8 +378,6 @@ def remote_control_program(controller):
 
                 interface = []
                 interface.append(msg['iface'])
-                if interface[0] == 'wlan2':
-                    interface[0] = 'eth1'
                 wlan_ip_address = controller.net.get_iface_ip_addr(interface[0])
                 wlan_ip_address = wlan_ip_address[0]
 

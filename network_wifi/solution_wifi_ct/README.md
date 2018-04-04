@@ -12,8 +12,14 @@ Wishful FINAL SHOWCASE Network WiFi
             ex -sc $"%s/\r$//e|x" start_wifi_network.sh
             bash start_wifi_network.sh
 
+    ~~~~
+    #start USRP channel trace visualizer on web portal
+    ~~~~
+    ssh dgarlisi@nuc12
+        cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal
+            sudo bash run_usrp.sh 6
 
-
+    http://172.16.16.12/WishfulWebPortal/only_usrp.html
 
 
 ## run separated command

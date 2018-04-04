@@ -163,10 +163,22 @@ def print_solutions():
             print("     " + str(solutionCompatibilityMatrix[key].name))
             print("     " + str(solutionCompatibilityMatrix[key].commandList))
             solutionIndex += 1
-    try:
-        ch=input("Press enter twice to continue")
-    except NameError:
-        pass
+    print(67 * "-")
+    print("0. BACK")
+    print(67 * "-")
+    print("Press 0 to BACK")
+    while True:
+        try:
+            items = dict(poller.poll())
+        except (zmq.ZMQError, KeyboardInterrupt):
+            return
+
+        if items.get(reader, 0) & zmq.POLLIN:
+            line = reader.recv()
+            break
+        else:
+            continue
+    clear()
     return
 
 
@@ -277,6 +289,22 @@ def print_menu_command():  ## Your menu design here
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_WIFI": {}}
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_WIFI"]= {"2437": False}
 
+    if commandToSend == "START_LTE":
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_LTE": {}}
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_LTE"]= {"2437": True}
+
+    if commandToSend == "STOP_LTE":
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_LTE": {}}
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_LTE"]= {"2437": False}
+
+    if commandToSend == "START_TDMA":
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_TDMA": {}}
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_TDMA"]= {"2437": False}
+
+    if commandToSend == "STOP_TDMA":
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_TDMA": {}}
+        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_TDMA"]= {"2437": False}
+
     if msg:
         print('update message %s' % str(msg))
         # Distribute as key-value message
@@ -290,11 +318,20 @@ def print_menu_command():  ## Your menu design here
         print("Malformed message, sending failed")
         print('update message %s' % str(msg))
 
-    try:
-        ch=input("Press enter twice to continue")
-    except NameError:
-        pass
+    print(67 * "-")
+    print("Press 0 to BACK")
+    while True:
+        try:
+            items = dict(poller.poll())
+        except (zmq.ZMQError, KeyboardInterrupt):
+            return
 
+        if items.get(reader, 0) & zmq.POLLIN:
+            line = reader.recv()
+            break
+        else:
+            continue
+    clear()
     return
 
 # Exit program

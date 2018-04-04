@@ -217,45 +217,6 @@ def start_visualizer_connection():
 
 	return socket_visualizer
 
-def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, solutionCtrProxy):
-	"""
-	****	SETUP Collect results funciton	****
-	This functions is used to collect information from remote local control program,
-	the statistics are sent to the experiment GUI, and stored in the node.measurements list
-	"""
-	bad_plcp_old = 0
-	good_plcp_old = 0
-	bad_fcs_old = 0
-	good_fcs_old = 0
-	busy_time_old = 0
-
-	interference_state = "NO interference"
-	receive_thread = threading.currentThread()
-	while getattr(receive_thread, "do_run", True):
-		msg = lcpDescriptor_node.recv(timeout=0.1)
-		if msg:
-			# log.info("Recv: %s" % str(msg))
-			if "mac_address" in msg:
-				for ii in range(0, len(mac_address)):
-					if msg['mac_address'] == mac_address[ii]:
-						# print('message = %s - mac = %s' % (msg['measure'], msg['mac_address']))
-						msg['label'] = label[ii]
-						msg['type'] = u'statistics'
-
-						if msg['label'] == 'B':
-							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
-							value = { "NetworkIDWIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]}}
-							solutionCtrProxy.send_monitor_report("performance", value)
-
-						# print(msg)
-						# socket_visualizer.send_json(msg)
-
-			# add measurement on nodes element
-			for node in wifinodes:
-				if node.mac_address == msg['mac_address'] and msg['measure']:
-					node.measurements.append(msg['measure'])
-		gevent.sleep(1)
-
 def setAP(controller, node, iface, wlan_ip, essid):
 	""" Creates infrastructure BSS, uses node such as Access Point
 	:param node: elected Access Point Node
@@ -485,20 +446,19 @@ def lteStatus():
 		return
 	lteStateChange = True
 
-def tdmaStatus():
+def startTdma():
 	print("change TDMA state")
 	global tdmaState, tdmaStateChange
-
-	if tdmaState == "ENABLE":
-		tdmaState = "DISABLE"
-	elif tdmaState == "DISABLE":
-		tdmaState = "ENABLE"
-	else:
-		tdmaState = "DISABLE"
-		return
-
+	tdmaState = "ENABLE"
 	tdmaStateChange = True
+	return
 
+def stopTdma():
+	print("change TDMA state")
+	global tdmaState, tdmaStateChange
+	tdmaState = "DISABLE"
+	tdmaStateChange = True
+	return
 
 
 def signal_handler(signal, frame):
@@ -508,12 +468,53 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
+def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, label, solutionCtrProxy):
+	"""
+	****	SETUP Collect results funciton	****
+	This functions is used to collect information from remote local control program,
+	the statistics are sent to the experiment GUI, and stored in the node.measurements list
+	"""
+	bad_plcp_old = 0
+	good_plcp_old = 0
+	bad_fcs_old = 0
+	good_fcs_old = 0
+	busy_time_old = 0
+
+	interference_state = "NO interference"
+	receive_thread = threading.currentThread()
+	while getattr(receive_thread, "do_run", True):
+		msg = lcpDescriptor_node.recv(timeout=0.1)
+		if msg:
+			# log.info("Recv: %s" % str(msg))
+			if "mac_address" in msg:
+				for ii in range(0, len(mac_address)):
+					if msg['mac_address'] == mac_address[ii]:
+						# print('message = %s - mac = %s' % (msg['measure'], msg['mac_address']))
+						msg['label'] = label[ii]
+						msg['type'] = u'statistics'
+
+						if msg['label'] == 'B':
+							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
+							value = { "NetworkIDWIFI": { "type":"80211", "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}}
+							solutionCtrProxy.send_monitor_report("performance", value)
+
+						# print(msg)
+						# socket_visualizer.send_json(msg)
+
+			# add measurement on nodes element
+			# for node in wifinodes:
+			# 	if node.mac_address == msg['mac_address'] and msg['measure']:
+			# 		node.measurements.append(msg['measure'])
+		gevent.sleep(1)
+
+
+
 # Entry point after globals initialization
 def main(args):
 	global nodes
 	global do_run
 
-	# global controller
+	global controller
 	global nodes_platform_info
 	global eth_ip
 	global role
@@ -535,7 +536,7 @@ def main(args):
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
 	networkName = "WIFI_CNIT"
 	solutionName = ["WIFI_CT"]
-	commands = {"STOP_WIFI": (lambda: stopWifi()), "START_WIFI": (lambda:startWifi()), "STOP_TDMA": (lambda:tdmaStatus()), "START_TDMA": (lambda:tdmaStatus())}
+	commands = {"STOP_WIFI": (lambda: stopWifi()), "START_WIFI": (lambda:startWifi()), "STOP_TDMA": (lambda:stopTdma()), "START_TDMA": (lambda:startTdma())}
 	monitorList = ["THR", "PER"]
 	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
 
@@ -765,17 +766,17 @@ def main(args):
 							tdmaStateChange = False
 							continue
 
-						# tdmaStateChange = False
-						# for jj in range(0, len(nodes)):
-						# 	pos = eth_ip.index(nodes[jj].ip)
-						# 	if role[pos] == "STA":
-						# 		UPIargs = {'position': position, 'interface': 'wlan0'}
-						# 		rvalue = controller.nodes(nodes[jj]).radio.activate_radio_program(UPIargs)
-						# 		if rvalue != SUCCESS:
-						# 			log.warning('Error in radio program activation')
-						# 			return
-						# 		else:
-						# 			log.warning('Radio program activation successful')
+						tdmaStateChange = False
+						for jj in range(0, len(nodes)):
+							pos = eth_ip.index(nodes[jj].ip)
+							if role[pos] == "STA":
+								UPIargs = {'position': position, 'interface': 'wlan0'}
+								rvalue = controller.nodes(nodes[jj]).radio.activate_radio_program(UPIargs)
+								if rvalue != SUCCESS:
+									log.warning('Error in radio program activation')
+									return
+								else:
+									log.warning('Radio program activation successful')
 
 					if wifiStateChange:
 						if wifiState == "ENABLE":

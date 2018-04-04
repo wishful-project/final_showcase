@@ -51,7 +51,7 @@ __email__ = "kistm@tcd.ie"
 """
 Setting of agent node
 """
-agent_PC_interface = "eno1"
+agent_PC_interface = "eth0"
 """
 END setting of agent node
 """
@@ -87,7 +87,7 @@ agent.add_module(moduleName="srslte", pyModule="wishful_module_srslte", classNam
 agent.add_module(moduleName="network", pyModule="wishful_module_net_linux", className="NetworkModule")
 
 #add the iperf module,
-agent.add_module(moduleName="iperf", pyModule="wishful_module_iperf", className="IperfModule")
+#agent.add_module(moduleName="iperf", pyModule="wishful_module_iperf", className="IperfModule")
 
 """ END WiSHFUL agent setting """
 

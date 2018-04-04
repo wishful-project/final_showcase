@@ -1,10 +1,33 @@
 Wishful FINAL SHOWCASE solution_lte_ct
 ============================
 
-### network_lte how-to on mobile showcase
- 
+### network_lte how-to on portable testbed
+
+    ssh dgarlisi@nuc12
+        cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/ad_controller/
+            python3 ./controller
+
+    ssh dgarlisi@nuc12
+        cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct/
+            ex -sc $"%s/\r$//e|x" start_lte_network.sh
+            bash start_lte_network.sh
+
+~~~~
+#start USRP channel trace visualizer on web portal
+~~~~
+
+    ssh dgarlisi@nuc12
+        cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal
+            sudo bash run_usrp.sh 6
+
+    http://172.16.16.12/WishfulWebPortal/only_usrp.html
+
+
+ ## run separated command
+
  #deploy experiment files
-    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh dgarlisi@172.16.16.10:/groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/
+    cd /mnt/d/ownCloud/wishful-framework-cnit/wishful-github-manifest-7/final_showcase/
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh dgarlisi@172.16.16.11:/groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/
 
  #CONTROLLER
     nuc12
@@ -15,8 +38,6 @@ Wishful FINAL SHOWCASE solution_lte_ct
  #deploy directory on nodes
  #sync clock nodes
     cd helper
-     ex -sc $'%s/\r$//e|x' deploy_upis.sh
-     sh deploy_upis.sh root alix04,alix05  #deploy framework on alixnodes
      ex -sc $'%s/\r$//e|x' sync_date.sh
      sh sync_date.sh root alix04,alix05  #sync nodes time
      cd ..
@@ -53,15 +74,5 @@ Wishful FINAL SHOWCASE solution_lte_ct
         1,0,0,1,1,1,1,1,0,0
 
 
-~~~~
-#start USRP
-~~~~
-
-ssh clapton
-cd ~/work/usrp_acquire/python-usrp-tracker-v2/pyUsrpTracker
-sudo sh run_usrp.sh 6
-http://10.8.9.3/crewdemo/plots/usrp.png
-
-ON ZIGBEE : http://10.8.8.22/login.html (ttilab)
 
 

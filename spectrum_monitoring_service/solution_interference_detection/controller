@@ -145,51 +145,6 @@ def csResultCollector1(group, node, data):
 	log.info('1 - receives data msg at %s - %s' % (str(node.ip), str(messagedata) ))
 
 
-# def register_solution_to_solution_global_controller(request):
-# 	"""
-# 	****	SETUP SOLUTION GLOBAL CONTROLLER CONNECTION	****
-# 	This function is used to setup the connection with the experiment GUI,
-# 	a ZMQ socket server is created on port 8500, able to receive command from GUI
-# 	"""
-# 	#Register solution to solution global controller
-# 	# Activation 	Event
-# 	# De - activation
-# 	# Event 	List 	of 	monitoring 	parameters
-# 	# List 	of 	control knobs / parameters
-#
-# 	#create the json format message
-# 	solutionName = 'InterferenceDetection'
-# 	commandList = ["ON", "OFF"]
-# 	eventList = ["LTE interference", "NO interference"]
-# 	msg = {"type": "registerRequest", "solution": solutionName, "commandList": commandList, "eventList": eventList}
-# 	print('msg --> %s' % str(msg))
-#
-# 	#prepare the message
-# 	sequence = 1
-# 	kvmsg = KVMsg(sequence)
-# 	kvmsg.key = b"generic"
-# 	kvmsg.body = json.dumps(msg).encode('utf-8')
-# 	#send the message
-# 	kvmsg.send(request)
-#
-# 	#process the registerRespons
-# 	#TOBE
-# 	try:
-# 		kvmsg_reply = KVMsg.recv(request)
-# 	except:
-# 		return False
-#
-# 	seq = kvmsg_reply.sequence
-# 	key = kvmsg_reply.key
-# 	body = kvmsg_reply.body
-# 	print(body)
-# 	parsed_json = json.loads(body.decode("utf-8"))
-# 	if "type" in parsed_json:
-# 		type = parsed_json["type"]
-# 		if type == "registerResponse":
-# 			print("Received registration respons")
-# 			return True
-# 	return False
 
 def listener_subscriber(arg,subscriber):
 	sequence = 0
@@ -422,15 +377,11 @@ def receive_data_spectral(solutionCtrProxy):
 	ff2MedianThMaxWiFi = np.float32(2438)
 
 	"""
-	                    msg = {'type': 'monitorReport',
-                                    'solution': SolutionName,
-                                    'monitorType': ‘interference’,
-                                    'monitorValue': {
-                        	            “LTE”: { “2467”:True,  “2484”:False}
-                    		            “ZigBee”: { “2467”:False,  “2484”:True}
-                    		            “Busy”: { “2467”:False,  “2484”:True}
-                        	        },
-                    }
+		msg = {'type': 'monitorReport',	‘networkController': controllerName,	'monitorType': ‘channelUsage’,
+			'monitorValue': {
+		        	“centerFreq”:  “BW”
+	    	},
+		}
 
 	2412 2417 2422 2427 2432 2437 2442 2447 2452 2457 2462 2467 2472 2484 (WIFI)
 	2405 2410 2415 2420 2425 2430 2435 2440 2445 2450 2455 2460 2465 2470 	2475 2480 (ZigBee)
@@ -439,10 +390,6 @@ def receive_data_spectral(solutionCtrProxy):
 
 	predicted_value = "0000"
 	interference_state = "NO interference"
-	monitorValue = {}
-#								"LTE”: { “2467”:True,  “2484”:False}
-#	                            “ZigBee”: { “2467”:False,  “2484”:True}
-#	                            “Busy”: { “2467”:False,  “2484”:True}
 
 	#sr = spectral_recorder.SpectralRecorder(load=False)
 	reading_time = 1000
@@ -453,12 +400,8 @@ def receive_data_spectral(solutionCtrProxy):
 	#dev = "wlan0"
 	#drv = "ath9k"
 
-	#phy = "phy1"
-	#dev = "wlan1"
-	#drv = "ath9k"
-
 	phy = "phy2"
-	dev = "wlan2"
+	dev = "wlxec086b0837f1"
 	drv = "ath9k_htc"
 
 	print("start spectral acquire")
@@ -508,7 +451,7 @@ def receive_data_spectral(solutionCtrProxy):
 				if interference_state != "WiFi_DETECTED":
 					interference_state = "WiFi_DETECTED"
 					#solutionCtrProxy.send_event(interference_state)
-				monitorValue["WiFi"] = {str(round(ff2Median)): True}
+				# monitorValue["WiFi"] = {str(round(ff2Median)): True}
 
 			elif predicted_value == "0100":
 				# LTE detection
@@ -520,7 +463,7 @@ def receive_data_spectral(solutionCtrProxy):
 				if interference_state != "LTE_U_DETECTED":
 					interference_state = "LTE_U_DETECTED"
 					#solutionCtrProxy.send_event(interference_state)
-				monitorValue["LTE"] = { str(round(ff2Median)) : True}
+				# monitorValue["LTE"] = { str(round(ff2Median)) : True}
 
 			elif predicted_value == "0010":
 				# zigbee detection
@@ -530,7 +473,7 @@ def receive_data_spectral(solutionCtrProxy):
 				print("detected zigbee")
 				if interference_state != "ZigBee_U_DETECTED":
 					interference_state = "ZigBee_U_DETECTED"
-				monitorValue["ZigBee"] = {str(round(ff2Median)): True}
+				# monitorValue["ZigBee"] = {str(round(ff2Median)): True}
 
 			elif predicted_value == "0001":
 				# idle detection
@@ -546,12 +489,14 @@ def receive_data_spectral(solutionCtrProxy):
 			print(e)
 
 		if not (dt % 10):
-			solutionCtrProxy.send_monitor_report("interference", monitorValue)
-
+			# solutionCtrProxy.send_monitor_report("interference", monitorValue)
+			# value = {"NetworkIDWIFI": {"type": "80211", "timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": msg["measure"][2], "MASK": msg["measure"][3]}}
+			# value = {"monitorValue": { "centerFreq":  "BW"	}}
+			value = {"monitorValue": {ff2Median: bbMedian}}
+			solutionCtrProxy.send_monitor_report("channelUsage", value)
 			log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
 
 		dt += 1
-
 		time.sleep(1)
 
 
@@ -671,12 +616,19 @@ def main(args):
 	****** setup the communication with the solution global controller ******
 	"""
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-	solutionName = 'InterferenceDetection'
-	commands = {"ON": enable_solution, "OFF": disable_solution}
-	eventList = ["LTE_U_DETECTED", "WiFi_DETECTED", "ZigBee_DETECTED", "NO_interference"]
-	commandList = []
-	monitorList = []
-	solutionCtrProxy.set_solution_attributes(solutionName, commands, eventList, monitorList)
+	"""
+	msg = {'type': 'monitorReport',	‘networkController': controllerName,	'monitorType': ‘channelUsage’,
+	'monitorValue': {
+	        	“centerFreq”:  “BW”
+    	},
+	}
+	"""
+	networkName = "MONITOR_SERVICE_CNIT"
+	solutionName = ["INTERFERENCE_DETECTION"]
+	commands = {}
+	# commands = {"ON": enable_solution, "OFF": disable_solution}
+	monitorList = ["centerFreq"]
+	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList)
 	# Register SpectrumSensing solution to global solution controller
 	response = solutionCtrProxy.register_solution()
 	if response:
@@ -704,8 +656,6 @@ def main(args):
 
 	#Start controller
 	controller.start()
-
-	print(len(hosts))
 
 	#control loop
 	while do_run:
@@ -756,6 +706,7 @@ def main(args):
 
 				#START visualizer socket
 				socket_visualizer = start_visualizer_connection()
+				socket_visualizer = None
 
 				"""
 				****** setup network ******
@@ -874,70 +825,39 @@ def main(args):
 			# socket_command = start_command_connection()
 			# poller = zmq.Poller()
 			# poller.register(socket_command, flags=zmq.POLLIN)
-			EXPERIMENT_DURATION = 30000000
-			dt = 0
-			while do_run:
-				# socket_list = poller.poll(1000)
-				# if socket_list:
-				# 	for socket_info in socket_list:
-				# 		if socket_info[1] == zmq.POLLIN:
-				# 			parsed_json = socket_command.recv_json()
-				# 			print('parsed_json : %s' % str(parsed_json))
-				# 			type = parsed_json['type']
-				#
-				# 			if type == 'traffic':
-				# 				node = parsed_json['src']
-				# 				node_src_index = all_nodes.index(node)
-				#
-				# 				command = parsed_json['command']
-				# 				# if off traffic is selected for a specific node
-				# 				if command == 'off_traffic':
-				# 					nodes_source_rate[node_src_index] = 0
-				# 					# call UPI to stop traffic on node
-				# 					controller.nodes(nodes[node_src_index]).net.stop_packetflow()
-				# 					break
-				#
-				# 				# if start traffic is selected for a specific node
-				# 				if command == 'set_traffic':
-				# 					node = parsed_json['dst']
-				# 					node_dst_index = all_nodes.index(node)
-				# 					value = parsed_json['value']
-				# 					nodes_source_rate[node_src_index] = value
-				# 					source_rate = float(nodes_source_rate[node_src_index])
-				# 					# call UPI to start traffic
-				# 					print(wlan_ip[node_dst_index])
-				# 					controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
+			# EXPERIMENT_DURATION = 30000000
+			# dt = 0
+			# while do_run:
+			# 	if not (dt % 10):
+			# 		log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
+			# 	dt += 1
+			# 	gevent.sleep(1)
+			# 	if dt > EXPERIMENT_DURATION:
+			# 		break
 
-				receive_data_spectral(solutionCtrProxy)
-
-				if not (dt % 10):
-					log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
-				dt += 1
-				gevent.sleep(1)
-				if dt > EXPERIMENT_DURATION:
-					break
+			receive_data_spectral(solutionCtrProxy)
 
 			do_run = False
-			for jj in range(0, len(nodes)):
-				controller.nodes(nodes[jj]).net.stop_packetflow()
+			# for jj in range(0, len(nodes)):
+			# 	controller.nodes(nodes[jj]).net.stop_packetflow()
 
-			for ii in range(0,len(nodes)):
-				try:
-					controller.nodes(nodes[ii]).net.destroy_packetflow_sink()
-
-					if lcpDescriptor_nodes[ii]:
-						print("Terminate remote local control program")
-						lcpDescriptor_nodes[ii].close()
-
-					time.sleep(2)
-
-					print("Terminate receive thread")
-					reading_thread[ii].do_run = False
-					reading_thread[ii].join()
-				except:
-					print('Error in %s local control program shutdown' % str(nodes[ii].ip))
-
-			meas_collector.save_measurements(nodes=wifinodes, directory="experiment_data")
+			# for ii in range(0,len(nodes)):
+			# 	try:
+			# 		controller.nodes(nodes[ii]).net.destroy_packetflow_sink()
+			#
+			# 		if lcpDescriptor_nodes[ii]:
+			# 			print("Terminate remote local control program")
+			# 			lcpDescriptor_nodes[ii].close()
+			#
+			# 		time.sleep(2)
+			#
+			# 		print("Terminate receive thread")
+			# 		reading_thread[ii].do_run = False
+			# 		reading_thread[ii].join()
+			# 	except:
+			# 		print('Error in %s local control program shutdown' % str(nodes[ii].ip))
+			#
+			# meas_collector.save_measurements(nodes=wifinodes, directory="experiment_data")
 
 
 
