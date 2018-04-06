@@ -32,6 +32,7 @@ import zmq
 import yaml
 import threading
 import signal
+import socket
 
 
 sys.path.append('../')
@@ -486,6 +487,35 @@ def stopLte():
 	lteState = "DISABLE"
 	lteStateChange = True
 
+def enable_lte_2_subframe():
+	print("set subframes 2")
+	UDP_IP = "172.16.16.11"
+	UDP_PORT = 8888
+	tx_pattern = "1,1,0,0,0,0,0,0,0,0"
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.sendto(tx_pattern.encode(), (UDP_IP, UDP_PORT))
+	sock.close()
+
+
+def enable_lte_4_subframe():
+	print("set subframes 4")
+	UDP_IP = "172.16.16.11"
+	UDP_PORT = 8888
+	MESSAGE = "1,1,1,1,0,0,0,0,0,0"
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
+	sock.close()
+
+
+def enable_lte_6_subframe():
+	print("set subframes 6")
+	UDP_IP = "172.16.16.11"
+	UDP_PORT = 8888
+	MESSAGE = "1,1,1,1,1,1,0,0,0,0"
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
+	sock.close()
+
 
 def tdmaStatus():
 	print("change TDMA state")
@@ -536,7 +566,7 @@ def main(args):
 	networkName = "LTE_CNIT"
 	solutionName = ["LTE_CT"]
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
-	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte())}
+	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_2_SUBFRAME": (lambda: enable_lte_2_subframe()), "ENABLE_LTE_4_SUBFRAME": (lambda: enable_lte_4_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
 	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
 

@@ -63,15 +63,12 @@ Wishful FINAL SHOWCASE solution_lte_ct
     python3 agent_tx.py
     ~~~~
 
-
  #Start LTE traffic
     iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
 
  #Change LTE pattern
-    python set_tx_lte_pattern.py -w "1,0,0,1,1,1,1,1,0,0"
-        ('UDP target IP:', '127.0.0.1')
-        ('UDP target port:', 8888)
-        1,0,0,1,1,1,1,1,0,0
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
+    python3 set_tx_lte_pattern.py -w 1010101010
 
 
 

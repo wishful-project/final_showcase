@@ -107,12 +107,18 @@ class GlobalSolutionControllerProxy(object):
                 # {'type': 'publisherUpdate', 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'involvedController': ['WIFI']}
                 involvedController = mdict.get("involvedController", [])
                 if self.networkName in involvedController:
-                    commandList = mdict.get("commandList", {} )
-                    print(commandList) # 'WIFI_CT': {'START_WIFI': {'2437': True}}
-                    for command_name, command_parameter in commandList.items():
-                        print("Execute command:", command_name)
-                        function = self.commands[command_name]
-                        function(command_parameter)
+                    commandListSolutions = mdict.get("commandList", {} )
+                    # print(commandListSolutions) # 'WIFI_CT': {'START_WIFI': {'2437': True}} # {'LTE_CT': {'ENABLE_LTE_2_SUBFRAME': {}}}
+                    # print(self.solutionName[0])
+                    if self.solutionName[0] in commandListSolutions:
+                        commandList = commandListSolutions.get(self.solutionName[0], {})
+                        # print(commandList)
+                        for command_name, command_parameter in commandList.items():
+                            # print("Execute command:", command_name)
+                            # print(command_parameter)
+                            function = self.commands[command_name]
+                            # function(command_parameter)
+                            function()
 
             except KeyboardInterrupt:
                 return

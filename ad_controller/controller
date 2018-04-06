@@ -279,31 +279,39 @@ def print_menu_command():  ## Your menu design here
         msg["commandList"] = {
             "TRAFFIC" : 1 # OFF, LOW, MEDIUM, HIGH
         }
-
     else:
         msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {}}
+
+        #WIFI NETWORK COMMAND
         if commandToSend == "START_WIFI":
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_WIFI": {}}
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_WIFI"]= {"2437": True}
-        elif commandToSend == "STOP_WIFI":
+        if commandToSend == "STOP_WIFI":
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_WIFI": {}}
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_WIFI"]= {"2437": False}
+        if commandToSend == "START_TDMA":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_TDMA": {}}
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_TDMA"] = {"2437": False}
+        if commandToSend == "STOP_TDMA":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_TDMA": {}}
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_TDMA"] = {"2437": False}
 
-    if commandToSend == "START_LTE":
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_LTE": {}}
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_LTE"]= {"2437": True}
-
-    if commandToSend == "STOP_LTE":
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_LTE": {}}
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_LTE"]= {"2437": False}
-
-    if commandToSend == "START_TDMA":
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_TDMA": {}}
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_TDMA"]= {"2437": False}
-
-    if commandToSend == "STOP_TDMA":
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_TDMA": {}}
-        msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_TDMA"]= {"2437": False}
+        #LTE NETWORK COMMAND
+        if commandToSend == "START_LTE":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"START_LTE": {}}
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["START_LTE"]= {"2437": True}
+        if commandToSend == "STOP_LTE":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_LTE": {}}
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_LTE"]= {"2437": False}
+        if commandToSend == "ENABLE_LTE_2_SUBFRAME":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"ENABLE_LTE_2_SUBFRAME": {}}
+            # msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["ENABLE_LTE_2_SUBFRAME"] = {}
+        if commandToSend == "ENABLE_LTE_4_SUBFRAME":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"ENABLE_LTE_4_SUBFRAME": {}}
+            # msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["ENABLE_LTE_4_SUBFRAME"] = {}
+        if commandToSend == "ENABLE_LTE_6_SUBFRAME":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"ENABLE_LTE_6_SUBFRAME": {}}
+            # msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["ENABLE_LTE_6_SUBFRAME"] = {}
 
     if msg:
         print('update message %s' % str(msg))
