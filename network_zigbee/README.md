@@ -27,4 +27,4 @@ source ./dev/bin/activate
 # Go to the zigbee network directory:
 cd final_showcase/network_zigbee
 # Start the global controller:
-python 
+python global_controller.py
