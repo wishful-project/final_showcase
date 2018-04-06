@@ -20,57 +20,6 @@ from bokeh.plotting import figure
 
 doc = curdoc()
 
-
-wifi_thr_plt = figure(
-    plot_height=300, plot_width=400,
-    title="Wi-Fi Received Data Throughput",
-    # tools="crosshair,pan,reset,save,wheel_zoom",
-    tools="",
-    toolbar_location=None,
-    x_axis_type="datetime",
-    # y_range=[0, None],
-)
-wifi_thr_plt.legend.location = "top_left"
-wifi_thr_plt.xaxis.axis_label = "Time"
-wifi_thr_plt.yaxis.axis_label = "Throughput [B/s]"
-wifi_thr_plt.yaxis[0].formatter = NumeralTickFormatter(format='0.0b')
-wifi_thr_plt.y_range.start = 0
-
-wifi_per_plt = figure(
-    plot_height=300, plot_width=400,
-    title="Wi-Fi Performance",
-    # tools="crosshair,pan,reset,save,wheel_zoom",
-    tools="",
-    toolbar_location=None,
-    x_axis_type="datetime",
-    y_range=[0, 1],
-)
-wifi_per_plt.legend.location = "top_left"
-wifi_per_plt.xaxis.axis_label = "Time"
-wifi_per_plt.yaxis.axis_label = "Performance"
-
-for k in conf.wifi_ctrls:
-    data = ColumnDataSource(
-        data=dict(
-            timestamp=[],
-            PER=[],
-            THR=[],
-        ),
-        name=k,
-    )
-    wifi_thr_plt.line(
-        'timestamp', 'THR',
-        source=data, legend=conf.wifi_ctrls[k]['hrn'],
-        line_color=conf.wifi_ctrls[k]['color'],
-        line_width=3, line_alpha=0.6,
-    )
-    wifi_per_plt.line(
-        'timestamp', 'PER',
-        source=data, legend=conf.wifi_ctrls[k]['hrn'],
-        line_color=conf.wifi_ctrls[k]['color'],
-        line_width=3, line_alpha=0.6,
-    )
-
 title0 = Div(text="""
     <h2 class="content-subhead">Experiment Control</h2>
     """)
@@ -82,10 +31,63 @@ controls = layout(
     sizing_mode='scale_width',
 )
 
-layout = layout([
-    [usrp.plot, controls],
-    [wifi_thr_plt, wifi_per_plt],
-], sizing_mode='scale_width')
+plots = [[usrp.plot, controls]]
+
+for technology in conf.controllers:
+    thr_plt = figure(
+        plot_height=300, plot_width=400,
+        title="{} Received Throughput".format(technology),
+        # tools="crosshair,pan,reset,save,wheel_zoom",
+        tools="",
+        toolbar_location=None,
+        x_axis_type="datetime",
+        # y_range=[0, None],
+    )
+    thr_plt.legend.location = "top_left"
+    thr_plt.xaxis.axis_label = "Time"
+    thr_plt.yaxis.axis_label = "Throughput [B/s]"
+    thr_plt.yaxis[0].formatter = NumeralTickFormatter(format='0.0b')
+    thr_plt.y_range.start = 0
+
+    per_plt = figure(
+        plot_height=300, plot_width=400,
+        title="{} Performance".format(technology),
+        # tools="crosshair,pan,reset,save,wheel_zoom",
+        tools="",
+        toolbar_location=None,
+        x_axis_type="datetime",
+        y_range=[0, 1],
+    )
+    per_plt.legend.location = "top_left"
+    per_plt.xaxis.axis_label = "Time"
+    per_plt.yaxis.axis_label = "Performance"
+
+    for k in conf.controllers[technology]:
+        data = ColumnDataSource(
+            data=dict(
+                timestamp=[],
+                PER=[],
+                THR=[],
+            ),
+            name=k,
+        )
+        thr_plt.line(
+            'timestamp', 'THR',
+            source=data, legend=conf.controllers[technology][k]['hrn'],
+            line_color=conf.controllers[technology][k]['color'],
+            line_width=3, line_alpha=0.6,
+        )
+        per_plt.line(
+            'timestamp', 'PER',
+            source=data, legend=conf.controllers[technology][k]['hrn'],
+            line_color=conf.controllers[technology][k]['color'],
+            line_width=3, line_alpha=0.6,
+        )
+
+    plots.append([thr_plt, per_plt])
+
+
+layout = layout(plots, sizing_mode='scale_width')
 
 doc.add_root(layout)
 doc.title = 'WiSHFUL'

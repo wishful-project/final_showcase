@@ -13,6 +13,12 @@ To run:
 pipenv shell bokeh serve --allow-websocket-origin="*:5006" wishful
 ```
 
+For testing start additionally:
+
+```
+pipenv shell python tests/data_producer.py
+```
+
 ## Message template
 
 ```json
