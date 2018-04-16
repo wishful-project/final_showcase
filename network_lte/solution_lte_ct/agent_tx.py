@@ -80,7 +80,7 @@ agent.set_agent_info(name="ENB", info="Example tutorial Agent", iface=agent_PC_i
 agent.add_module(moduleName="discovery", pyModule="wishful_module_discovery_pyre",
                  className="PyreDiscoveryAgentModule", kwargs={"iface":agent_PC_interface, "groupName":"network_lte_cnit"})
 
-#add the net_linux module,
+#add the srs_lte module,
 agent.add_module(moduleName="srslte", pyModule="wishful_module_srslte", className="SrslteModule")
 
 #add the net_linux module,
