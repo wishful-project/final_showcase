@@ -109,16 +109,17 @@ class GlobalSolutionControllerProxy(object):
                 if self.networkName in involvedController:
                     commandListSolutions = mdict.get("commandList", {} )
                     # print(commandListSolutions) # 'WIFI_CT': {'START_WIFI': {'2437': True}} # {'LTE_CT': {'ENABLE_LTE_2_SUBFRAME': {}}}
-                    # print(self.solutionName[0])
+                    print(self.solutionName[0], commandListSolutions)
                     if self.solutionName[0] in commandListSolutions:
                         commandList = commandListSolutions.get(self.solutionName[0], {})
-                        # print(commandList)
+                        print(commandList)
                         for command_name, command_parameter in commandList.items():
-                            # print("Execute command:", command_name)
-                            # print(command_parameter)
+                            print("Execute command {} with parameters {}".format(command_name,command_parameter))
                             function = self.commands[command_name]
-                            # function(command_parameter)
-                            function()
+                            if len(command_parameter):
+                                function(command_parameter)
+                            else:
+                                function()
 
             except KeyboardInterrupt:
                 return

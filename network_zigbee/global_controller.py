@@ -48,9 +48,11 @@ whitelisted_channels = []
 wifi_to_tsch_channels_dct = {}
 per_dictionary = {}
 number_of_packets_received = 0
-traffic_type = 0
+traffic_type = {"TYPE":"OFF"}
 mac_mode = "TSCH"
 lte_wifi_coexistence_enabled = 0
+lte_subframe_size = 6
+lte_subframe_size_cur = 6
 # 0 = OFF
 # 1 = LOW
 # 2 = MEDIUM
@@ -127,7 +129,14 @@ def mapWifiOnZigbeeChannels(log, channel_mapping):
 def control_traffic(traffic_type):  
     global mac_mode, taisc_manager
     
-    if traffic_type != 0:
+    traffic_types = {
+        "LOW": 1,
+        "MEDIUM": 4,
+        "HIGH": 10,
+    }
+    
+    if traffic_type["TYPE"] in traffic_types:
+        traffic_amount = traffic_types[traffic_type["TYPE"]]
         # Select the server and client nodes based on MAC mode + calculate the maximum possible inter packet delay per node
         if mac_mode == "TSCH":
             server_nodes = [1]
@@ -137,9 +146,7 @@ def control_traffic(traffic_type):
             send_interval = int(math.floor(
                 slot_length[1]["IEEE802154e_macTsTimeslotLength"] 
                 * (len(global_node_manager.get_mac_address_list()) + 2) # Superframe size (beacon, upstream, downstream+)
-                / 1000 * 3 / traffic_type))
-            logging.error("Send interval is {}".format(send_interval))
-            app_manager.update_configuration({"app_send_interval": send_interval}, global_node_manager.get_mac_address_list())
+                / 1000 * max(traffic_types.values()) / traffic_type))
 
             # Activate:
             logging.info("Activating server {}".format(server_nodes))
@@ -150,7 +157,10 @@ def control_traffic(traffic_type):
             server_nodes = [1]
             client_nodes = [3]
             send_interval = 30
-            taisc_manager.update_macconfiguration({'TAISC_PG_ACTIVE' : 1})
+            taisc_manager.update_macconfiguration({'TAISC_PG_ACTIVE' : 1})            
+        logging.error("Send interval is {}".format(send_interval))
+        app_manager.update_configuration({"app_send_interval": send_interval}, global_node_manager.get_mac_address_list())
+
        
     else:
         # De-activate:
@@ -171,15 +181,44 @@ def whitelist():
 def sicslowpan_traffic(traffic_type_value):
     global traffic_type
     traffic_type = traffic_type_value
-    
+
 def lte_wifi_coexistence(enable):
     global lte_wifi_coexistence_enabled
     lte_wifi_coexistence_enabled = enable
     logging.info("lte_wifi_coexistence {}".format(lte_wifi_coexistence_enabled))
 
+def lte_wifi_coexistence_enable():
+    lte_wifi_coexistence(True)
+
+def lte_wifi_coexistence_disable():
+    lte_wifi_coexistence(False)
+
+def set_lte_subframe(lte_subframe_size):
+    global taisc_manager
+    lte_subframe_configs = {
+        2: {"lte_duration_min": 2000, "lte_duration_max": 2150 },
+        4: {"lte_duration_min": 4000, "lte_duration_max": 4150 },
+        6: {"lte_duration_min": 6000, "lte_duration_max": 6150 },
+    }
+    logging.info("Setting subframe size to {}".format(lte_subframe_size))
+    taisc_manager.update_macconfiguration(lte_subframe_configs[lte_subframe_size])  
+
+def enable_lte_2_subframe_sync():
+    global lte_subframe_size
+    lte_subframe_size = 2
+
+def enable_lte_4_subframe_sync():
+    global lte_subframe_size 
+    lte_subframe_size = 4
+
+def enable_lte_6_subframe_sync():
+    global lte_subframe_size 
+    lte_subframe_size = 6
+    
 ## MAIN functionality:
 def main(args):
-    global solutionCtrProxy, whitelisted_channels, blacklisted_channels, mac_mode, lte_wifi_coexistence_enabled
+    global solutionCtrProxy, whitelisted_channels, blacklisted_channels, \
+        mac_mode, lte_wifi_coexistence_enabled, lte_subframe_size_cur, lte_subframe_size
     # Init logging
     logging.debug(args)
     logging.info('******     WISHFUL  *****')
@@ -191,12 +230,16 @@ def main(args):
 
     solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
     networkName = "network_zigbee"
-    solutionName = "blacklisting"
+    solutionName = ["blacklisting"]
     commands = {
         "6LOWPAN_BLACKLIST": blacklist,
         "6LOWPAN_WHITELIST": whitelist,
         "TRAFFIC": sicslowpan_traffic,
-        "LTE_WIFI_ZIGBEE": lte_wifi_coexistence,
+        "LTE_WIFI_ZIGBEE_DISABLE": lte_wifi_coexistence_disable,
+        "LTE_WIFI_ZIGBEE_ENABLE": lte_wifi_coexistence_enable,
+        "ENABLE_LTE_2_SUBFRAME_SYNC": enable_lte_2_subframe_sync,
+        "ENABLE_LTE_4_SUBFRAME_SYNC": enable_lte_4_subframe_sync,
+        "ENABLE_LTE_6_SUBFRAME_SYNC": enable_lte_6_subframe_sync,
         }
     monitorList = ["6lowpan-THR", "6lowpan-PER"]
     solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList)
@@ -235,8 +278,10 @@ def main(args):
         if lte_wifi_coexistence_enabled and mac_mode != "LTE_COEXISTENCE":
             mac_mode = "LTE_COEXISTENCE"
             taisc_manager.activate_radio_program(mac_mode)
-            control_traffic(0)
             control_traffic(current_traffic_type)
+        if lte_subframe_size_cur != lte_subframe_size:
+            set_lte_subframe(lte_subframe_size)
+            lte_subframe_size_cur = lte_subframe_size
             
         gevent.sleep(1)
     logging.info('Controller Exiting')
