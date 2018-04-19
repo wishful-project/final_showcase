@@ -494,9 +494,23 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 						msg['type'] = u'statistics'
 
 						if msg['label'] == 'B':
+							# new version 2
+							"""     
+							{
+								'type': 'monitorReport',
+								'monitorType': 'performance'
+								'networkController':'WIFI_CNIT',
+								'networkType':'80211',
+								'monitorValue': {
+									'timestamp': 1522169960.4682555,
+									'PER': 0.0030952405906813363,
+									'THR': 8760.0}
+								},
+							}
+							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
-							value = { "NetworkIDWIFI": { "type":"80211", "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}}
-							solutionCtrProxy.send_monitor_report("performance", value)
+							value = { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}
+							solutionCtrProxy.send_monitor_report("performance", "80211", value)
 
 						# print(msg)
 						# socket_visualizer.send_json(msg)

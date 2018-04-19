@@ -34,7 +34,6 @@ import threading
 import signal
 import socket
 
-
 sys.path.append('../')
 sys.path.append('../../')
 sys.path.append('../../../')
@@ -244,9 +243,24 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 						msg['label'] = label[ii]
 						msg['type'] = u'statistics'
 						if msg['label'] == 'A':
+
+							# new version 2
+							"""     
+							{
+								'type': 'monitorReport',
+								'monitorType': 'performance'
+								'networkController':'WIFI_CNIT',
+								'networkType':'80211',
+								'monitorValue': {
+									'timestamp': 1522169960.4682555,
+									'PER': 0.0030952405906813363,
+									'THR': 8760.0}
+								},
+							}
+							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
-							value = { "NetworkIDLTE": { "type":"U-LTE", "timestamp": msg["measure"][0], "THR": msg["measure"][1]}}
-							solutionCtrProxy.send_monitor_report("performance", value)
+							value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": "0"}
+							solutionCtrProxy.send_monitor_report("performance", "U-LTE", value)
 
 						# print(msg)
 						# socket_visualizer.send_json(msg)
@@ -257,6 +271,22 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 			# 		node.measurements.append(msg['measure'])
 		gevent.sleep(1)
 		# time.sleep(1)
+
+def loop_statistics(x):
+	sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	print("10001")
+	sock.bind(("127.0.0.1",10001))
+	while True:
+		try:
+			data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+			stats=json.loads(data)
+			print(stats)
+		except Exception as e:
+			print(e)
+
+
+
+
 
 def setAP(controller, node, iface, wlan_ip, essid):
 	""" Creates infrastructure BSS, uses node such as Access Point
@@ -563,7 +593,7 @@ def main(args):
 	"""
 
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-	networkName = "LTE_CNIT"
+	networkName = "LTE_net"
 	solutionName = ["LTE_CT"]
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
 	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_2_SUBFRAME": (lambda: enable_lte_2_subframe()), "ENABLE_LTE_4_SUBFRAME": (lambda: enable_lte_4_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
@@ -638,6 +668,9 @@ def main(args):
 			# socket_visualizer = start_visualizer_connection()
 			socket_visualizer = None
 
+			# thread.start_new_thread(loop_statistics, (1,))
+			loop_statistics_thread = threading.Thread(target=loop_statistics, args=(1,))
+			loop_statistics_thread.start()
 
 			"""
 			****** setup network ******
@@ -839,7 +872,7 @@ def main(args):
 
 						elif lteState == "DISABLE":
 							#off LTE network
-							parsed_json = {'src': 'D', 'dst': 'E', 'type': 'traffic', 'command': 'off_traffic'}
+							parsed_json = {'src': 'A', 'dst': 'B', 'type': 'traffic', 'command': 'off_traffic'}
 							# source
 							node = parsed_json['src']
 							#print(node)
@@ -908,14 +941,16 @@ def main(args):
 					# controller.nodes(nodes[ii]).net.destroy_packetflow_sink()
 
 					if lcpDescriptor_nodes[ii]:
-						print("Terminate remote local control program")
 						lcpDescriptor_nodes[ii].close()
+					print("Terminate remote local control program")
 
-					time.sleep(2)
+					time.sleep(1)
 
+					if reading_thread[ii]:
+						reading_thread[ii].do_run = False
+						reading_thread[ii].join()
 					print("Terminate receive thread")
-					reading_thread[ii].do_run = False
-					reading_thread[ii].join()
+
 				except:
 					print('Error in %s local control program shutdown' % str(nodes[ii].ip))
 
@@ -1046,4 +1081,4 @@ if __name__ == "__main__":
 		log.debug("Controller exits")
 	finally:
 		log.debug("Exit")
-		controller.stop()
+		# controller.stop()
