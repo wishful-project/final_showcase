@@ -91,6 +91,7 @@ controls = layout(
 )
 
 plots = [[usrp.plot, controls]]
+master_range = None
 
 for technology in conf.controllers:
     thr_plt = figure(
@@ -120,6 +121,12 @@ for technology in conf.controllers:
     per_plt.legend.location = "top_left"
     per_plt.xaxis.axis_label = "Time"
     per_plt.yaxis.axis_label = "Performance"
+
+    if master_range is None:
+        master_range = thr_plt.x_range
+    else:
+        thr_plt.x_range = master_range
+    per_plt.x_range = master_range
 
     for k in conf.controllers[technology]:
         data = ColumnDataSource(
