@@ -92,7 +92,7 @@ def start_visualizer_connection(webui_ip_address):
 
 
 
-def start_command_connection():
+def start_command_connection(webui_ip_address):
     """
     ****	SETUP COMMAND GUI VISUALIZER	****
     This function is used to setup the connection with the experiment GUI,
@@ -101,7 +101,7 @@ def start_command_connection():
     socket_command_visualizer_port = "8500"
     context = zmq.Context()
     socket_command_visualizer = context.socket(zmq.PAIR)
-    socket_command_visualizer.bind("tcp://*:%s" % socket_command_visualizer_port)
+    socket_command_visualizer.connect("tcp://%s:%s" % (webui_ip_address, socket_command_visualizer_port))
     print("Create server on port %s ... ready to receive command from experiment GUI" % socket_command_visualizer_port)
     return socket_command_visualizer
 
@@ -420,7 +420,7 @@ def main(args):
     socket_visualizer = start_visualizer_connection("127.0.0.1")
 
     # Init conneciton with GUI for command
-    # socket_command_visualizer = start_command_connection()
+    # socket_command_visualizer = start_command_connection("127.0.0.1")
     # poller.register(socket_command_visualizer, flags=zmq.POLLIN)
 
     reader, stdin_thread = forward_standard_input(ctx)
