@@ -61,7 +61,8 @@ def main(argv):
    # bler=random.randint(0,100)
    # mjson={'ue_id':ue_id,'snr':snr,'bler':bler}
 
-   UDP_IP = "172.16.16.11"
+   # UDP_IP = "172.16.16.11"
+   UDP_IP = "10.8.9.13"
    UDP_PORT = 8888
 
    MESSAGE = tx_pattern

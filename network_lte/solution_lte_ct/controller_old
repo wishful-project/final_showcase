@@ -276,6 +276,11 @@ def loop_statistics(x):
 	sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	print("10001")
 	sock.bind(("127.0.0.1",10001))
+
+	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.624144, 'SNR': 21.99383, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.0, 'timestamp': 1524493482.429576}
+	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.442906, 'SNR': 17.325897, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.1, 'timestamp': 1524493483.429576}
+	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.698449, 'SNR': 29.657462, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 20.5, 'timestamp': 1524493484.429552}
+
 	while True:
 		try:
 			data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
@@ -701,7 +706,8 @@ def main(args):
 								controller.node(nodes[jj]).radio.set_parameters({'RF_AMP': 0.7})
 
 								# controller.node(nodes[0]).radio.set_parameters({'GAIN': 20})
-								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 120})
+								# controller.node(nodes[jj]).radio.set_parameters({'GAIN': 120})
+								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 78})
 
 								# controller.node(nodes[1]).radio.set_parameters({'NO_OF_FRAMES': 100000})
 								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_PRBS': 25})
@@ -862,10 +868,11 @@ def main(args):
 							# iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
 							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", "3000", 0, '1470')
 
-							# gevent.sleep(50)
-							#
+							gevent.sleep(50)
+
 							# destination
 							# print("DST")
+
 							# node = parsed_json['dst']
 							# node_dst_index = all_nodes.index(node)
 							# controller.delay(1).node(nodes[node_dst_index]).radio.activate_radio_program('UE')
@@ -873,6 +880,14 @@ def main(args):
 						elif lteState == "DISABLE":
 							#off LTE network
 							parsed_json = {'src': 'A', 'dst': 'B', 'type': 'traffic', 'command': 'off_traffic'}
+
+							# destination
+							# print("DST")
+
+							# node = parsed_json['dst']
+							# node_dst_index = all_nodes.index(node)
+							# controller.node(nodes[node_dst_index]).radio.deactivate_radio_program('UE')
+
 							# source
 							node = parsed_json['src']
 							#print(node)
@@ -880,6 +895,10 @@ def main(args):
 							#print(node_src_index)
 							# controller.nodes(nodes[node_src_index]).net.stop_packetflow()
 							controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
+
+
+
+
 						else:
 							lteStateChange = False
 							continue

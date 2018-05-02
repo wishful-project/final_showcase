@@ -31,6 +31,8 @@ def remote_control_program(controller):
     import threading
     import logging
     import numpy as np
+    import array
+
     import wishful_framework.upi_arg_classes.edca as edca
     from wishful_framework.classes import exceptions
     import upis.wishful_upis.meta_radio as radio
@@ -123,8 +125,107 @@ def remote_control_program(controller):
         #print("mask_int={}".format(mask_int))
         return mask_int
 
-    def rcv_from_reading_program(reading_buffer):
+    # lte_pattern = [1, 1, 1, 1]
+    lte_pattern_3 = [1, 1, 1]
+    lte_pattern_3_array = array.array('B', lte_pattern_3)
+    lte_pattern_4 = [1, 1, 1, 1]
+    lte_pattern_4_array = array.array('B', lte_pattern_4)
+    tdma_mask_array_full = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
+    # find pattern
+    def find_lte_pos(psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION):
+        print("STATE = %s - %s " % (str(LTE_PATTERN_STATE) , str(CORRECTION_DIRECTION) ) )
+
+        if len(psuc_mask) != 10:
+            return([-1, psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        tdma_mask = psuc_mask[:] #>> check this
+        tdma_mask.append(tdma_mask[0])
+        tdma_mask.append(tdma_mask[1])
+        tdma_mask.append(tdma_mask[2])
+        tdma_mask_array = array.array('B', tdma_mask)
+
+        # xcorr = np.correlate(psuc_mask_array, lte_patter_array)
+        # max_val = np.max(xcorr)
+        # locations = np.where(xcorr == max_val)
+        # # index_start_message = locations[0][0]
+        # correlation_index = locations[0]
+        # if max_val == len(lte_pattern):
+        #     if len(correlation_index) == 0:
+        #         index_start_pattern = correlation_index[0]
+        #         print("find correlation good with index_start_pattern == %d" % (index_start_pattern))
+        #         return(index_start_pattern)
+        #     else:
+        #         print("find correlation with pattern in different position %s" % (str(correlation_index)))
+        # elif max_val == len(lte_pattern)-1:
+		#
+        # else:
+        #     print("find correlation with max_val = %d" %(max_val))
+        # return(-1)
+
+        num_pattern_4_finded = 0
+        index_pattern_4_finded = []
+        num_pattern_3_finded = 0
+        index_pattern_3_finded = []
+
+        # find pattern preable 4
+        for ii in range(0, len(tdma_mask_array) - 3):
+            if lte_pattern_4_array == tdma_mask_array[ii:ii + len(lte_pattern_4_array)]:
+                index_pattern_4_finded.append(ii)
+                num_pattern_4_finded += 1
+        # print(index_pattern_4_finded)
+        # print(num_pattern_4_finded)
+
+        if num_pattern_4_finded == 0:
+            # find pattern preable 3
+            for ii in range(0, len(tdma_mask_array) - 2):
+                # print(ii)
+                # print(preamble_3)
+                # print(received[ii:ii+len(preamble_3)])
+                if lte_pattern_3_array == tdma_mask_array[ii:ii + len(lte_pattern_3_array)]:
+                    index_pattern_3_finded.append(ii)
+                    num_pattern_3_finded += 1
+            print(index_pattern_3_finded)
+            print(num_pattern_3_finded)
+
+            if num_pattern_3_finded == 0:
+                print("No pattern3 finded")
+                return ([0, tdma_mask_array_full, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+            elif num_pattern_3_finded == 1:
+                if LTE_PATTERN_STATE == 1:
+                    # estimate new pattern
+                    LTE_PATTERN_STATE = 2
+                    index_estimate_slot = (index_pattern_3_finded[0] + 3) % 10
+                    psuc_mask[index_estimate_slot]=1
+                    CORRECTION_DIRETION = 1
+
+                if LTE_PATTERN_STATE == 2:
+                    # correct pattern estimation
+                    LTE_PATTERN_STATE = 2
+                    index_estimate_slot = (index_pattern_3_finded[0] - 1) % 10
+                    psuc_mask[index_estimate_slot]=1
+                    CORRECTION_DIRETION = -1
+
+                return ([index_pattern_3_finded[0], psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+            else:
+                print("WARNING MANY PATTERN3 FINDED")
+                return ([-1, psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        elif num_pattern_4_finded == 1:
+            # return position of the pattern 4
+            LTE_PATTERN_STATE = 1
+            return ([index_pattern_4_finded, psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        else:
+            print("WARNING MANY PATTERN4 FINDED")
+            return ([-1, psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        return ([-1, psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+    def rcv_from_reading_program(reading_buffer):
+        reading_buffer_thread = threading.currentThread()
         """
         This function collects the reading buffer information
         """
@@ -147,12 +248,18 @@ def remote_control_program(controller):
         print("Starting psuc reading...")
         reading_time = time.time()
         local_starttime = reading_time
-        reading_interval = 1
+        reading_interval = 3
         tx_count_ = 0
         rx_ack_count_ = 0
         # count_round = 0
 
-        while True:
+        # STATE = 0  # 0 : IDLE; 1 PATTERN4_OK; 2 PATTERN4_ESTIMATE; 3 PATTERN3_OK
+        # CORRECTION_DIRETION = 1  # 1 RIGHT or -1 LEFT
+        LTE_PATTERN_STATE = 0
+        CORRECTION_DIRECTION = 0
+        lte_start_index = None
+
+        while getattr(reading_buffer_thread, "do_run", True):
             tx_count = []
             rx_ack_count = []
             for i in [216, 220, 224, 228, 232]:
@@ -174,7 +281,6 @@ def remote_control_program(controller):
             # print(tx_count)
             # print(rx_ack_count)
 
-            # count_round = count_round + 1
             dtx = np.mod(tx_count - tx_count_, 0xFFFF)
             dack = np.mod(rx_ack_count - rx_ack_count_, 0xFFFF)
             tx_count_ = tx_count
@@ -219,8 +325,6 @@ def remote_control_program(controller):
             if mask == "0000000000":
                 mask = "1111111111"
 
-            print("----------")
-            print(mask)
 
             mask_sum = 0
             for x in list(mask_int):
@@ -233,19 +337,30 @@ def remote_control_program(controller):
             # else:
             #     mask_int=update_pattern(mask_int, L, mask_sum + 1)
 
-            mask = ""
-            for x in mask_int:
-                mask = "{}{}".format(mask, x)
+            print("----------")
+            print(mask_int)
+            [index_start_pattern, mask_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION] = find_lte_pos(mask_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION)
+            print(mask_int)
+            print("**********")
+            if index_start_pattern == -1:
+                print("Error in find_lte_pos")
 
-            if not dryRun:
-                UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
-                # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
-                rvalue = controller.radio.set_parameters(UPIargs)
-                if rvalue[0] == SUCCESS:
-                    log.warning('Radio program configuration succesfull')
-                else:
-                    log.warning('Error in radio program configuration')
-                    do_run = False
+            else:
+                print(index_start_pattern)
+
+                mask = ""
+                for x in mask_int:
+                    mask = "{}{}".format(mask, x)
+
+                if not dryRun:
+                    UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
+                    # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
+                    rvalue = controller.radio.set_parameters(UPIargs)
+                    if rvalue[0] == SUCCESS:
+                        log.warning('Radio program configuration succesfull')
+                    else:
+                        log.warning('Error in radio program configuration')
+                        do_run = False
 
             reading_buffer[0] = 1-np.mean(psucc)
             reading_buffer[1] = mask
@@ -467,4 +582,6 @@ def remote_control_program(controller):
 
     iperf_thread.do_run = False
     iperf_thread.join()
+    reading_buffer_thread.do_run = False
+    reading_buffer_thread.join()
     time.sleep(2)
