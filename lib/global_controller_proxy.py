@@ -135,7 +135,7 @@ class GlobalSolutionControllerProxy(object):
         self.cmdRxThread.daemon = True
         self.cmdRxThread.start()
 
-    def send_monitor_report(self, mon_type, value):
+    def send_monitor_report(self, mon_type, net_type, value):
         """
         Send monitor information to the solution global controller
         """
@@ -149,7 +149,7 @@ class GlobalSolutionControllerProxy(object):
                }
         """
 
-        #new version
+        #new version 1
         """
         msg = {'type': 'monitorReport',
                 ‘networkController ': controllerName,
@@ -159,6 +159,7 @@ class GlobalSolutionControllerProxy(object):
                     “ZigBee”: {“THR”:2.2,  “PER”:0.4}
             },
         }
+        
         msg = {'type': 'monitorReport',
                ‘networkController': controllerName,
                ‘timestamp’: time
@@ -171,7 +172,22 @@ class GlobalSolutionControllerProxy(object):
         }
         """
 
-        msg = {'type': 'monitorReport', 'networkController': self.networkName, 'monitorType': mon_type, 'monitorValue': value }
+        #new version 2
+        """     
+        {
+            'type': 'monitorReport',
+            'monitorType': 'performance'
+            'networkController':'WIFI_CNIT',
+            'networkType':'80211',
+            'monitorValue': {
+                'timestamp': 1522169960.4682555,
+                'PER': 0.0030952405906813363,
+                'THR': 8760.0}
+            },
+        }
+        """
+
+        msg = {'type': 'monitorReport', 'networkController': self.networkName, 'monitorType': mon_type, 'networkType': net_type, 'monitorValue': value }
         sequence = 0
         kvmsg = KVMsg(sequence)
         kvmsg.key = b"generic"

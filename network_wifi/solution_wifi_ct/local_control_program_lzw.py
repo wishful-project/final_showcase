@@ -31,6 +31,8 @@ def remote_control_program(controller):
     import threading
     import logging
     import numpy as np
+    import array
+
     import wishful_framework.upi_arg_classes.edca as edca
     from wishful_framework.classes import exceptions
     import upis.wishful_upis.meta_radio as radio
@@ -123,8 +125,77 @@ def remote_control_program(controller):
         #print("mask_int={}".format(mask_int))
         return mask_int
 
-    def rcv_from_reading_program(reading_buffer):
+    # lte_pattern = [1, 1, 1, 1]
+    lte_pattern_3 = [1, 1, 1]
+    lte_pattern_3_array = array.array('B', lte_pattern_3)
 
+    lte_pattern_4 = [1, 1, 1, 1]
+    lte_pattern_4_array = array.array('B', lte_pattern_4)
+
+    # tdma3_pattern_5 = [0, 0, 1, 1, 1]
+    tdma3_pattern_5 = [1, 1, 1, 0, 0]
+    tdma3_pattern_5_array = array.array('B', tdma3_pattern_5)
+
+    lte_pattern_5 = [1, 1, 1, 1, 1]
+    tdma_mask_array_full_on = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    tdma_mask_array_full_off = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+
+    # find pattern
+    def find_lte_pos(psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION):
+        print("STATE = %s - %s " % (str(LTE_PATTERN_STATE) , str(CORRECTION_DIRECTION) ) )
+
+        if len(psuc_mask) != 10:
+            return([-1, psuc_mask, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        tdma_mask = psuc_mask[:]
+        tdma_mask.append(tdma_mask[0])
+        tdma_mask.append(tdma_mask[1])
+        tdma_mask.append(tdma_mask[2])
+        tdma_mask.append(tdma_mask[3])
+        tdma_mask_array = array.array('B', tdma_mask)
+        num_pattern_5_finded = 0
+        index_pattern_5_finded = []
+        # find pattern preable 4
+        for ii in range(0, len(tdma_mask_array) - 4):
+            if tdma3_pattern_5_array == tdma_mask_array[ii:ii + len(tdma3_pattern_5_array)]:
+                index_pattern_5_finded.append(ii)
+                num_pattern_5_finded += 1
+        print(index_pattern_5_finded)
+        print(num_pattern_5_finded)
+
+        if num_pattern_5_finded == 0:
+            LTE_PATTERN_STATE = 0
+            print("WARNING NO PATTERN5 FINDED")
+            return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        elif num_pattern_5_finded == 1:
+            # return position of the pattern 4
+            LTE_PATTERN_STATE = 1
+            print("1")
+
+            tdma_mask_output = tdma_mask_array_full_off[:]
+            print("2")
+
+            print(tdma_mask_output)
+            print(index_pattern_5_finded[0])
+            print(lte_pattern_5)
+
+            # tdma_mask_output[index_pattern_5_finded:index_pattern_5_finded+5] = lte_pattern_5
+            for ii in range(0, len(lte_pattern_5)):
+                tdma_mask_output[(index_pattern_5_finded[0]+ii)%10] = lte_pattern_5[ii]
+            print("3")
+
+            return ([index_pattern_5_finded, tdma_mask_output, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+        else:
+            LTE_PATTERN_STATE = 2
+            print("WARNING MANY PATTERN5 FINDED")
+            return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+
+
+    def tune_wifi_pattern(reading_buffer):
+        reading_buffer_thread = threading.currentThread()
         """
         This function collects the reading buffer information
         """
@@ -147,12 +218,18 @@ def remote_control_program(controller):
         print("Starting psuc reading...")
         reading_time = time.time()
         local_starttime = reading_time
-        reading_interval = 1
+        reading_interval = 3
         tx_count_ = 0
         rx_ack_count_ = 0
         # count_round = 0
 
-        while True:
+        # STATE = 0  # 0 : IDLE; 1 PATTERN4_OK; 2 PATTERN4_ESTIMATE; 3 PATTERN3_OK
+        # CORRECTION_DIRETION = 1  # 1 RIGHT or -1 LEFT
+        LTE_PATTERN_STATE = 0
+        CORRECTION_DIRECTION = 0
+        lte_start_index = None
+
+        while getattr(reading_buffer_thread, "do_run", True):
             tx_count = []
             rx_ack_count = []
             for i in [216, 220, 224, 228, 232]:
@@ -174,7 +251,6 @@ def remote_control_program(controller):
             # print(tx_count)
             # print(rx_ack_count)
 
-            # count_round = count_round + 1
             dtx = np.mod(tx_count - tx_count_, 0xFFFF)
             dack = np.mod(rx_ack_count - rx_ack_count_, 0xFFFF)
             tx_count_ = tx_count
@@ -214,38 +290,45 @@ def remote_control_program(controller):
                     maskval = 0
 
                 mask = "{}{}".format(maskval, mask)
-                mask_int = [int(x) for x in list(mask)]
+                mask_psucc_int = [int(x) for x in list(mask)]
 
-            if mask == "0000000000":
-                mask = "1111111111"
+            # if mask == "0000000000":
+            #     mask = "1111111111"
 
-            print("----------")
-            print(mask)
-
-            mask_sum = 0
-            for x in list(mask_int):
-                mask_sum += x
-
+            # mask_sum = 0
+            # for x in list(mask_psucc_int):
+            #     mask_sum += x
             # EST_SLOT = 4
             # L = 10
             # if mask_sum < EST_SLOT:
-            #     mask_int = update_pattern(mask_int, L, mask_sum + 1)
+            #     mask_int = update_pattern(mask_psucc_int, L, mask_sum + 1)
             # else:
-            #     mask_int=update_pattern(mask_int, L, mask_sum + 1)
+            #     mask_int=update_pattern(mask_psucc_int, L, mask_sum + 1)
 
-            mask = ""
-            for x in mask_int:
-                mask = "{}{}".format(mask, x)
+            print("----------")
+            print(mask_psucc_int)
+            [index_start_pattern, mask_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION] = find_lte_pos(mask_psucc_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION)
+            print(mask_int)
+            print("**********")
+            if index_start_pattern == -1:
+                print("Error in find_lte_pos")
 
-            if not dryRun:
-                UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
-                # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
-                rvalue = controller.radio.set_parameters(UPIargs)
-                if rvalue[0] == SUCCESS:
-                    log.warning('Radio program configuration succesfull')
-                else:
-                    log.warning('Error in radio program configuration')
-                    do_run = False
+            else:
+                print(index_start_pattern)
+
+                mask = ""
+                for x in mask_int:
+                    mask = "{}{}".format(mask, x)
+
+                if not dryRun:
+                    UPIargs = {'interface': 'wlan0', UPI_R.TDMA_ALLOCATED_MASK_SLOT: int(mask,2)}
+                    # rvalue = controller.nodes(node).radio.set_parameters(UPIargs)
+                    rvalue = controller.radio.set_parameters(UPIargs)
+                    if rvalue[0] == SUCCESS:
+                        log.warning('Radio program configuration succesfull')
+                    else:
+                        log.warning('Error in radio program configuration')
+                        do_run = False
 
             reading_buffer[0] = 1-np.mean(psucc)
             reading_buffer[1] = mask
@@ -284,97 +367,6 @@ def remote_control_program(controller):
             else:
                 # raise IOError("Timeout processing auth request")
                 iperf_througputh[0] = float(0)
-
-    def reading_function(iface, time_interval):
-        reading_thread = threading.currentThread()
-        print('start reading_function')
-
-        # CWMIN = 2
-        # CWMAX = 1023
-        # cw_ = 32
-
-        busy_time = 0
-        busy_time_ = 0
-        tx_activity = 0
-        tx_activity_ = 0
-        num_tx = 0
-        num_tx_ = 0
-        num_tx_success = 0
-        num_tx_success_ = 0
-        rx_activity = 0
-        rx_activity_ = 0
-        ext_busy_time = 0
-        ext_busy_time_ = 0
-
-        # QUEUE CW SETTING
-        qumId = 1  # BE
-        #qumId = 2  # VI
-        aifs = 2
-        burst = 0
-
-        phy = getPHY(iface)
-        reading_interval = time_interval[0] # * 5
-        #dd = time_interval[0]
-        reading_time_ = 0
-
-        reading_time = time.time()
-        while (round(reading_time*10)%100) != 0:
-            time.sleep(0.1)
-            reading_time = time.time()
-        local_starttime = reading_time
-
-        while getattr(reading_thread, "do_run", True):
-            #[pkt_stats, reading_time] = get_ieee80211_stats(phy)
-            # UPIargs = {'parameters': [radio.BUSY_TIME.key, radio.EXT_BUSY_TIME.key, radio.TX_ACTIVITY.key, radio.NUM_TX.key, radio.NUM_TX_SUCCESS.key, radio.RX_ACTIVITY.key]}
-            # UPIargs = {'parameters': [radio.BUSY_TIME.key, radio.EXT_BUSY_TIME.key, radio.TX_ACTIVITY.key, radio.RX_ACTIVITY.key]}
-            UPIargs = {'parameters': [radio.NUM_TX_SUCCESS.key, radio.NUM_TX.key]}
-            #pkt_stats = controller.radio.get_parameters(UPIargs)
-            #print(pkt_stats)
-            reading_time = time.time()
-            if pkt_stats:
-                if True:
-                    dd = float(reading_time - reading_time_)
-
-                    # busy_time = pkt_stats[radio.BUSY_TIME.key] - busy_time_
-                    # ext_busy_time = pkt_stats[radio.EXT_BUSY_TIME.key] - ext_busy_time_
-                    # tx_activity = pkt_stats[radio.TX_ACTIVITY.key] - tx_activity_
-                    # rx_activity = pkt_stats[radio.RX_ACTIVITY.key] - rx_activity_
-                    # num_tx = pkt_stats[radio.NUM_TX.key] - num_tx_
-                    # num_tx_success = pkt_stats[radio.NUM_TX_SUCCESS.key] - num_tx_success_
-                    #
-                    # busy_time_ = pkt_stats[radio.BUSY_TIME.key]
-                    # ext_busy_time_ = pkt_stats[radio.EXT_BUSY_TIME.key]
-                    # tx_activity_ = pkt_stats[radio.TX_ACTIVITY.key]
-                    # rx_activity_ = pkt_stats[radio.RX_ACTIVITY.key]
-                    # num_tx_ = pkt_stats[radio.NUM_TX.key]
-                    # num_tx_success_ = pkt_stats[radio.NUM_TX_SUCCESS.key]
-
-                    busy_time_ = 0
-                    ext_busy_time_ = 0
-                    tx_activity_ = 0
-                    rx_activity_ = 0
-                    num_tx_ = 0
-                    num_tx_success_ = 0
-
-                if debug or debug_statistics:
-                    # if debug_cycle > 3:
-                    if True:
-                        print(
-                            "%.6f - busytime=%.4f ext_busy_time=%.4f tx_activity=%.4f rx_activity=%.4f num_tx=%.4f num_tx_success=%.4f\n" % (
-                            reading_time, busy_time, ext_busy_time, tx_activity, rx_activity, num_tx, num_tx_success))
-                        debug_cycle = 0
-                    else:
-                        debug_cycle += 1
-
-                # store statistics for report
-                report_stats['reading_time'] = reading_time
-
-                report_stats['busy_time'] = busy_time
-                report_stats['tx_activity'] = tx_activity
-                report_stats['num_tx'] = num_tx
-                report_stats['num_tx_success'] = num_tx_success
-
-            time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
 
     def run_command(command):
@@ -425,11 +417,6 @@ def remote_control_program(controller):
                 wlan_ip_address = controller.net.get_iface_ip_addr(interface[0])
                 wlan_ip_address = wlan_ip_address[0]
 
-                #read function starting
-                # reading_thread = threading.Thread(target=reading_function, args=(msg['iface'], i_time))
-                # reading_thread.do_run = True
-                # reading_thread.start()
-
                 iperf_througputh = []
                 iperf_througputh.append(0.0)
                 iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
@@ -439,7 +426,7 @@ def remote_control_program(controller):
                 reading_buffer = []
                 reading_buffer.append(0.0)
                 reading_buffer.append("0000000000")
-                reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
+                reading_buffer_thread = threading.Thread(target=tune_wifi_pattern, args=(reading_buffer,))
                 reading_buffer_thread.do_run = True
                 reading_buffer_thread.start()
 
@@ -467,4 +454,6 @@ def remote_control_program(controller):
 
     iperf_thread.do_run = False
     iperf_thread.join()
+    reading_buffer_thread.do_run = False
+    reading_buffer_thread.join()
     time.sleep(2)

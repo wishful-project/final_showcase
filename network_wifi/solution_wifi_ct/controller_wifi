@@ -50,7 +50,7 @@ import wishful_controller
 import wishful_upis as upis
 from helper.MeasurementManager import MeasurementCollector
 from lib.global_controller_proxy import GlobalSolutionControllerProxy
-from local_control_program import remote_control_program
+from local_control_program_lzw import remote_control_program
 import wishful_module_srslte
 
 from agent_modules.wifi_wmp.wmp_structure import UPI_R
@@ -231,7 +231,7 @@ def setAP(controller, node, iface, wlan_ip, essid):
 	# start hostapd
 	rvalue = controller.nodes(node).net.start_hostapd('./helper/hostapd.conf')
 	# set power
-	rvalue = controller.nodes(node).radio.set_tx_power(15)
+	rvalue = controller.nodes(node).radio.set_tx_power(20)
 	# set modulation rate
 	# rvalue = controller.nodes(node).radio.set_modulation_rate(6)
 	rvalue = controller.nodes(node).radio.set_modulation_rate(24)
@@ -247,7 +247,7 @@ def setSTA(controller, node, iface, wlan_ip, essid):
 	# set ip address
 	rvalue = controller.nodes(node).net.set_ip_address(iface, wlan_ip)
 	# set power
-	rvalue = controller.nodes(node).radio.set_tx_power(15)
+	rvalue = controller.nodes(node).radio.set_tx_power(20)
 	# set modulation rate
 	# rvalue = controller.nodes(node).radio.set_modulation_rate(6)
 	rvalue = controller.nodes(node).radio.set_modulation_rate(24)
@@ -494,9 +494,23 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 						msg['type'] = u'statistics'
 
 						if msg['label'] == 'B':
+							# new version 2
+							"""     
+							{
+								'type': 'monitorReport',
+								'monitorType': 'performance'
+								'networkController':'WIFI_CNIT',
+								'networkType':'80211',
+								'monitorValue': {
+									'timestamp': 1522169960.4682555,
+									'PER': 0.0030952405906813363,
+									'THR': 8760.0}
+								},
+							}
+							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
-							value = { "NetworkIDWIFI": { "type":"80211", "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}}
-							solutionCtrProxy.send_monitor_report("performance", value)
+							value = { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}
+							solutionCtrProxy.send_monitor_report("performance", "80211", value)
 
 						# print(msg)
 						# socket_visualizer.send_json(msg)
@@ -716,23 +730,24 @@ def main(args):
 			if do_run:
 				try:
 					print("START local control program")
-					lcpDescriptor = None;
+					lcpDescriptor_nodes_index = 0
+
 					for ii in range(0, len(hosts)):
 						for jj in range(0, len(nodes)):
-							print("search node %s - index %d" % (eth_ip[ii], ii))
+							print("search node %s - ii %d - jj %d" % (eth_ip[ii], ii, jj))
 							if nodes[jj].ip == eth_ip[ii]:
 								pos = eth_ip.index(nodes[jj].ip)
-								if label[pos] == 'A' or label[pos] == 'B':
-								# if True:
+								if label[pos] == 'B':
 									# RUN local control program
 									print("start local control program on nodes")
-									lcpDescriptor_nodes.append(
-										controller.node(nodes[jj]).hc.start_local_control_program(program=remote_control_program))
+									lcpDescriptor_nodes.append(controller.node(nodes[jj]).hc.start_local_control_program(program=remote_control_program))
 									msg = {"iface": iface[pos], "i_time": time_update}
-									lcpDescriptor_nodes[ii].send(msg)
+									lcpDescriptor_nodes[lcpDescriptor_nodes_index].send(msg)
 									print("start thread for collect measurements from nodes")
-									reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, solutionCtrProxy)))
-									reading_thread[ii].start()
+									reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[lcpDescriptor_nodes_index], socket_visualizer, mac_address, label, solutionCtrProxy)))
+									reading_thread[lcpDescriptor_nodes_index].start()
+
+									lcpDescriptor_nodes_index += 1
 								break
 
 					print("END local control program setup")
@@ -792,7 +807,9 @@ def main(args):
 							value = parsed_json['value']
 							nodes_source_rate[node_src_index] = value
 							source_rate = float(nodes_source_rate[node_src_index])
-							controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '500')
+							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '500')
+							controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '600')
+							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1000')
 						elif wifiState == "DISABLE":
 							parsed_json = {'dst': 'A', 'type': 'traffic', 'command': 'off_traffic', 'src': 'B'}
 							# source
@@ -874,16 +891,16 @@ def main(args):
 			do_run = False
 			for jj in range(0, len(nodes)):
 				controller.nodes(nodes[jj]).net.stop_packetflow()
+				controller.nodes(nodes[jj]).net.destroy_packetflow_sink()
 
-			for ii in range(0, len(nodes)):
+			for ii in range(0, len(lcpDescriptor_nodes)):
 				try:
-					controller.nodes(nodes[ii]).net.destroy_packetflow_sink()
 
 					if lcpDescriptor_nodes[ii]:
 						print("Terminate remote local control program")
 						lcpDescriptor_nodes[ii].close()
 
-					time.sleep(2)
+					time.sleep(1)
 
 					print("Terminate receive thread")
 					reading_thread[ii].do_run = False

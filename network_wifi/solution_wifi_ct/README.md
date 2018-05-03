@@ -30,8 +30,8 @@ Wishful FINAL SHOWCASE Network WiFi
     nuc12
 
  #EXPERIMET NODES
-    alix04,b43,10.8.8.104,4237,20,192.168.0.4,00:14:a5:e9:0c:74,A,AP,wlan0
-    alix05,b43,10.8.8.105,2437,20,192.168.0.5,00:14:a4:62:c8:21,B,STA,wlan0
+    alix04,b43,172.16.16.31,2437,20,192.168.0.4,00:14:a5:e9:0c:74,A,AP,wlan0
+    alix05,b43,172.16.16.32,2437,20,192.168.0.5,00:14:a4:62:c8:21,B,STA,wlan0
 
  #deploy directory on nodes
  #sync clock nodes
@@ -83,3 +83,8 @@ sudo sh run_usrp.sh 6
 http://10.8.9.3/crewdemo/plots/usrp.png
 
 ON ZIGBEE : http://10.8.8.22/login.html (ttilab)
+
+
+##hosts file
+172.16.16.31    alix04
+172.16.16.32    alix05

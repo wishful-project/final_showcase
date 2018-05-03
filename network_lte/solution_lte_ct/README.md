@@ -46,9 +46,9 @@ Wishful FINAL SHOWCASE solution_lte_ct
     python3 ./controller
 
  #Solution
-    python3 controller --config controller_cfg_clapton.yaml --nodes node_info_ttilab_3full.txt
-    python3 controller --config controller_cfg_nuc12.yaml --nodes node_info_ttilab_3full.txt
-    python3 controller --config controller_cfg_nuc10.yaml --nodes node_info_ttilab_3full.txt
+    python3 controller_lte --config controller_cfg_clapton.yaml --nodes node_info.txt
+    python3 controller_lte --config controller_cfg_nuc12.yaml --nodes node_info.txt
+    python3 controller_lte --config controller_cfg_nuc_ttilab.yaml --nodes node_info.txt
 
     ~~~~
     #start agent
@@ -59,8 +59,13 @@ Wishful FINAL SHOWCASE solution_lte_ct
     python3 agent --config agent_cfg_ap.yaml
     ssh root@alix05
     python3 agent --config agent_cfg_sta.yaml
-    ssh nuc1
+    
+    ssh nuc11
     python3 agent_tx.py
+
+    ssh nuc12
+    python3 agent_rx.py
+
     ~~~~
 
  #Start LTE traffic
@@ -69,7 +74,37 @@ Wishful FINAL SHOWCASE solution_lte_ct
  #Change LTE pattern
     cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
     python3 set_tx_lte_pattern.py -w 1010101010
+    
+ #Start LTE UE 
+    ./srsLTE/build/srslte/examples/pdsch_ue -f 2437e6 -r 1234 -u 2001 -U 127.0.0.1 -H 127.0.0.1
+    iperf -s -p 2001 -i 1
 
+ #webui
+     sudo pip install pipenv
+     sudo apt-get install software-properties-common
+     sudo add-apt-repository ppa:deadsnakes/ppa
+     sudo apt-get update
+     sudo apt-get install python3.6
+     sudo pip install bokeh
+     sudo rm /usr/bin/python3
+     sudo ln -s /usr/bin/python3.6 /usr/bin/python3
+
+     
+     #not needed
+     pipenv install
+     pipenv --python /usr/bin/python3.6
+     
+     #start the virtual environment and the server server
+     sudo pipenv shell bokeh serve --allow-websocket-origin="*:5006" wishful
+     http://172.16.16.12:5006/wishful
+     
+  #library collection
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/python3.6/config-3.6m-x86_64-linux-gnu
+    sudo ldconfig
+    sudo cp -r  /usr/local/lib/python3.5/dist-packages/iptc /usr/local/lib/python3.6/dist-packages/
+    sudo pip3 install python_iptables
+    python3 agent_tx.py
+    sudo pip3 install pyroute2
 
 
 

@@ -77,18 +77,19 @@ class Solution:
             dikt[self.id] = self
 
 
-def start_visualizer_connection():
+def start_visualizer_connection(webui_ip_address):
     """
     ****	SETUP LOG GUI VISUALIZER	****
-    This function is used to setup the connection with the experiment GUI,
-    a ZMQ socket client is created on port 8501, able to send statistical information to GUI
+    This function is used to setup the connection with the experiment webui,
+    a ZMQ socket client is created on port 5506, able to send statistical information to GUI
     """
-    socket_visualizer_port = "8501"
-    context = zmq.Context()
-    socket_visualizer = context.socket(zmq.PUSH)
-    socket_visualizer.connect("tcp://10.8.8.21:%s" % socket_visualizer_port)
-    print("Connecting to server on port %s ... ready to send information to experiment GUI" % socket_visualizer_port)
+    socket_visualizer_port = "5506"
+    ctx = zmq.Context()
+    socket_visualizer = ctx.socket(zmq.PUB)
+    socket_visualizer.connect("tcp://%s:%s" % (webui_ip_address, socket_visualizer_port))
+    print("Connecting to server %s on port %s ... ready to send information to experiment WEBUI" % (webui_ip_address, socket_visualizer_port))
     return socket_visualizer
+
 
 
 def start_command_connection():
@@ -411,7 +412,8 @@ def main(args):
     poller.register(request, zmq.POLLIN)
 
     # Init connection with GUI ffor LOG
-    # socket_visualizer = start_visualizer_connection()
+    socket_visualizer = start_visualizer_connection("127.0.0.1")
+
     # Init conneciton with GUI for command
     # socket_command_visualizer = start_command_connection()
     # poller.register(socket_command_visualizer, flags=zmq.POLLIN)
@@ -502,16 +504,25 @@ def main(args):
                 # Process monitoring Report
                 if received_request["type"] == "monitorReport":
                     print("*** Received monitoring report *** : %s" % received_request)
-                    if len(solutionCompatibilityMatrix)>0:
-                        #TOBE
+                    if True:# len(solutionCompatibilityMatrix)>0:
                         """
                         This is the main logic of the solution global controller, after receiving a monitor report, the 
                         solution global controller, check the solution compatibility matrix, in order to understand 
                         eventually conflict, and send update/command to solution.
                         Example: when it receive the report of detecting interference (LTE), send command to solution TDMA cross interference, if not conflict are detected  
                         """
-                        pass
-
+                        """
+                        data = {
+                            "type": "monitorReport", "monitorType": "performance", "networkController": ctrl,
+                            "networkType": "80211",
+                            "monitorValue": {
+                                "timestamp": now,
+                                "PER": random.random(),
+                                "THR": random.random() * 1e6,
+                            },
+                        }
+                        """
+                        socket_visualizer.send_multipart([ b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
                     else:
                         print("Received monitor report but no solution is registered")
 
