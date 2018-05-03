@@ -259,7 +259,7 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							}
 							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
-							value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": "0"}
+							value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": msg["measure"][2]}
 							solutionCtrProxy.send_monitor_report("performance", "U-LTE", value)
 
 						# print(msg)
@@ -275,8 +275,8 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 def loop_statistics(x):
 	sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	print("10001")
-	# sock.bind(("127.0.0.1",10001))
-	sock.bind(("10.8.9.13", 10001))
+	sock.bind(("127.0.0.1",10001))
+	# sock.bind(("10.8.9.13", 10001))
 
 	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.624144, 'SNR': 21.99383, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.0, 'timestamp': 1524493482.429576}
 	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.442906, 'SNR': 17.325897, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.1, 'timestamp': 1524493483.429576}
@@ -287,6 +287,8 @@ def loop_statistics(x):
 			data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 			stats=json.loads(data.decode('utf-8'))
 			print(stats)
+			# if "PDSCH-BLER" in stats:
+
 		except Exception as e:
 			print(e)
 
@@ -676,8 +678,8 @@ def main(args):
 			socket_visualizer = None
 
 			# thread.start_new_thread(loop_statistics, (1,))
-			loop_statistics_thread = threading.Thread(target=loop_statistics, args=(1,))
-			loop_statistics_thread.start()
+			# loop_statistics_thread = threading.Thread(target=loop_statistics, args=(1,))
+			# loop_statistics_thread.start()
 
 			"""
 			****** setup network ******
