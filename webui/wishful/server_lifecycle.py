@@ -1,6 +1,7 @@
 from threading import Thread
 
 import collector
+import commander
 
 
 def on_server_loaded(server_context):
@@ -13,6 +14,10 @@ def on_server_loaded(server_context):
         Thread(
             target=collector.usrp_listener,
             args=('tcp://*:5507', server_context),
+        ),
+        Thread(
+            target=commander.action_trigger,
+            args=('tcp://*:5508', commander.action_queue),
         ),
     ]
     for t in threads:
