@@ -525,21 +525,21 @@ def stopLte():
 	lteState = "DISABLE"
 	lteStateChange = True
 
-def enable_lte_2_subframe():
-	print("set subframes 2")
+def enable_lte_8_subframe():
+	print("set subframes 8")
 	UDP_IP = "172.16.16.11"
 	UDP_PORT = 8888
-	tx_pattern = "1,1,0,0,0,0,0,0,0,0"
+	tx_pattern = "1,1,1,1,1,1,1,1,0,0"
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.sendto(tx_pattern.encode(), (UDP_IP, UDP_PORT))
 	sock.close()
 
 
-def enable_lte_4_subframe():
-	print("set subframes 4")
+def enable_lte_tdm_subframe():
+	print("set subframes tdm mask")
 	UDP_IP = "172.16.16.11"
 	UDP_PORT = 8888
-	MESSAGE = "1,1,1,1,0,0,0,0,0,0"
+	MESSAGE = "1,1,0,0,1,1,0,0,0,1"
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
 	sock.close()
@@ -605,7 +605,7 @@ def main(args):
 	networkName = "LTE_net"
 	solutionName = ["LTE_CT"]
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
-	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_2_SUBFRAME": (lambda: enable_lte_2_subframe()), "ENABLE_LTE_4_SUBFRAME": (lambda: enable_lte_4_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
+	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
 	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
 
@@ -805,8 +805,8 @@ def main(args):
 							print("search node %s - index %d" % (eth_ip[ii], ii))
 							if nodes[jj].ip == eth_ip[ii]:
 								pos = eth_ip.index(nodes[jj].ip)
-								# if label[pos] == 'B' or label[pos] == 'C':
-								if True:
+								if label[pos] == 'B' :
+								# if True:
 									# RUN local control program
 									print("start local control program on nodes")
 									lcpDescriptor_nodes.append(
