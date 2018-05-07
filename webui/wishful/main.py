@@ -18,79 +18,11 @@ from bokeh.models.widgets import Slider
 from bokeh.models.widgets import Toggle
 from bokeh.models.widgets import CheckboxButtonGroup
 from bokeh.plotting import figure
-from commander import action_queue
 
 doc = curdoc()
-technology_labels = ["LTE", "Wi-Fi", "ZigBee"]
 
 
-def technology_select(new):
-    for x in range(3):
-        tech = technology_labels[x].replace("-", "").upper()
-        action_queue.put({
-            tech: True if x in new else False,
-        })
-
-
-def traffic_select(new):
-    for x in range(3):
-        tech = technology_labels[x].replace("-", "").upper()
-        action_queue.put({
-            'TRAFFIC': tech,
-        })
-
-
-def lte_subframe(attr, old, new):
-    if attr is not "value":
-        return
-    action_queue.put({
-        "SET_LTE_SUBFRAME_SYNC": new,
-    })
-
-
-def lowpan_blacklist(new):
-    channels = [x + 11 for x in new]
-    action_queue.put({
-        "6LOWPAN_BLACKLIST": channels,
-    })
-
-
-title0 = Div(text="""
-    <h2 class="content-subhead">Experiment Control</h2>
-    """)
-technology_group = CheckboxButtonGroup(
-    labels=technology_labels,
-    active=[])
-technology_group.on_click(technology_select)
-traffic_group = CheckboxButtonGroup(
-    labels=technology_labels,
-    active=[])
-traffic_group.on_click(traffic_select)
-lowpan_group = CheckboxButtonGroup(
-    labels=[str(x) for x in range(11, 27)],
-    active=[])
-lowpan_group.on_click(lowpan_blacklist)
-lte_subframe_slider = Slider(
-    start=0, end=50,
-    value=10, step=1,
-    title='LTE subframe duration',
-    callback_policy='mouseup',
-    # width=120,
-)
-lte_subframe_slider.on_change('value', lte_subframe)
-
-controls = layout(
-    [
-        title0,
-        Div(text="""<label>Enable solution</label"""), technology_group,
-        Div(text="""<label>Enable traffic</label"""), traffic_group,
-        Div(text="""<label>6LOWPAN channel blacklist</label"""), lowpan_group,
-        lte_subframe_slider,
-    ],
-    sizing_mode='scale_width',
-)
-
-plots = [[usrp.plot, controls]]
+plots = [[usrp.plot, ]]
 master_range = None
 
 for technology in conf.controllers:
