@@ -24,7 +24,7 @@ from bokeh.plotting import figure
 doc = curdoc()
 colors = itertools.cycle(palette)
 
-plots = [[usrp.plot, ]]
+plots = [[usrp.get_plot()]]
 master_range = None
 
 for technology in conf.controllers:
