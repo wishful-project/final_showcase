@@ -1,30 +1,35 @@
 # -*- coding: utf-8 -*-
-import itertools
 import conf
+import itertools
 import usrp
 
 from bokeh.io import curdoc
-from bokeh.layouts import column
 from bokeh.layouts import layout
-from bokeh.layouts import row
-from bokeh.layouts import widgetbox
 from bokeh.models import ColumnDataSource
-from bokeh.models import CustomJS
-from bokeh.models import FuncTickFormatter
 from bokeh.models import NumeralTickFormatter
-from bokeh.models import Title
-from bokeh.models import WidgetBox
-from bokeh.models.widgets import Div
-from bokeh.models.widgets import Slider
-from bokeh.models.widgets import Toggle
-from bokeh.models.widgets import CheckboxButtonGroup
+from bokeh.models.widgets import DataTable
+from bokeh.models.widgets import TableColumn
 from bokeh.palettes import Colorblind7 as palette
 from bokeh.plotting import figure
 
 doc = curdoc()
 colors = itertools.cycle(palette)
 
-plots = [[usrp.get_plot()]]
+data = dict(name=[], type=[], channel=[], load=[], active=[])
+active_networks = ColumnDataSource(data, name='networkStatusUpdate')
+nsu_cols = [
+    TableColumn(field="name", title="Name"),
+    TableColumn(field="type", title="Type"),
+    TableColumn(field="channel", title="Channel"),
+    TableColumn(field="load", title="Application Load"),
+]
+active_networks_table = DataTable(
+    source=active_networks,
+    columns=nsu_cols,
+    width=300, height=400,
+)
+
+plots = [[usrp.get_plot(), active_networks_table]]
 master_range = None
 
 for technology in conf.controllers:

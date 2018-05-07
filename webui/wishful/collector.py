@@ -2,6 +2,7 @@ import json
 import logging
 import zmq
 import numpy as np
+import conf
 
 from datetime import datetime
 from functools import partial
@@ -17,28 +18,48 @@ def plt_update(source, timestamp, THR, PER):
     ), 120)
 
 
+@gen.coroutine
+def tab_update(source, data):
+    source.data = data
+
+
 def stats_listener(endpoint, server_context):
     logging.info('Starting statistics listener on %s', endpoint)
 
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.setsockopt(zmq.SUBSCRIBE, b'monitorReport')
+    socket.setsockopt(zmq.SUBSCRIBE, b'networkStatusUpdate')
     socket.bind(endpoint)
 
     while True:
         full_msg = socket.recv_multipart()
 
         msg = json.loads(full_msg[1], encoding='utf-8')
-
-        for ses in server_context.application_context.sessions:
-            ses._document.add_next_tick_callback(partial(
-                plt_update,
-                source=ses._document.select_one(
-                    {'name': msg['networkController']}),
-                timestamp=msg['monitorValue']['timestamp'],
-                THR=msg['monitorValue']['THR'],
-                PER=msg['monitorValue']['PER'],
-            ))
+        if full_msg[0] == b'monitorReport':
+            for ses in server_context.application_context.sessions:
+                ses._document.add_next_tick_callback(partial(
+                    plt_update,
+                    source=ses._document.select_one(
+                        {'name': msg['networkController']}),
+                    timestamp=msg['monitorValue']['timestamp'],
+                    THR=msg['monitorValue']['THR'],
+                    PER=msg['monitorValue']['PER'],
+                ))
+        if full_msg[0] == b'networkStatusUpdate':
+            for ses in server_context.application_context.sessions:
+                ses._document.add_next_tick_callback(partial(
+                    tab_update,
+                    source=ses._document.select_one(
+                        {'name': 'networkStatusUpdate'}),
+                    data=dict(
+                        name=[x['name'] for x in msg if x['active'] is True],
+                        type=[x['type'] for x in msg if x['active'] is True],
+                        channel=[x['channel'] for x in msg
+                            if x['active'] is True],
+                        load=[x['load'] for x in msg if x['active'] is True],
+                    ),
+                ))
 
 
 @gen.coroutine
