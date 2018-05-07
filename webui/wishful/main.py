@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import itertools
 import conf
 import usrp
 
@@ -17,10 +18,11 @@ from bokeh.models.widgets import Div
 from bokeh.models.widgets import Slider
 from bokeh.models.widgets import Toggle
 from bokeh.models.widgets import CheckboxButtonGroup
+from bokeh.palettes import Colorblind7 as palette
 from bokeh.plotting import figure
 
 doc = curdoc()
-
+colors = itertools.cycle(palette)
 
 plots = [[usrp.plot, ]]
 master_range = None
@@ -69,16 +71,17 @@ for technology in conf.controllers:
             ),
             name=k,
         )
+        color = next(colors)
         thr_plt.line(
             'timestamp', 'THR',
             source=data, legend=conf.controllers[technology][k]['hrn'],
-            line_color=conf.controllers[technology][k]['color'],
+            line_color=color,
             line_width=3, line_alpha=0.6,
         )
         per_plt.line(
             'timestamp', 'PER',
             source=data, legend=conf.controllers[technology][k]['hrn'],
-            line_color=conf.controllers[technology][k]['color'],
+            line_color=color,
             line_width=3, line_alpha=0.6,
         )
 
