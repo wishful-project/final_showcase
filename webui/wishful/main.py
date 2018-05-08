@@ -26,7 +26,6 @@ nsu_cols = [
 active_networks_table = DataTable(
     source=active_networks,
     columns=nsu_cols,
-    width=300, height=400,
 )
 
 plots = [[usrp.get_plot(), active_networks_table]]
