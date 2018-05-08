@@ -414,7 +414,7 @@ def main(args):
     poller.register(request, zmq.POLLIN)
 
     # Init connection with GUI ffor LOG
-    socket_visualizer = start_visualizer_connection("127.0.0.1")
+    socket_visualizer = start_visualizer_connection("172.16.16.6")
 
     # Init conneciton with GUI for command
     # socket_command_visualizer = start_command_connection("127.0.0.1")
