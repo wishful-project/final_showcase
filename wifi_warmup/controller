@@ -48,7 +48,7 @@ nodes = []
 showcaseState = None  # Start, Started, Stop, Stopped
 
 
-def enable_solution():
+def enable_solution(value):
     print("Enabling solution")
     global enabled
     global showcaseState
@@ -57,7 +57,7 @@ def enable_solution():
     showcaseState = "Start"
 
 
-def disable_solution():
+def disable_solution(value):
     print("Disable solution")
     global enabled
     global showcaseState
@@ -65,7 +65,7 @@ def disable_solution():
     showcaseState = "Stop"
 
 
-def start_traffic():
+def start_traffic(value):
     global controller
     print("Start Iperf traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
@@ -73,16 +73,16 @@ def start_traffic():
     controller.nodes(ap0_node).blocking(False).net.start_packetflow(dest_ip="192.168.10.2", port=5051)
 
 
-def stop_traffic():
+def stop_traffic(value):
     global controller
     print("Stop Iperf traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     controller._clear_call_context()
     controller.nodes(ap0_node).blocking(False).net.stop_packetflow()
 
-def set_low_traffic():
+def set_low_traffic(value):
     global controller
-    print("Set low traffic")
+    print("Set LOW traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
 
@@ -96,9 +96,9 @@ def set_low_traffic():
         controller.nodes(sta0_node).blocking(False).net.change_traffic_rate(interface=sta0_iface, rate=1)
 
 
-def set_medium_traffic():
+def set_medium_traffic(value):
     global controller
-    print("Set medium traffic")
+    print("Set MEDIUM traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
 
@@ -112,9 +112,9 @@ def set_medium_traffic():
         controller.nodes(sta0_node).blocking(False).net.change_traffic_rate(interface=sta0_iface, rate=20)
 
 
-def set_high_traffic():
+def set_high_traffic(value):
     global controller
-    print("Set high traffic")
+    print("Set HIGH traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
 
@@ -129,7 +129,7 @@ def set_high_traffic():
 
 def set_traffic(trafficValue):
     global controller
-    print("Set traffic")
+    
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
 
@@ -139,12 +139,16 @@ def set_traffic(trafficValue):
 
     # 0-OFF, 1-LOW, 2-MEDIUM, 3-HIGH
     if trafficValue == 0:
+        print("Switch traffic OFF")
         myRate = 0
     elif trafficValue == 1:
+        print("Set LOW traffic")
         myRate = 1
     elif trafficValue == 2:
+        print("Set MEDIUM traffic")
         myRate = 20
     else:
+        print("Set HIGH traffic")
         myRate = 100
 
     controller._clear_call_context()
@@ -191,7 +195,10 @@ def main(args):
     solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1",
                                                      requestPort=7001,
                                                      subPort=7000)
-    networkName = "WIFI_TUB"
+    solutionCtrProxy2 = GlobalSolutionControllerProxy(ip_address="127.0.0.1",
+                                                     requestPort=7001,
+                                                     subPort=7000)
+    networkName = "WIFI_TUB_1"
     solutionName = [controller.name]
     commands = {"START_SHOWCASE": enable_solution,
                 "STOP_SHOWCASE": disable_solution,
@@ -209,11 +216,20 @@ def main(args):
                                              monitorList
                                              )
 
+    networkName = "WIFI_TUB_2"
+    solutionCtrProxy2.set_solution_attributes(networkName,
+                                             solutionName,
+                                             commands,
+                                             monitorList
+                                             )
+
     # Register OBSS_Management solution to global solution controller
     response = solutionCtrProxy.register_solution()
+    response = solutionCtrProxy2.register_solution()
     if response:
         print("Solution was correctly registered to GlobalSolutionController")
         solutionCtrProxy.start_command_listener()
+        solutionCtrProxy2.start_command_listener()
     else:
         print("Solution was not registered to Global Solution Controller")
 
