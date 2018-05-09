@@ -102,7 +102,7 @@ def macstats_event_cb(mac_address, event_name, event_value):
             "PER":  per_value,
             "timestamp" : time.time()
         }
-        solutionCtrProxy.send_monitor_report("performance", "ZigBee_net", value)
+        solutionCtrProxy.send_monitor_report("performance", "6lowPAN", value)
         number_of_packets_received = number_of_packets_received_cur
     else:
         if mac_address not in per_dictionary:
@@ -129,6 +129,12 @@ def mapWifiOnZigbeeChannels(log, channel_mapping):
     finally:
         file_n.close()
     return dct
+
+def send_channel_update(channels):
+    value = { 
+        "2405" : "2"
+    }
+    solutionCtrProxy.send_monitor_report("channelUsage", "6lowPAN", value)
 
 def control_traffic(traffic_type):  
     global mac_mode, taisc_manager
@@ -231,7 +237,7 @@ def main(args):
     ****** setup the communication with the solution global controller ******
     """
 
-    networkName = "ZigBee_net"
+    networkName = "6lowPAN"
     solutionName = ["blacklisting"]
     commands = {
         "6LOWPAN_BLACKLIST": blacklist,
@@ -262,7 +268,7 @@ def main(args):
     taisc_manager.activate_radio_program(mac_mode)
     taisc_manager.update_slotframe('taisc_slotframe.csv', mac_mode)
     taisc_manager.update_macconfiguration({'IEEE802154e_macSlotframeSize': len(contiki_nodes) + 1})
-    
+    send_channel_update([])
     logging.info("Finished configuring TSCH")
     
     current_traffic_type = traffic_type

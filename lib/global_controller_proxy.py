@@ -187,7 +187,13 @@ class GlobalSolutionControllerProxy(object):
         }
         """
 
-        msg = {'type': 'monitorReport', 'networkController': self.networkName, 'monitorType': mon_type, 'networkType': net_type, 'monitorValue': value }
+        msg = {
+            'type': 'monitorReport', 
+            'networkController': self.networkName, 
+            'monitorType': mon_type, 
+            'networkType': net_type, 
+            'monitorValue': value 
+        }
         sequence = 0
         kvmsg = KVMsg(sequence)
         kvmsg.key = b"generic"

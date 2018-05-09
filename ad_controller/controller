@@ -49,6 +49,7 @@ log = logging.getLogger('wishful_agent.main')
 clear = lambda: os.system('clear')
 do_run = True
 solutionCompatibilityMatrix = []
+socket_visualizer = None
 
 ###############################
 ######## GUI related ##########
@@ -63,8 +64,8 @@ class Network:
     commandList=None
     # eventList = None
     solutionCompatibilityList = None
-    channel = None
-    load = 0
+    channel = "0"
+    load = "off"
     active = True
 
     def __init__(self, id, name, solution, commandList=None, monitorList=None, solutionCompatibilityList=None):
@@ -76,14 +77,14 @@ class Network:
         self.monitorList = monitorList
         self.solutionCompatibilityList = solutionCompatibilityList
 
-    def update_channel(channel):
+    def update_channel(self, channel):
         """
         Update the used channels for this network
         :param channel: new channel
         """
         self.channel = channel
         
-    def update_load(load):
+    def update_load(self, load):
         """
         Update the load for the current network
         :param load: new load
@@ -126,11 +127,8 @@ def forward_lines(stream, socket):
         while line:
             socket.send(line[:-1].encode('utf-8'))
             line = stream.readline()
-        socket.send(''.encode('utf-8'))  # send "eof message".
+        socket.send(''.encode('utf-8'))  # send eof message.
     finally:
-        # NOTE: `zmq.Context.term()` in the main thread will block until this
-        #       socket is closed, so we can't run this function in daemon
-        #       thread hoping that it will just close itself.
         socket.close()
 
 def forward_standard_input(context):
@@ -146,9 +144,21 @@ def forward_standard_input(context):
     stdin_thread.start()
     return [reader, stdin_thread]
 
-def send_status_update():
+def send_status_update(socket_visualizer):
+    nsu = []
+    import random
     for network in solutionCompatibilityMatrix:
-        print(network.name)
+        nsu.append({
+            "name": network.name,
+            "type": "NOT AVAILABLE",
+            "channel": str(network.channel),
+            "load": network.load,
+            "active": True,
+        })
+    socket_visualizer.send_multipart([
+        b'networkStatusUpdate',
+        json.dumps(nsu).encode('utf-8'),
+    ])
 
 ########################################
 ######## COMMAND LINE related ##########
@@ -204,6 +214,7 @@ def print_menu_command():  ## Your menu design here
     global reader
     global sequence_publisher
     global publisher
+    global socket_visualizer
 
     # Command menu (choice of network)
     print(30 * "-", "COMMAND MENU", 30 * "-")
@@ -277,9 +288,12 @@ def print_menu_command():  ## Your menu design here
     }
 
     if commandToSend == "TRAFFIC":
+        traffic_load = "HIGH"
         msg["commandList"][selected_network.solution[0]] = {
-            "TRAFFIC" : { "TYPE" : "HIGH" } # OFF, LOW, MEDIUM, HIGH
+            "TRAFFIC" : { "TYPE" : traffic_load } # OFF, LOW, MEDIUM, HIGH
         }
+        selected_network.update_load(traffic_load)
+        send_status_update(socket_visualizer)
     else:
         msg["commandList"] = {selected_network.solution[0]: {}}
 
@@ -345,21 +359,11 @@ def print_menu_command():  ## Your menu design here
 def exit():
     global do_run
     do_run = False
-    # sys.exit()
 
-# Back to main menu
-# def back():
-#     menu_actions['main_menu']()
-
-# =======================
-#    MENUS DEFINITIONS
-# =======================
 # Menu definition
 menu_actions = {
-    # 'main_menu': main_menu,
     '1': print_solutions,
     '2': print_menu_command,
-    # '9': back,
     '0': exit,
 }
 
@@ -392,6 +396,7 @@ def main(args):
     global reader
     global sequence_publisher
     global publisher
+    global socket_visualizer
 
     #Init variables
     kvmap = {}
@@ -421,10 +426,6 @@ def main(args):
 
     # Init connection with GUI ffor LOG
     socket_visualizer = start_visualizer_connection("172.16.16.3")
-
-    # Init conneciton with GUI for command
-    # socket_command_visualizer = start_command_connection("127.0.0.1")
-    # poller.register(socket_command_visualizer, flags=zmq.POLLIN)
 
     reader, stdin_thread = forward_standard_input(ctx)
     poller.register(reader, zmq.POLLIN)
@@ -464,27 +465,22 @@ def main(args):
 
             # print(received_request)
             if "type" in received_request:
-
+                network = next((x for x in solutionCompatibilityMatrix if x.name == received_request["networkController"]), None)
                 #Process registration request
                 if received_request["type"] == "registerRequest":
                     print("***Received registration request*** : %s\n" % received_request)
 
-                    # {'networkController': 'name', 'solution': ['WIFI_CT'], 'type': 'registerRequest', 'monitorList': ['THR', 'PER'],
-                    # 'commandList': ['START_WIFI', 'STOP_WIFI', 'STOP_TDMA', 'START_TDMA']}
-
                     if "networkController" in received_request and "solution" in received_request and "commandList" in received_request and "monitorList" in received_request:
-                        network = next((x for x in solutionCompatibilityMatrix if x.name == received_request["networkController"]), None)
                         if network is None:
                             networkNum += 1
-                            network = Network(networkNum, received_request["networkController"], received_request["solution"], received_request["commandList"], received_request["monitorList"])
+                            network = Network(
+                                networkNum,
+                                received_request["networkController"],
+                                received_request["solution"],
+                                received_request["commandList"],
+                                received_request["monitorList"]
+                            )
                             solutionCompatibilityMatrix.append(network)
-
-                        """
-                        #TOBE
-                        we need more attention when store the reference for a solution in the solutionCompatibilityMatrix, 
-                        we need check the real conflict between the solutions in order to use it in the main logic of the 
-                        solution global controller
-                        """
                         responseMsg = {"type": "registerResponse", "result": "ok"}
                     else:
                         print("received malformed registration request")
@@ -517,96 +513,14 @@ def main(args):
                             "THR": random.random() * 1e6,
                         },
                     }
-                    
-                    {'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_virt', 'networkType': '80211', 
-                    'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.30156620331886586, 'THR': 646057.1170200078}}
-                    {'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_nb', 'networkType': '80211', 'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.6756317894931505, 'THR': 534174.0512461787}}
-                    [{'name': 'WIFI_A1', 'type': 'LTE-U', 'channel': 7, 'load': 'Medium', 'active': True}, {'name': 'WIFI_A2', 'type': 'Wi-Fi', 'channel': 9, 'load': 'Medium', 'active': True}, {'name': 'WIFI_TDMA', 'type': 'Wi-Fi', 'channel': 2, 'load': 'Off', 'active': False}, {'name': '6lowPAN', 'type': 'IEEE 802.15.4', 'channel': 2, 'load': 'Medium', 'active': True}, {'name': 'LTE_TDMA', 'type': 'LTE-U', 'channel': 9, 'load': 'Off', 'active': True}, {'name': 'LTE_virt', 'type': 'IEEE 802.15.4', 'channel': 14, 'load': 'High', 'active': True}, {'name': 'LTE_nb', 'type': 'Wi-Fi', 'channel': 12, 'load': 'Medium', 'active': False}]
-                    
                     """
                     if received_request["monitorType"] == "channelUsage":
-                        send_status_update()
+                        network.update_channel(received_request["monitorValue"])
+                        send_status_update(socket_visualizer)
                     elif received_request["monitorType"] == "performance":
                         now = datetime.datetime.now().timestamp()
                         received_request["monitorValue"]["timestamp"] = now
                         socket_visualizer.send_multipart([ b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
-
-                # if received_request["type"] == "eventReport":
-                #     print("*** Received event report *** : %s" % received_request)
-                #     # print("*** Received event report *** : \n" )
-                #     if len(solutionCompatibilityMatrix) > 0:
-                #         # TOBE
-                #         """
-                #         This is the main logic of the solution global controller, after receiving a event report, the
-                #         solution global controller, check the solution compatibility matrix, in order to understand
-                #         eventually conflict, and send update/command to solution.
-                #         Example: when it receive the report of detecting interference (LTE), send command to solution TDMA cross interference, if not conflict are detected
-                #         """
-                #
-                #         for key in solutionCompatibilityMatrix:
-                #             print(str(solutionCompatibilityMatrix[key].name))
-                #             if received_request["solution"] == solutionCompatibilityMatrix[key].name:
-                #
-                #                     for key2 in solutionCompatibilityMatrix:
-                #                         if solutionCompatibilityMatrix[key2].name == "lte_ct":
-                #                             if received_request["eventType"] == "WiFi_DETECTED":
-                #                                 if "START_TDMA" in solutionCompatibilityMatrix[key2].commandList:
-                #                                     commandList = "START_TDMA"
-                #                                     # Distribute as key-value message
-                #                                     sequence_publisher += 1
-                #                                     kvmsg = KVMsg(sequence_publisher)
-                #                                     kvmsg.key = b"generic"
-                #                                     msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-                #                                     print('update message %s' % str(msg))
-                #                                     kvmsg.body = json.dumps(msg).encode('utf-8')
-                #                                     # kvmsg.send(publisher)
-                #                                     print("sent update information with sequence %d" % sequence_publisher)
-                #
-                #                             if received_request["eventType"] == "LTE_DETECTED":
-                #                                 if "START_TDMA" in solutionCompatibilityMatrix[key2].commandList:
-                #                                     commandList = "START_TDMA"
-                #                                     # Distribute as key-value message
-                #                                     sequence_publisher += 1
-                #                                     kvmsg = KVMsg(sequence_publisher)
-                #                                     kvmsg.key = b"generic"
-                #                                     msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-                #                                     print('update message %s' % str(msg))
-                #                                     kvmsg.body = json.dumps(msg).encode('utf-8')
-                #                                     # kvmsg.send(publisher)
-                #                                     print("sent update information with sequence %d" % sequence_publisher)
-                #
-                #                             if received_request["eventType"] == "ZIGBEE_DETECTED":
-                #                                 if "START_TDMA" in solutionCompatibilityMatrix[key2].commandList:
-                #                                     commandList = "START_TDMA"
-                #                                     # Distribute as key-value message
-                #                                     sequence_publisher += 1
-                #                                     kvmsg = KVMsg(sequence_publisher)
-                #                                     kvmsg.key = b"generic"
-                #                                     msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-                #                                     print('update message %s' % str(msg))
-                #                                     kvmsg.body = json.dumps(msg).encode('utf-8')
-                #                                     # kvmsg.send(publisher)
-                #                                     print("sent update information with sequence %d" % sequence_publisher)
-                #
-                #                             if received_request["eventType"] == "NO_interference":
-                #                                 if "STOP_TDMA" in solutionCompatibilityMatrix[key2].commandList:
-                #                                     commandList = "STOP_TDMA"
-                #                                     # Distribute as key-value message
-                #                                     sequence_publisher += 1
-                #                                     kvmsg = KVMsg(sequence_publisher)
-                #                                     kvmsg.key = b"generic"
-                #                                     msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-                #                                     print('update message %s' % str(msg))
-                #                                     kvmsg.body = json.dumps(msg).encode('utf-8')
-                #                                     # kvmsg.send(publisher)
-                #                                     print("sent update information with sequence %d" % sequence_publisher)
-                #                             break
-                #
-                #                     break
-                #
-                #
-                #     else:
-                #         print("Received event report but no solution is registered")
 
                 # Process command Report
                 if received_request["type"] == "commandReport":
@@ -615,145 +529,6 @@ def main(args):
                         pass
                     else:
                         print("Received command report but no solution is registered")
-
-
-        # """
-        # **** RECEIVED COMMAND FROM SHOWCASE GUI
-        # """
-        # if socket_command_visualizer in items:
-        #     parsed_json = socket_command_visualizer.recv_json()
-        #     print('parsed_json : %s' % str(parsed_json))
-        #     type = parsed_json['type']
-        #     if type == 'traffic':
-        #         node = parsed_json['src']
-        #         # node_src_index = all_nodes.index(node)
-        #         command = parsed_json['command']
-        #         # nodes_source_rate[node_src_index] = 0
-        #         if command == 'off_traffic':
-        #             # if off traffic is selected for a specific node
-        #             if node == 'D':
-        #                 #off LTE network
-        #                 commandList = "STOP_LTE"
-        #                 for key2 in solutionCompatibilityMatrix:
-        #                     if solutionCompatibilityMatrix[key2].name == "lte_ct":
-        #                         if commandList in solutionCompatibilityMatrix[key2].commandList:
-        #                             # Distribute as key-value message
-        #                             sequence_publisher += 1
-        #                             kvmsg = KVMsg(sequence_publisher)
-        #                             kvmsg.key = b"generic"
-        #                             msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-        #                             print('update message %s' % str(msg))
-        #                             kvmsg.body = json.dumps(msg).encode('utf-8')
-        #                             kvmsg.send(publisher)
-        #                             print("sent update information with sequence %d" % sequence_publisher)
-        #                         break
-        #             else:
-        #                 # off WiFi network
-        #                 commandList = "STOP_WIFI"
-        #                 for key2 in solutionCompatibilityMatrix:
-        #                     if solutionCompatibilityMatrix[key2].name == "lte_ct":
-        #                         if commandList in solutionCompatibilityMatrix[key2].commandList:
-        #                             # Distribute as key-value message
-        #                             sequence_publisher += 1
-        #                             kvmsg = KVMsg(sequence_publisher)
-        #                             kvmsg.key = b"generic"
-        #                             msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-        #                             print('update message %s' % str(msg))
-        #                             kvmsg.body = json.dumps(msg).encode('utf-8')
-        #                             kvmsg.send(publisher)
-        #                             print("sent update information with sequence %d" % sequence_publisher)
-        #                         break
-        #
-        #         # if start traffic is selected for a specific node
-        #         if command == 'set_traffic':
-        #             node = parsed_json['dst']
-        #             # node_dst_index = all_nodes.index(node)
-        #             # value = parsed_json['value']
-        #             # nodes_source_rate[node_src_index] = value
-        #             # source_rate = float(nodes_source_rate[node_src_index])
-        #             # call UPI to start traffic
-        #             if node == 'E':
-        #                 # on LTE network
-        #                 commandList = "START_LTE"
-        #                 for key2 in solutionCompatibilityMatrix:
-        #                     if solutionCompatibilityMatrix[key2].name == "lte_ct":
-        #                         if commandList in solutionCompatibilityMatrix[key2].commandList:
-        #                             # Distribute as key-value message
-        #                             sequence_publisher += 1
-        #                             kvmsg = KVMsg(sequence_publisher)
-        #                             kvmsg.key = b"generic"
-        #                             msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-        #                             print('update message %s' % str(msg))
-        #                             kvmsg.body = json.dumps(msg).encode('utf-8')
-        #                             kvmsg.send(publisher)
-        #                             print("sent update information with sequence %d" % sequence_publisher)
-        #                         break
-        #
-        #             else:
-        #                 # on WiFi network
-        #                 commandList = "START_WIFI"
-        #                 for key2 in solutionCompatibilityMatrix:
-        #                     if solutionCompatibilityMatrix[key2].name == "WIFI":
-        #                         if commandList in solutionCompatibilityMatrix[key2].commandList:
-        #                             # Distribute as key-value message
-        #                             sequence_publisher += 1
-        #                             kvmsg = KVMsg(sequence_publisher)
-        #                             kvmsg.key = b"generic"
-        #
-        #                             # old json format
-        #                             # msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-        #
-        #                             # new json format
-        #                             # {
-        #                             #     "type": "publisherUpdate",
-        #                             #           "involvedController": ["networkB" "networkC],
-        #                             #           "commandList": {"solutionName": {
-        #                             #          “LTE”: { “2467”:True,  “2484”:False}
-        #                             #          “WiFi”: { “2467”:False,  “2484”:True}}},
-            #                         #
-        #                             # }
-        #                             msg = {"type": "publisherUpdate", "involvedController": [solutionCompatibilityMatrix[key2].name], "commandList":{ "solutionName": { "WIFI": { "2437":True} }}}
-        #                             print('update message %s' % str(msg))
-        #                             kvmsg.body = json.dumps(msg).encode('utf-8')
-        #                             kvmsg.send(publisher)
-        #                             print("sent update information with sequence %d" % sequence_publisher)
-        #                         break
-        #
-        #     if type == 'radio_program':
-        #         command = parsed_json['command']
-        #         if command == 'on_tdma':
-        #             for key2 in solutionCompatibilityMatrix:
-        #                 if solutionCompatibilityMatrix[key2].name == "lte_ct":
-        #                     if "START_TDMA" in solutionCompatibilityMatrix[key2].commandList:
-        #                         commandList = "START_TDMA"
-        #                         # Distribute as key-value message
-        #                         sequence_publisher += 1
-        #                         kvmsg = KVMsg(sequence_publisher)
-        #                         kvmsg.key = b"generic"
-        #                         msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-        #                         print('update message %s' % str(msg))
-        #                         kvmsg.body = json.dumps(msg).encode('utf-8')
-        #                         kvmsg.send(publisher)
-        #                         print("sent update information with sequence %d" % sequence_publisher)
-        #                     break
-        #         if command == 'off_tdma':
-        #             for key2 in solutionCompatibilityMatrix:
-        #                 if solutionCompatibilityMatrix[key2].name == "lte_ct":
-        #                     if "STOP_TDMA" in solutionCompatibilityMatrix[key2].commandList:
-        #                         commandList = "STOP_TDMA"
-        #                         # Distribute as key-value message
-        #                         sequence_publisher += 1
-        #                         kvmsg = KVMsg(sequence_publisher)
-        #                         kvmsg.key = b"generic"
-        #                         msg = {"type": "publisherUpdate", "involvedSolutions": solutionCompatibilityMatrix[key2].name, "commandList": commandList}
-        #                         print('update message %s' % str(msg))
-        #                         kvmsg.body = json.dumps(msg).encode('utf-8')
-        #                         kvmsg.send(publisher)
-        #                         print("sent update information with sequence %d" % sequence_publisher)
-        #                     break
-
-    # stdin_thread._stop()
-
 
 
 if __name__ == "__main__":
