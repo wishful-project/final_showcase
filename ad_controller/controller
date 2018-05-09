@@ -234,8 +234,8 @@ def print_menu_command():  ## Your menu design here
         return
     else:
         try:
-            solutionIndex = int(network_choice)
-            selected_network = next((x for x in solutionCompatibilityMatrix if x.id == solutionIndex), None)
+            networkIndex = int(network_choice)
+            selected_network = next((x for x in solutionCompatibilityMatrix if x.id == networkIndex), None)
         except KeyError:
             print("Invalid selection, please try again.\n")
             return
