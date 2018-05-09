@@ -127,6 +127,33 @@ def set_high_traffic():
     if sta0_node:
         controller.nodes(sta0_node).blocking(False).net.change_traffic_rate(interface=sta0_iface, rate=100)
 
+def set_traffic(trafficValue):
+    global controller
+    print("Set traffic")
+    ap0_node = get_node_by_name(nodes, "ap0")
+    sta0_node = get_node_by_name(nodes, "sta0")
+
+    ap0_iface = "wlp2s0"
+    sta0_iface = "wlp2s0"
+    myRate = 0
+
+    # 0-OFF, 1-LOW, 2-MEDIUM, 3-HIGH
+    if trafficValue == 0:
+        myRate = 0
+    elif trafficValue == 1:
+        myRate = 1
+    elif trafficValue == 2:
+        myRate = 20
+    else:
+        myRate = 100
+
+    controller._clear_call_context()
+    if ap0_node:
+        controller.nodes(ap0_node).blocking(False).net.change_traffic_rate(interface=ap0_iface, rate=myRate)
+    if sta0_node:
+        controller.nodes(sta0_node).blocking(False).net.change_traffic_rate(interface=sta0_iface, rate=myRate)
+
+
 
 @controller.new_node_callback()
 def new_node(node):
@@ -172,7 +199,8 @@ def main(args):
                 "STOP_TRAFFIC": stop_traffic,
                 "SET_LOW_TRAFFIC": set_low_traffic,
                 "SET_MEDIUM_TRAFFIC": set_medium_traffic,
-                "SET_HIGH_TRAFFIC": set_high_traffic
+                "SET_HIGH_TRAFFIC": set_high_traffic,
+                "TRAFFIC": set_traffic,
                 }
     monitorList = ["THR", "PER"]
     solutionCtrProxy.set_solution_attributes(networkName,
