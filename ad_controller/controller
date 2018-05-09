@@ -278,7 +278,7 @@ def print_menu_command():  ## Your menu design here
 
     if commandToSend == "TRAFFIC":
         msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {
-            "TRAFFIC" : { "TYPE" : "LOW" } # OFF, LOW, MEDIUM, HIGH
+            "TRAFFIC" : { "TYPE" : "HIGH" } # OFF, LOW, MEDIUM, HIGH
         }
     else:
         msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {}}

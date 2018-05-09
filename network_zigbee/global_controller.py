@@ -9,6 +9,9 @@ Usage:
 
 Options:
    --config configFile Config directory path
+   --cca_threshold cca_threshold CCA threshold of the sensor nodes
+   --tx_power tx_power Tx power of the sensor nodes
+   --solution_controller solution_controller IP address of the solution controller
 
 Example:
    python global_controller.py --config config/portable
@@ -79,13 +82,13 @@ def macstats_event_cb(mac_address, event_name, event_value):
         number_of_packets_requested = 0
         number_of_packets_transmitted = 0
         for node_id in per_dictionary.keys():
-            number_of_packets_requested = per_dictionary[node_id][2] - per_dictionary[node_id][0]
-            number_of_packets_transmitted = per_dictionary[node_id][3] - per_dictionary[node_id][1]
+            number_of_packets_requested += per_dictionary[node_id][2] - per_dictionary[node_id][0]
+            number_of_packets_transmitted += per_dictionary[node_id][3] - per_dictionary[node_id][1]
         if number_of_packets_requested != 0:
             per_value = (
                 (number_of_packets_requested - number_of_packets_transmitted) 
-                / number_of_packets_requested * 100
-                + per_value_prev)
+                / number_of_packets_requested
+                + per_value_prev) * 1.0
             if per_value < 0:
                 per_value_prev = per_value
                 per_value = 0
@@ -94,11 +97,12 @@ def macstats_event_cb(mac_address, event_name, event_value):
         else:
             per_value = 0
 
-        value = { "Zigbee": { 
-            "THR":  (number_of_packets_received_cur - number_of_packets_received) * 128 * 8 * 1000000 / event_value[0] / 1024,
-            "PER":  per_value
-        }}
-        solutionCtrProxy.send_monitor_report("performance", value)
+        value = { 
+            "THR":  (number_of_packets_received_cur - number_of_packets_received) * 128 * 8 * 1000000 / event_value[0],
+            "PER":  per_value,
+            "timestamp" : time.time()
+        }
+        solutionCtrProxy.send_monitor_report("performance", "ZigBee_net", value)
         number_of_packets_received = number_of_packets_received_cur
     else:
         if mac_address not in per_dictionary:
@@ -131,7 +135,7 @@ def control_traffic(traffic_type):
     
     traffic_types = {
         "LOW": 1,
-        "MEDIUM": 4,
+        "MEDIUM": 5,
         "HIGH": 10,
     }
     
@@ -146,7 +150,7 @@ def control_traffic(traffic_type):
             send_interval = int(math.floor(
                 slot_length[1]["IEEE802154e_macTsTimeslotLength"] 
                 * (len(global_node_manager.get_mac_address_list()) + 2) # Superframe size (beacon, upstream, downstream+)
-                / 1000 * max(traffic_types.values()) / traffic_type))
+                / 1000 * max(traffic_types.values()) / traffic_amount))
 
             # Activate:
             logging.info("Activating server {}".format(server_nodes))
@@ -161,7 +165,6 @@ def control_traffic(traffic_type):
         logging.error("Send interval is {}".format(send_interval))
         app_manager.update_configuration({"app_send_interval": send_interval}, global_node_manager.get_mac_address_list())
 
-       
     else:
         # De-activate:
         logging.info("Stopping   {}".format(global_node_manager.get_mac_address_list()))
@@ -218,7 +221,7 @@ def enable_lte_6_subframe_sync():
 ## MAIN functionality:
 def main(args):
     global solutionCtrProxy, whitelisted_channels, blacklisted_channels, \
-        mac_mode, lte_wifi_coexistence_enabled, lte_subframe_size_cur, lte_subframe_size
+        mac_mode, lte_wifi_coexistence_enablenetd, lte_subframe_size_cur, lte_subframe_size
     # Init logging
     logging.debug(args)
     logging.info('******     WISHFUL  *****')
@@ -228,8 +231,7 @@ def main(args):
     ****** setup the communication with the solution global controller ******
     """
 
-    solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-    networkName = "network_zigbee"
+    networkName = "ZigBee_net"
     solutionName = ["blacklisting"]
     commands = {
         "6LOWPAN_BLACKLIST": blacklist,
@@ -310,8 +312,27 @@ if __name__ == "__main__":
         log_level = logging.INFO  # default
 
     logfile = None
+
     if '--logfile' in args:
         logfile = args['--logfile']
+
+    if "--cca_threshold" in args and args["--cca_threshold"] is not None:
+        cca_threshold = int(args['--cca_threshold'])
+    else:
+        cca_threshold = -75
+        
+    
+    if "--tx_power" in args and args["--tx_power"] is not None:
+        tx_power = int(args['--tx_power'])
+    else:
+        tx_power = 10
+        
+    if "--solution_controller" in args and args["--solution_controller"] is not None:
+        solution_controller = args['--solution_controller']
+    else:
+        solution_controller = "172.16.16.12"
+    solutionCtrProxy = GlobalSolutionControllerProxy(ip_address=solution_controller, requestPort=7001, subPort=7000)
+        
 
     logging.basicConfig(filename=logfile, level=log_level,
         format='%(asctime)s - %(name)s.%(funcName)s() - %(levelname)s - %(message)s')
@@ -343,6 +364,12 @@ if __name__ == "__main__":
     
     # Set RPL border router:
     app_manager.rpl_set_border_router([0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01],1)
+    
+    # Setting the transmission power and cca threshold:
+    taisc_manager.update_macconfiguration({
+        'IEEE802154_phyTXPower' : tx_power,
+        'TAISC_ccaThres' : cca_threshold
+    })
 
     # Set the event callback:
     logging.info("Start local monitoring cp and events")

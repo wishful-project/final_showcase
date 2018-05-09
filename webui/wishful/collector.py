@@ -28,7 +28,7 @@ def stats_listener(endpoint, server_context):
     while True:
         full_msg = socket.recv_multipart()
 
-        msg = json.loads(full_msg[1], encoding='utf-8')
+        msg = json.loads(full_msg[1].decode('utf-8'), encoding='utf-8')
 
         for ses in server_context.application_context.sessions:
             ses._document.add_next_tick_callback(partial(
