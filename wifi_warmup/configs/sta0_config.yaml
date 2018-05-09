@@ -1,0 +1,34 @@
+## WiSHFUL Agent config file
+
+agent_info:
+  name: 'sta0'
+  info: 'STA 0'
+  iface: 'eno1'
+
+modules:
+  discovery:
+      module : wishful_module_discovery_pyre
+      class_name : PyreDiscoveryAgentModule
+      kwargs: {"iface":"eno1", "groupName":"wifi_warmup"}
+
+  simple:
+      module : wishful_module_simple
+      class_name : SimpleModule2
+      interfaces : ['wlp2s0']
+
+  iperf:
+      module : wishful_module_iperf
+      class_name : IperfModule
+
+  wifi:
+      module : wishful_module_wifi
+      class_name : WifiModule
+      interfaces : ['wlp2s0']
+
+  net:
+      module : wishful_module_net_linux
+      class_name : NetworkModule
+
+
+
+

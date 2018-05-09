@@ -1,0 +1,13 @@
+## WiSHFUL Controller's config file
+
+controller:
+    name: "OBSS_Management_Solution"
+    info: "Overlaping BSS Management WiSHFUL Controller"
+    dl: "tcp://10.0.0.20:8990"
+    ul: "tcp://10.0.0.20:8989"
+
+modules:
+    discovery:
+        module : wishful_module_discovery_pyre
+        class_name : PyreDiscoveryControllerModule
+        kwargs: {"iface":"eno1", "groupName":"wifi_warmup", "downlink":"tcp://10.0.0.20:8990", "uplink":"tcp://10.0.0.20:8989"}
