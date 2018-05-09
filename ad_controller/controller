@@ -282,6 +282,7 @@ def print_menu_command():  ## Your menu design here
         }
     else:
         msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {}}
+        msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution: [commandToSend]}
 
         #WIFI NETWORK COMMAND
         if commandToSend == "START_WIFI":
