@@ -192,7 +192,7 @@ def main(args):
                                                      requestPort=7001,
                                                      subPort=7000)
     networkName = "WIFI_TUB"
-    solutionName = controller.name
+    solutionName = [controller.name]
     commands = {"START_SHOWCASE": enable_solution,
                 "STOP_SHOWCASE": disable_solution,
                 "START_TRAFFIC": start_traffic,

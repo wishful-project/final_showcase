@@ -281,8 +281,7 @@ def print_menu_command():  ## Your menu design here
             "TRAFFIC" : 1 # OFF, LOW, MEDIUM, HIGH
         }
     else:
-        msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {}}
-        msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution: [commandToSend]}
+        msg["commandList"] = {solutionCompatibilityMatrix[solutionIndex].solution[0]: {commandToSend: {}}}
 
         #WIFI NETWORK COMMAND
         if commandToSend == "START_WIFI":

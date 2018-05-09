@@ -110,7 +110,7 @@ class GlobalSolutionControllerProxy(object):
                     commandListSolutions = mdict.get("commandList", {} )
                     # print(commandListSolutions) # 'WIFI_CT': {'START_WIFI': {'2437': True}} # {'LTE_CT': {'ENABLE_LTE_2_SUBFRAME': {}}}
                     # print(self.solutionName[0])
-                    commandList = commandListSolutions.get(self.solutionName, None)
+                    commandList = commandListSolutions.get(self.solutionName[0], None)
                     if commandList and isinstance(commandList, list):
                         for cmd in commandList:
                             if cmd in self.commands:
