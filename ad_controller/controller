@@ -174,13 +174,13 @@ def print_menu():  ## Your menu design here
 def print_solutions():
     global solutionCompatibilityMatrix
     if len(solutionCompatibilityMatrix) > 0:
-        solutionIndex = 1
+        networkIndex = 1
         print("Network list:")
         for network in solutionCompatibilityMatrix:
             print(str(network.id) + " :")
             print("     " + str(network.name))
             print("     " + str(network.commandList))
-            solutionIndex += 1
+            networkIndex += 1
     print(67 * "-")
     print("0. BACK")
     print(67 * "-")
