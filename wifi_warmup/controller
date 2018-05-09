@@ -25,6 +25,7 @@ import sys
 # get access to lib dir
 sys.path.append('../')
 
+import time
 import datetime
 import logging
 import wishful_controller
@@ -188,6 +189,21 @@ def main(args):
     else:
         print("Solution was not registered to Global Solution Controller")
 
+    channelToFreq = {1: 2412,
+                     2: 2417,
+                     3: 2422,
+                     4: 2427,
+                     5: 2432,
+                     6: 2437,
+                     7: 2442,
+                     8: 2447,
+                     9: 2452,
+                     10: 2457,
+                     11: 2462,
+                     12: 2467,
+                     13: 2472,
+                     14: 2484,
+                     }
 
     ap0_node = None
     sta0_node = None
@@ -201,6 +217,8 @@ def main(args):
 
     channels = [1, 6, 11]
     curChanIx = 0
+
+    channelUsage = {}
 
     cellThroughputDict = {}
 
@@ -232,6 +250,7 @@ def main(args):
             controller.nodes(ap0_node).net.iface(ap0_iface).set_hostapd_conf(ap0_iface, './configs/ap0_hostapd.conf', 6, "Ph0-WiFi-1")
             controller.nodes(ap0_node).net.iface(ap0_iface).start_hostapd('./configs/ap0_hostapd.conf')
             controller.nodes(ap0_node).net.iface(ap0_iface).set_ip_address(ap0_iface, "192.168.10.1")
+            channelUsage["ap0"] = 6
 
             print("Setup and connect STAs")
             controller.nodes(sta0_node).net.iface(sta0_iface).connect_to_network(sta0_iface, "Ph0-WiFi-1", './configs/sta0_wpa_supplicant.conf')
@@ -267,6 +286,7 @@ def main(args):
 
 
         print("Measure traffic in WiFi cells")
+        curTime = time.time()
         interval = 1.0
         [txBytes0, rxBytes0] = controller.nodes(ap0_node).net.get_iface_stats(iface=ap0_iface)
         gevent.sleep(interval)
@@ -280,14 +300,22 @@ def main(args):
         for cellId in cellThroughputDict.keys():
             print("---CellId: {}, Throughput: {}". format(cellId, cellThroughputDict[cellId]))
 
-        # send performance report to AD controller
-        value = { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}
-        solutionCtrProxy.send_monitor_report("performance", "80211", value)
+            # send performance report to AD controller
+            value = {'timestamp': curTime,
+                     'PER': cellThroughputDict[cellId]/100.0,
+                     'THR': cellThroughputDict[cellId],
+                     }
+            solutionCtrProxy.send_monitor_report('performance', "80211", value)
 
-        # check if networks has to be moved to different channels
-        # TODO
+        # TODO: check if networks has to be moved to different channels
 
         # notify AD controller about changes in channel usage
+        centerFreq = channelToFreq[6]
+        value = {'timestamp': curTime,
+                 'centerFreq': centerFreq,
+                 'BW': 20,
+                 }
+        solutionCtrProxy.send_monitor_report('channelUsage', "80211", value)
 
 
 if __name__ == "__main__":
