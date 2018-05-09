@@ -127,7 +127,7 @@ class GlobalSolutionControllerProxy(object):
                             # print(command_parameter)
                             function = self.commands[command_name]
                             # function(command_parameter)
-                            function()
+                            function(command_parameter)
 
             except KeyboardInterrupt:
                 return
