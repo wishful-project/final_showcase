@@ -274,6 +274,7 @@ def main(args):
             controller.nodes(ap0_node).net.remove_traffic_shaper(interface=ap0_iface)
             controller.nodes(sta0_node).net.remove_traffic_shaper(interface=sta0_iface)
             showcaseState = "Stopped"
+            channelUsage = {}
 
         if 0:
             curChanIx = curChanIx + 1
@@ -309,13 +310,16 @@ def main(args):
 
         # TODO: check if networks has to be moved to different channels
 
-        # notify AD controller about changes in channel usage
-        centerFreq = channelToFreq[6]
-        value = {'timestamp': curTime,
-                 'centerFreq': centerFreq,
-                 'BW': 20,
-                 }
-        solutionCtrProxy.send_monitor_report('channelUsage', "80211", value)
+
+        if channelUsage:
+            print("Notify AD controller about used channels")
+            channel = channelUsage['ap0']
+            centerFreq0 = channelToFreq[channel]
+            centerFreq1 = channelToFreq[channel]
+            value = {centerFreq0 : 20,
+                     centerFreq1 : 20,
+                     }
+            solutionCtrProxy.send_monitor_report('channelUsage', "80211", value)
 
 
 if __name__ == "__main__":
