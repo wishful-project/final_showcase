@@ -15,6 +15,7 @@ class GlobalSolutionControllerProxy(object):
         super(GlobalSolutionControllerProxy, self).__init__()
 
         self.networkName = None
+        self.networkType = None
         self.solutionName = []
         self.commandList = []
         self.eventList = []
@@ -35,7 +36,7 @@ class GlobalSolutionControllerProxy(object):
         self.subSocket.connect(url)
         self.cmdRxThread = None
 
-    def set_solution_attributes(self, networkName, solutionName, commands, monitorList):
+    def set_solution_attributes(self, networkName, networkType, solutionName, commands, monitorList):
         """
         Set attribute of the solution
         """
@@ -44,6 +45,7 @@ class GlobalSolutionControllerProxy(object):
         # Event     List    of  monitoring  parameters
         # List  of  control knobs / parameters
         self.networkName = networkName
+        self.networkType = networkType
         self.solutionName = solutionName
         self.commands = commands
         self.commandList = list(commands.keys())
@@ -68,6 +70,7 @@ class GlobalSolutionControllerProxy(object):
         # new json format
         msg = {"type": "registerRequest",
                "networkController": self.networkName,
+               "networkType" : self.networkType,
                "solution": self.solutionName,
                "commandList": self.commandList,
                "monitorList": self.monitorList}

@@ -68,9 +68,10 @@ class Network:
     load = "off"
     active = True
 
-    def __init__(self, id, name, solution, commandList=None, monitorList=None, solutionCompatibilityList=None):
+    def __init__(self, id, name, networkType, solution, commandList=None, monitorList=None, solutionCompatibilityList=None):
         self.id = id
         self.name = name
+        self.networkType = networkType
         self.solution = solution
         self.commandList = commandList
         # self.eventList = eventList
@@ -150,7 +151,7 @@ def send_status_update(socket_visualizer):
     for network in solutionCompatibilityMatrix:
         nsu.append({
             "name": network.name,
-            "type": "NOT AVAILABLE",
+            "type": network.networkType,
             "channel": str(network.channel),
             "load": network.load,
             "active": True,
@@ -476,6 +477,7 @@ def main(args):
                             network = Network(
                                 networkNum,
                                 received_request["networkController"],
+                                received_request["networkType"],
                                 received_request["solution"],
                                 received_request["commandList"],
                                 received_request["monitorList"]

@@ -238,6 +238,7 @@ def main(args):
     """
 
     networkName = "6lowPAN"
+    networkType = 'IEEE 802.15.4'
     solutionName = ["blacklisting"]
     commands = {
         "6LOWPAN_BLACKLIST": blacklist,
@@ -250,7 +251,7 @@ def main(args):
         "ENABLE_LTE_6_SUBFRAME_SYNC": enable_lte_6_subframe_sync,
         }
     monitorList = ["6lowpan-THR", "6lowpan-PER"]
-    solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList)
+    solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList)
 
     # Register network_zigbee solution to global solution controller
     response = solutionCtrProxy.register_solution()
