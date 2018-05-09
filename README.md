@@ -32,50 +32,56 @@ sends activation command to solution TDMA cross interference, if not conflict ar
 
 ![alt text](https://github.com/wishful-project/final_showcase/blob/master/solution-global-controller-main-logic.jpg)
 
-### how-to showcase activation on w-ilab.t
+### how-to showcase activation on portable testbed
 
-### 0. Reserve and swap in the experiment
- EMULAB experiment link (atlas)
- https://www.wilab2.ilabt.iminds.be/showexp.php3?pid=cognitiveradio&eid=wishful
- 
-### 1. run the showcase 
- SOLUTION CONTROLLER
+### 1. involved nodes 
+172.16.16.12 nuc12 --> AD controller + wifi controller + lte controller + USRP channel acquire + webui
+172.16.16.11 nuc11 --> LTE ENB
+172.16.16.6 nuc6   --> LTE UE
 
- EXPERIMET NODES
- #move files on wilab (we need copy one time, the wilab testbed filesystem replace all user directory on testbed nodes)
-    cd final_showcase
-    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.3:~/wishful-github-manifest-7/
+### 2. run the showcase 
+Start the AD controller (SHELL 1):
 
- #connect to nodes
-  ssh user@ops.wilab2.ilabt.iminds.be
-  ssh user@zotacd6
-  ...
-  ssh user@zotach4
+    ssh dgarlisi@nuc12
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/ad_controller/
+    python3 ./controller
+    
+in the shell 1 you can see the registered networks and you can send command to networks, 
+you can follow the command line menu to activate wifi/LTE traffic, afterwards, 
+the AD controller will receive the monitor report messages and send them ot the webui.
 
- #move on experiment directory
-  cd wishful-github-manifest-
+Start CNIT_WIFI_NETWORK  (SHELL 2) (need AD controller activated):
 
- #sync clock nodes
-  sh sync_date.sh user zotacc6,zotacg6,zotack6,zotacb1,zotack1,zotaci3.....
+     ssh dgarlisi@nuc12
+     cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_wifi/solution_wifi_ct/
+     ex -sc $"%s/\r$//e|x" start_wifi_network.sh
+     bash start_wifi_network.sh
 
- #start agent
-  sudo python3 agent --config agent_cfg_wilab.yaml.....
+Start CNIT_LTE_NETWORK  (SHELL 3) (need AD controller activated):
 
- #controller (zotach4 (39) --> CONTROLLER)
- sudo python3 controller --config controller_cfg_wilab2_zotach4.yaml --nodes node_info_wilab2_4hop.txt
-
-
-### start USRP
-ON USRP :
-ssh
-    ssh
-        sudo sh run_usrp.sh 6
+    ssh dgarlisi@nuc12
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct/
+    ex -sc $"%s/\r$//e|x" start_lte_network.sh
+    bash start_lte_network.sh
 
 
-### START graphical interface
-on local pc
-    python3 graphic_interface.py
+Start USRP channel trace visualizer on web portal  (SHELL 4):
 
+    ssh dgarlisi@nuc12
+    cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal
+    sudo bash run_usrp.sh 11
+
+you can see the trace via web browser at address : http://172.16.16.12/WishfulWebPortal/only_usrp.html
+
+Start graphical interface (SHELL 5):
+
+    ssh dgarlisi@nuc12
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/webui/
+    bokeh serve --allow-websocket-origin=*:5006 wishful
+    
+        (sudo pipenv shell bokeh serve --allow-websocket-origin="*:5006" wishful) ??
+
+you can see the statistics via web browser at address : http://172.16.16.6:5006/wishful
 
 ## Acknowledgement
 

@@ -1,14 +1,16 @@
 
 controllers = {
     'Wi-Fi': {
-        'WIFI_CNIT': {'hrn': 'CNIT', 'color': 'green'},
-        'WIFI_IMEC': {'hrn': 'IMEC', 'color': 'red'},
-        'WIFI_something': {'hrn': 'Nice name', 'color': 'blue'},
+        'WIFI_A1': {'hrn': 'Airtime 1'},
+        'WIFI_A2': {'hrn': 'Airtime 2'},
+        'WIFI_TDMA': {'hrn': 'TDMA'},
     },
-    'ZigBee': {
-        'ZigBee_net': {'hrn': 'Zigbee network', 'color': 'green'},
+    'IEEE 802.15.4': {
+        '6lowPAN': {'hrn': '6lowPAN'},
     },
-    'LTE': {
-        'LTE_net': {'hrn': 'LTE network', 'color': 'green'}
+    'LTE-U': {
+        'LTE_TDMA': {'hrn': 'TDMA'},
+        'LTE_virt': {'hrn': 'Virtual'},
+        'LTE_nb': {'hrn': 'NB-IoT Virtual'},
     },
 }

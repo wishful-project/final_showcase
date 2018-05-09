@@ -1,37 +1,35 @@
 # -*- coding: utf-8 -*-
 import conf
+import itertools
 import usrp
 
 from bokeh.io import curdoc
-from bokeh.layouts import column
 from bokeh.layouts import layout
-from bokeh.layouts import row
-from bokeh.layouts import widgetbox
 from bokeh.models import ColumnDataSource
-from bokeh.models import CustomJS
-from bokeh.models import FuncTickFormatter
 from bokeh.models import NumeralTickFormatter
-from bokeh.models import Title
-from bokeh.models import WidgetBox
-from bokeh.models.widgets import Div
-from bokeh.models.widgets import Slider
-from bokeh.models.widgets import Toggle
+from bokeh.models.widgets import DataTable
+from bokeh.models.widgets import TableColumn
+from bokeh.palettes import Colorblind7 as palette
 from bokeh.plotting import figure
 
 doc = curdoc()
+colors = itertools.cycle(palette)
 
-title0 = Div(text="""
-    <h2 class="content-subhead">Experiment Control</h2>
-    """)
-
-controls = layout(
-    [
-        title0,
-    ],
-    sizing_mode='scale_width',
+data = dict(name=[], type=[], channel=[], load=[], active=[])
+active_networks = ColumnDataSource(data, name='networkStatusUpdate')
+nsu_cols = [
+    TableColumn(field="name", title="Name"),
+    TableColumn(field="type", title="Type"),
+    TableColumn(field="channel", title="Channel"),
+    TableColumn(field="load", title="Application Load"),
+]
+active_networks_table = DataTable(
+    source=active_networks,
+    columns=nsu_cols,
 )
 
-plots = [[usrp.plot, controls]]
+plots = [[usrp.get_plot(), active_networks_table]]
+master_range = None
 
 for technology in conf.controllers:
     thr_plt = figure(
@@ -62,6 +60,12 @@ for technology in conf.controllers:
     per_plt.xaxis.axis_label = "Time"
     per_plt.yaxis.axis_label = "Performance"
 
+    if master_range is None:
+        master_range = thr_plt.x_range
+    else:
+        thr_plt.x_range = master_range
+    per_plt.x_range = master_range
+
     for k in conf.controllers[technology]:
         data = ColumnDataSource(
             data=dict(
@@ -71,16 +75,17 @@ for technology in conf.controllers:
             ),
             name=k,
         )
+        color = next(colors)
         thr_plt.line(
             'timestamp', 'THR',
             source=data, legend=conf.controllers[technology][k]['hrn'],
-            line_color=conf.controllers[technology][k]['color'],
+            line_color=color,
             line_width=3, line_alpha=0.6,
         )
         per_plt.line(
             'timestamp', 'PER',
             source=data, legend=conf.controllers[technology][k]['hrn'],
-            line_color=conf.controllers[technology][k]['color'],
+            line_color=color,
             line_width=3, line_alpha=0.6,
         )
 

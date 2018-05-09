@@ -92,7 +92,7 @@ def start_visualizer_connection(webui_ip_address):
 
 
 
-def start_command_connection():
+def start_command_connection(webui_ip_address):
     """
     ****	SETUP COMMAND GUI VISUALIZER	****
     This function is used to setup the connection with the experiment GUI,
@@ -101,7 +101,7 @@ def start_command_connection():
     socket_command_visualizer_port = "8500"
     context = zmq.Context()
     socket_command_visualizer = context.socket(zmq.PAIR)
-    socket_command_visualizer.bind("tcp://*:%s" % socket_command_visualizer_port)
+    socket_command_visualizer.connect("tcp://%s:%s" % (webui_ip_address, socket_command_visualizer_port))
     print("Create server on port %s ... ready to receive command from experiment GUI" % socket_command_visualizer_port)
     return socket_command_visualizer
 
@@ -304,10 +304,13 @@ def print_menu_command():  ## Your menu design here
         elif commandToSend == "STOP_LTE":
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"STOP_LTE": {}}
             msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]]["STOP_LTE"]= {"2437": False}
-        
-        #OTHERWISE: REGULAR COMMAND WITHOUT PARAMETERS:
-        else:
-            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {commandToSend: {}}
+
+        if commandToSend == "ENABLE_LTE_TDM_SUBFRAME":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"ENABLE_LTE_TDM_SUBFRAME": {}}
+        if commandToSend == "ENABLE_LTE_8_SUBFRAME":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"ENABLE_LTE_8_SUBFRAME": {}}
+        if commandToSend == "ENABLE_LTE_6_SUBFRAME":
+            msg["commandList"][solutionCompatibilityMatrix[solutionIndex].solution[0]] = {"ENABLE_LTE_6_SUBFRAME": {}}
 
     if msg:
         print('update message %s' % str(msg))
@@ -412,10 +415,10 @@ def main(args):
     poller.register(request, zmq.POLLIN)
 
     # Init connection with GUI ffor LOG
-    socket_visualizer = start_visualizer_connection("127.0.0.1")
+    socket_visualizer = start_visualizer_connection("172.16.16.12")
 
     # Init conneciton with GUI for command
-    # socket_command_visualizer = start_command_connection()
+    # socket_command_visualizer = start_command_connection("127.0.0.1")
     # poller.register(socket_command_visualizer, flags=zmq.POLLIN)
 
     reader, stdin_thread = forward_standard_input(ctx)
@@ -521,7 +524,15 @@ def main(args):
                                 "THR": random.random() * 1e6,
                             },
                         }
+                        
+                        {'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_virt', 'networkType': '80211', 
+                        'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.30156620331886586, 'THR': 646057.1170200078}}
+                        {'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_nb', 'networkType': '80211', 'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.6756317894931505, 'THR': 534174.0512461787}}
+                        [{'name': 'WIFI_A1', 'type': 'LTE-U', 'channel': 7, 'load': 'Medium', 'active': True}, {'name': 'WIFI_A2', 'type': 'Wi-Fi', 'channel': 9, 'load': 'Medium', 'active': True}, {'name': 'WIFI_TDMA', 'type': 'Wi-Fi', 'channel': 2, 'load': 'Off', 'active': False}, {'name': '6lowPAN', 'type': 'IEEE 802.15.4', 'channel': 2, 'load': 'Medium', 'active': True}, {'name': 'LTE_TDMA', 'type': 'LTE-U', 'channel': 9, 'load': 'Off', 'active': True}, {'name': 'LTE_virt', 'type': 'IEEE 802.15.4', 'channel': 14, 'load': 'High', 'active': True}, {'name': 'LTE_nb', 'type': 'Wi-Fi', 'channel': 12, 'load': 'Medium', 'active': False}]
+                        
                         """
+                        now = datetime.datetime.now().timestamp()
+                        received_request["monitorValue"]["timestamp"] = now
                         socket_visualizer.send_multipart([ b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
                     else:
                         print("Received monitor report but no solution is registered")
