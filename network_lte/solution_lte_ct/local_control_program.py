@@ -46,7 +46,7 @@ def remote_control_program(controller):
     FAILURE = 2
 
     #enable debug print
-    debug = False
+    debug = True
     debug_statistics = True
     dryRun = False
 
@@ -70,11 +70,10 @@ def remote_control_program(controller):
         print('start socket reading_program')
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        print("10001")
+        timeout = 1
+        sock.setblocking(0)
         sock.bind(("127.0.0.1", 10001))
         # sock.bind(("10.8.9.13", 10001))
-
-        print('socket reading_program started')
 
         # poller = select.epoll()
         # pollmask = select.EPOLLIN | select.EPOLLHUP | select.EPOLLERR
@@ -104,21 +103,24 @@ def remote_control_program(controller):
         #             continue
         #         reading_buffer[0] = 1
 
-
         while getattr(reading_thread, "do_run", True):
-
             # {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.624144, 'SNR': 21.99383, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.0, 'timestamp': 1524493482.429576}
             # {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.442906, 'SNR': 17.325897, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.1, 'timestamp': 1524493483.429576}
             # {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.698449, 'SNR': 29.657462, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 20.5, 'timestamp': 1524493484.429552}
-
             try:
-                data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-                stats = json.loads(data.decode('utf-8'))
-                print(stats)
-                if "PDSCH-BLER" in stats:
-                    reading_buffer[0] = (1 - (stats["PDSCH-BLER"] / 100))
+                ready = select.select([sock], [], [], timeout)
+                if ready[0]:
+                    data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
+                    stats = json.loads(data.decode('utf-8'))
+                    print(stats)
+                    if "PDCCH-Miss" in stats:
+                        reading_buffer[0] = (1 - (stats["PDCCH-Miss"] / 100))
             except Exception as e:
                 print(e)
+
+        sock.close()
+        print("stop socket reading_program")
+        return
 
 
 
@@ -131,7 +133,7 @@ def remote_control_program(controller):
         iperf_thread = threading.currentThread()
         print('start socket iperf')
         iperf_port = "8301"
-        iperf_server_ip_address = "172.16.16.11"
+        iperf_server_ip_address = "172.16.16.6"
         context = zmq.Context()
         iperf_socket = context.socket(zmq.SUB)
         print("tcp://%s:%s" % (iperf_server_ip_address, iperf_port))
@@ -155,6 +157,7 @@ def remote_control_program(controller):
             else:
                 # raise IOError("Timeout processing auth request")
                 iperf_througputh[0] = float(0)
+                reading_buffer[0] = float(0)
 
     def run_command(command):
         '''
@@ -191,8 +194,7 @@ def remote_control_program(controller):
             print("START main function")
             #INIT
             init(msg["iface"])
-            #try:
-            if True:
+            try:
                 i_time = []
                 if 'i_time' in msg:
                     i_time.append(msg['i_time'])
@@ -201,25 +203,24 @@ def remote_control_program(controller):
                 interface.append(msg['iface'])
                 wlan_ip_address = controller.net.get_iface_ip_addr(interface[0])
                 wlan_ip_address = wlan_ip_address[0]
-
                 iperf_througputh = []
                 iperf_througputh.append(0.0)
                 iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
                 iperf_thread.do_run = True
                 iperf_thread.start()
                 # print(iperf_througputh)
-
                 reading_buffer = []
-                reading_buffer.append([0.0])
+                #reading_buffer.append([0.0])
+                reading_buffer.append(0.0)
                 reading_buffer_thread = threading.Thread(target=rcv_from_reading_program, args=(reading_buffer,))
                 reading_buffer_thread.do_run = True
                 reading_buffer_thread.start()
 
-            # except (Exception) as err:
-            #     if debug:
-            #         print ( "exception", err)
-            #         print ("Error: unable to start thread")
-            #     pass
+            except (Exception) as err:
+                 if debug:
+                     print( "exception", err)
+                     print("Error: unable to start thread")
+                 return
             break
 
     #CONTROLLER MAIN LOOP
@@ -237,4 +238,9 @@ def remote_control_program(controller):
 
     iperf_thread.do_run = False
     iperf_thread.join()
-    time.sleep(2)
+
+    reading_buffer_thread.do_run = False
+    reading_buffer_thread.join()
+
+    print("Local control program closed")
+    time.sleep(1)

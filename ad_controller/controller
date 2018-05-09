@@ -414,7 +414,7 @@ def main(args):
     poller.register(request, zmq.POLLIN)
 
     # Init connection with GUI ffor LOG
-    socket_visualizer = start_visualizer_connection("172.16.16.6")
+    socket_visualizer = start_visualizer_connection("172.16.16.12")
 
     # Init conneciton with GUI for command
     # socket_command_visualizer = start_command_connection("127.0.0.1")
@@ -523,7 +523,15 @@ def main(args):
                                 "THR": random.random() * 1e6,
                             },
                         }
+                        
+                        {'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_virt', 'networkType': '80211', 
+                        'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.30156620331886586, 'THR': 646057.1170200078}}
+                        {'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_nb', 'networkType': '80211', 'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.6756317894931505, 'THR': 534174.0512461787}}
+                        [{'name': 'WIFI_A1', 'type': 'LTE-U', 'channel': 7, 'load': 'Medium', 'active': True}, {'name': 'WIFI_A2', 'type': 'Wi-Fi', 'channel': 9, 'load': 'Medium', 'active': True}, {'name': 'WIFI_TDMA', 'type': 'Wi-Fi', 'channel': 2, 'load': 'Off', 'active': False}, {'name': '6lowPAN', 'type': 'IEEE 802.15.4', 'channel': 2, 'load': 'Medium', 'active': True}, {'name': 'LTE_TDMA', 'type': 'LTE-U', 'channel': 9, 'load': 'Off', 'active': True}, {'name': 'LTE_virt', 'type': 'IEEE 802.15.4', 'channel': 14, 'load': 'High', 'active': True}, {'name': 'LTE_nb', 'type': 'Wi-Fi', 'channel': 12, 'load': 'Medium', 'active': False}]
+                        
                         """
+                        now = datetime.datetime.now().timestamp()
+                        received_request["monitorValue"]["timestamp"] = now
                         socket_visualizer.send_multipart([ b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
                     else:
                         print("Received monitor report but no solution is registered")

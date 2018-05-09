@@ -242,7 +242,7 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 						# message = [1522413397.5796762, 12.6] - mac = b8:ae: ed:75: bb:1f
 						msg['label'] = label[ii]
 						msg['type'] = u'statistics'
-						if msg['label'] == 'A':
+						if msg['label'] == 'B':
 
 							# new version 2
 							"""     
@@ -257,9 +257,13 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 									'THR': 8760.0}
 								},
 							}
+							
+							
+							
 							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
 							value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": msg["measure"][2]}
+							#print(value)
 							solutionCtrProxy.send_monitor_report("performance", "U-LTE", value)
 
 						# print(msg)
@@ -272,25 +276,26 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 		gevent.sleep(1)
 		# time.sleep(1)
 
-def loop_statistics(x):
-	sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	print("10001")
-	sock.bind(("127.0.0.1",10001))
-	# sock.bind(("10.8.9.13", 10001))
-
-	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.624144, 'SNR': 21.99383, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.0, 'timestamp': 1524493482.429576}
-	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.442906, 'SNR': 17.325897, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.1, 'timestamp': 1524493483.429576}
-	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.698449, 'SNR': 29.657462, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 20.5, 'timestamp': 1524493484.429552}
-
-	while True:
-		try:
-			data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-			stats=json.loads(data.decode('utf-8'))
-			print(stats)
-			# if "PDSCH-BLER" in stats:
-
-		except Exception as e:
-			print(e)
+# def loop_statistics(x):
+# 	sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# 	print("10001")
+# 	#sock.bind(("127.0.0.1",10001))
+# 	sock.bind(("172.16.16.12",10001))
+# 	# sock.bind(("10.8.9.13", 10001))
+#
+# 	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.624144, 'SNR': 21.99383, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.0, 'timestamp': 1524493482.429576}
+# 	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.442906, 'SNR': 17.325897, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 21.1, 'timestamp': 1524493483.429576}
+# 	# {'UE_ID': 0, 'type': 'ue0_stats', 'CFO': -0.698449, 'SNR': 29.657462, 'PDCCH-Miss': 39.999996, 'PDSCH-BLER': 20.5, 'timestamp': 1524493484.429552}
+#
+# 	while True:
+# 		try:
+# 			data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+# 			stats=json.loads(data.decode('utf-8'))
+# 			print(stats)
+# 			# if "PDSCH-BLER" in stats:
+#
+# 		except Exception as e:
+# 			print(e)
 
 
 
@@ -596,18 +601,24 @@ def main(args):
 	log.info('****** 	WISHFUL  *****')
 	log.info('****** Starting solution lte_ct ******')
 
+
+
+
 	"""
 	****** setup the communication with the solution global controller ******
 	"""
 
 	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
-	networkName = "LTE_net"
+	networkName = "LTE_TDMA"
 	solutionName = ["LTE_CT"]
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
 	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
 	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
+
+
+
 
 	# Register lte_ct solution to global solution controller
 	response = solutionCtrProxy.register_solution()
@@ -640,6 +651,7 @@ def main(args):
 	while do_run:
 		gevent.sleep(1)
 		print("\nConnected nodes", [str(node.id) for node in nodes])
+
 		if len(nodes) >= len(hosts):
 			lcpDescriptor_nodes = []
 			reading_thread = []
@@ -688,7 +700,7 @@ def main(args):
 				print("START nodes setup")
 				all_nodes = ['A', 'B']
 
-				# SETUP AP NODES
+				# SETUP EB UE NODES
 				for ii in range(0, len(hosts)):
 					# print("search node %s - index %d" % (eth_ip[ii], ii) )
 					for jj in range(0, len(nodes)):
@@ -704,13 +716,14 @@ def main(args):
 							elif role[pos] == "EB":
 								print('\t- Starting program at TX Agent')
 								controller.node(nodes[jj]).radio.set_parameters({'IS_UE': False})
-								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
+								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
 
 								# controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.8})
 								controller.node(nodes[jj]).radio.set_parameters({'RF_AMP': 0.7})
 
 								# controller.node(nodes[0]).radio.set_parameters({'GAIN': 20})
-								# controller.node(nodes[jj]).radio.set_parameters({'GAIN': 120})
+								#controller.node(nodes[jj]).radio.set_parameters({'GAIN': 120})
 								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 78})
 
 								# controller.node(nodes[1]).radio.set_parameters({'NO_OF_FRAMES': 100000})
@@ -728,7 +741,8 @@ def main(args):
 
 							elif role[pos] == "UE":
 								controller.node(nodes[jj]).radio.set_parameters({'IS_UE': True})
-								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
+								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
 								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 30})
 								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
 								controller.node(nodes[jj]).radio.set_parameters({'EQUALIZER_MODE': 'mmse'})
@@ -744,48 +758,6 @@ def main(args):
 								print("no station role found ")
 								break
 
-				# SETUP STATIONS NODES
-				for ii in range(0, len(hosts)):
-					print("search node %s - index %d" % (eth_ip[ii], ii))
-					for jj in range(0, len(nodes)):
-						if nodes[jj].ip == eth_ip[ii]:
-							pos = eth_ip.index(nodes[jj].ip)
-
-							# set up network nodes (ad-hoc)
-							# rvalue = controller.nodes(nodes[jj]).net.start_adhoc(driver[pos], "wlan0", "wishful-interference", freq[pos], tx_power[pos], "6", wlan_ip[pos], "250", "aa:bb:cc:dd:ee:ff", True)
-							# rvalue = controller.nodes(nodes[jj]).net.start_adhoc(driver[pos], "wlan0", "wishful-interference", freq[pos], tx_power[pos], "6", wlan_ip[pos], "off", "aa:bb:cc:dd:ee:ff", True)
-
-							# setup infrastructured network (put interface in managed mode and disable network manager)
-							# set up network nodes (infrastructured)
-							if role[pos] == "AP":
-								pass
-							elif role[pos] == "MON":
-								rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
-								rvalue = controller.nodes(nodes[jj]).radio.set_channel(iface[pos], "6")
-							elif role[pos] == "STA":
-								print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
-								connection_result = setSTA(controller, nodes[jj], iface[pos], wlan_ip[pos], "solution-lte-ct")
-								print(connection_result)
-								if connection_result == False:
-									raise SystemExit('Unable to connect')
-
-								# get node capabilities
-								nodes_platform_info = get_platform_information(nodes[jj], log, controller)
-
-								# get active radio program on station node
-								# active_radio_program = controller.nodes(nodes[jj]).radio.get_running_radio_program()
-								# print("radio program activated : %s (1=CSMA, 2=TDMA)" % str(active_radio_program))
-
-								# active TDMA radio progrma on staiton node
-								active_TDMA_radio_program(nodes[jj], log, controller, nodes_platform_info)
-
-							else:
-								print("no station role found ")
-								break
-
-								# set up nodes monitor interface
-								# gevent.sleep(1)
-								# rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
 
 				print("END node setup")
 			except (Exception) as err:
@@ -800,6 +772,8 @@ def main(args):
 				try:
 					print("START local control program")
 					lcpDescriptor = None;
+					lcpDescriptor_nodes_index = 0
+
 					for ii in range(0, len(hosts)):
 						for jj in range(0, len(nodes)):
 							print("search node %s - index %d" % (eth_ip[ii], ii))
@@ -812,10 +786,11 @@ def main(args):
 									lcpDescriptor_nodes.append(
 										controller.node(nodes[jj]).hc.start_local_control_program(program=remote_control_program))
 									msg = {"iface": iface[pos], "i_time": time_update}
-									lcpDescriptor_nodes[ii].send(msg)
+									lcpDescriptor_nodes[lcpDescriptor_nodes_index].send(msg)
 									print("start thread for collect measurements from nodes")
-									reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[ii], socket_visualizer, mac_address, label, solutionCtrProxy)))
-									reading_thread[ii].start()
+									reading_thread.append(threading.Thread(target=collect_remote_messages, args=(lcpDescriptor_nodes[lcpDescriptor_nodes_index], socket_visualizer, mac_address, label, solutionCtrProxy)))
+									reading_thread[lcpDescriptor_nodes_index].start()
+									lcpDescriptor_nodes_index += 1
 								break
 
 					print("END local control program setup")
@@ -824,48 +799,15 @@ def main(args):
 					print("Error in node control program setup procedure")
 					do_run = False
 
-
 				"""
 				****** MAIN LOOP WITH interface commands management (start/stop iperf flows) ******
 				"""
-				# for jj in range(0, len(nodes)):
-				# 	pos = eth_ip.index(nodes[jj].ip)
-				# 	if label[pos] == 'B' or label[pos] == 'C':
-				# 		controller.delay(1).nodes(nodes[jj]).net.create_packetflow_sink('1234', '1', True, 'wlan0')
-
-				# socket_command = start_command_connection()
-				# poller = zmq.Poller()
-				# poller.register(socket_command, flags=zmq.POLLIN)
 				EXPERIMENT_DURATION = 30000000
 				dt = 0
 				while do_run:
-
-					# if tdmaStateChange:
-					# 	if tdmaState == "ENABLE":
-					# 		position = '2'
-					# 	elif tdmaState == "DISABLE":
-					# 		position = '1'
-					# 	else:
-					# 		tdmaStateChange = False
-					# 		continue
-					#
-					# 	tdmaStateChange = False
-					# 	for jj in range(0, len(nodes)):
-					# 		pos = eth_ip.index(nodes[jj].ip)
-					# 		if role[pos] == "STA":
-					# 			UPIargs = {'position': position, 'interface': 'wlan0'}
-					# 			rvalue = controller.nodes(nodes[jj]).radio.activate_radio_program(UPIargs)
-					# 			if rvalue != SUCCESS:
-					# 				log.warning('Error in radio program activation')
-					# 				return
-					# 			else:
-					# 				log.warning('Radio program activation successful')
-
 					if lteStateChange:
 						if lteState == "ENABLE":
-
 							parsed_json = {'src': 'A', 'value': 2000, 'type': 'traffic', 'command': 'set_traffic', 'dst': 'B'}
-
 							# source
 							print("SRC")
 							node = parsed_json['src']
@@ -873,82 +815,32 @@ def main(args):
 							controller.delay(1).node(nodes[node_src_index]).radio.activate_radio_program('ENB')
 							# iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
 							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", "3000", 0, '1470')
-
-							gevent.sleep(50)
-
+							gevent.sleep(7)
 							# destination
-							# print("DST")
-
-							# node = parsed_json['dst']
-							# node_dst_index = all_nodes.index(node)
-							# controller.delay(1).node(nodes[node_dst_index]).radio.activate_radio_program('UE')
+							print("DST")
+							node = parsed_json['dst']
+							node_dst_index = all_nodes.index(node)
+							controller.delay(1).node(nodes[node_dst_index]).radio.activate_radio_program('UE')
 
 						elif lteState == "DISABLE":
 							#off LTE network
 							parsed_json = {'src': 'A', 'dst': 'B', 'type': 'traffic', 'command': 'off_traffic'}
-
 							# destination
-							# print("DST")
-
-							# node = parsed_json['dst']
-							# node_dst_index = all_nodes.index(node)
-							# controller.node(nodes[node_dst_index]).radio.deactivate_radio_program('UE')
-
+							print("DST")
+							node = parsed_json['dst']
+							node_dst_index = all_nodes.index(node)
+							controller.node(nodes[node_dst_index]).radio.deactivate_radio_program('UE')
 							# source
+							print("SRC")
 							node = parsed_json['src']
-							#print(node)
 							node_src_index = all_nodes.index(node)
-							#print(node_src_index)
-							# controller.nodes(nodes[node_src_index]).net.stop_packetflow()
 							controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
 
-
-
-
 						else:
-							lteStateChange = False
-							continue
+							pass
+
 						lteStateChange = False
 
-
-						# socket_list = poller.poll(1000)
-					# if socket_list:
-					#     for socket_info in socket_list:
-					#         if socket_info[1] == zmq.POLLIN:
-					#             parsed_json = socket_command.recv_json()
-					#             print('parsed_json : %s' % str(parsed_json))
-					#             type = parsed_json['type']
-					#
-					#             if type == 'traffic':
-					#                 node = parsed_json['src']
-					#                 node_src_index = all_nodes.index(node)
-					#                 command = parsed_json['command']
-					#                 nodes_source_rate[node_src_index] = 0
-					#                 if command == 'off_traffic':
-					#                     # if off traffic is selected for a specific node
-					#                     # call UPI to stop traffic on node
-					#                     controller.nodes(nodes[node_src_index]).net.stop_packetflow()
-					#                     if node == 'D':
-					#                         #off LTE network
-					#                         controller.node(nodes[node_src_index]).radio.deactivate_radio_program('ENB')
-					#                         pass
-					#                     else:
-					#                         pass
-					#
-					#                 # if start traffic is selected for a specific node
-					#                 if command == 'set_traffic':
-					#                     node = parsed_json['dst']
-					#                     node_dst_index = all_nodes.index(node)
-					#                     value = parsed_json['value']
-					#                     nodes_source_rate[node_src_index] = value
-					#                     source_rate = float(nodes_source_rate[node_src_index])
-					#                     # call UPI to start traffic
-					#                     if node == 'E':
-					#                         controller.node(nodes[node_src_index]).radio.activate_radio_program('ENB')
-					#                         gevent.sleep(5)
-					#                         # controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow("127.0.0.1", "2000", '3000', str(value), '1470')
-					#                     else:
-					#                         controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1470')
 					if not (dt % 10):
 						log.warning('waiting for ... (%d sec / %d)' % (dt, EXPERIMENT_DURATION))
 					dt += 1
@@ -961,10 +853,10 @@ def main(args):
 			# for jj in range(0, len(nodes)):
 			# 	controller.nodes(nodes[jj]).net.stop_packetflow()
 
-			for ii in range(0, len(nodes)):
+			for ii in range(0, len(lcpDescriptor_nodes)):
 				try:
 					# controller.nodes(nodes[ii]).net.destroy_packetflow_sink()
-
+					# print(ii)
 					if lcpDescriptor_nodes[ii]:
 						lcpDescriptor_nodes[ii].close()
 					print("Terminate remote local control program")
@@ -976,101 +868,11 @@ def main(args):
 						reading_thread[ii].do_run = False
 						reading_thread[ii].join()
 					print("Terminate receive thread")
-
 				except:
 					print('Error in %s local control program shutdown' % str(nodes[ii].ip))
 
 			# meas_collector.save_measurements(nodes=wifinodes, directory="experiment_data")
-
-
-	# # We expect two agents (tx and rx).
-	# # Observation: we dont check if the agents connectict are in fact the ones that we want.
-	# while len(nodes) < TOTAL_NODES:
-	#     print('-- Nodes connected: {}/{}'.format(len(nodes), TOTAL_NODES))
-	#     gevent.sleep(2)
-	#
-	# print("All nodes connected. Starting Simple Experiment of wishful srs")
-	#
-	# running_enb = False
-	# #running_enb = controller.node(nodes[0]).radio.get_running_radio_program()
-	# if running_enb is False:
-	#     print('\t- Starting program at TX Agent')
-	#     controller.node(nodes[0]).radio.set_parameters({'IS_UE':False})
-	#     controller.node(nodes[0]).radio.set_parameters({'FREQ': 2437000000})
-	#
-	#     # controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.8})
-	#     controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.7})
-	#
-	#     # controller.node(nodes[0]).radio.set_parameters({'GAIN': 20})
-	#     controller.node(nodes[0]).radio.set_parameters({'GAIN': 120})
-	#
-	#     #controller.node(nodes[1]).radio.set_parameters({'NO_OF_FRAMES': 100000})
-	#     controller.node(nodes[0]).radio.set_parameters({'NO_OF_PRBS': 25})
-	#     controller.node(nodes[0]).radio.set_parameters({'WHICH_PRBS': 0xFFFF})
-	#
-	#     # controller.node(nodes[0]).radio.set_parameters({'MCS': 1})
-	#     controller.node(nodes[0]).radio.set_parameters({'MCS': 28})
-	#
-	#     # set any static  parameters needed to be set here for the ENB
-	#     controller.node(nodes[0]).radio.activate_radio_program('ENB')
-	# else:
-	#     print('\t Agent TX is already running something. Please stop it first')
-	#
-	# # gevent.sleep(10)
-	# # running_ue = False
-	# # running_ue = controller.node(nodes[1]).radio.get_running_radio_program()
-	# # if running_ue is False:
-	# #     print('\t- Starting program at RX Agent')
-	# #     # set any static  parameters needed to be set here for the UE
-	# #     controller.node(nodes[1]).radio.set_parameters({'IS_UE':True})
-	# #     controller.node(nodes[1]).radio.set_parameters({'FREQ': 2410000000})
-	# #     controller.node(nodes[1]).radio.set_parameters({'GAIN': 30})
-	# #     controller.node(nodes[1]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
-	# #     controller.node(nodes[1]).radio.set_parameters({'EQUALIZER_MODE': 'mmse'})
-	# #     controller.node(nodes[1]).radio.set_parameters({'MAX_TURBO_ITS': 3})
-	# #     controller.node(nodes[1]).radio.set_parameters({'NOISE_EST_ALG': 0})
-	# #     controller.node(nodes[1]).radio.set_parameters({'MAX_TURBO_ITS': 3})
-	# #     controller.node(nodes[1]).radio.set_parameters({'SSS_ALGORITHM': 1})
-	# #     controller.node(nodes[1]).radio.set_parameters({'SNR_EMA_COEFF': 0.1})
-	# #     controller.node(nodes[1]).radio.set_parameters({'CFO_TOL': 50})
-	# #     #now that our parameters are set we can start our radio, these parameters have default values so they do not HAVE to be set
-	# #     controller.node(nodes[0]).radio.activate_radio_program('UE')
-	# # else:
-	# #     print('\t Agent RX is already running something. Please stop it first')
-	# # gevent.sleep(20)
-	# # the following logic ensures the transmitter and receiver are on the same frequency
-	# # vals = controller.node(nodes[0]).radio.get_parameters(['FREQ'])
-	# # initial_cf_enb = vals['FREQ']
-	# # if initial_cf_enb != initial_cf_ue:
-	# #     controller.node(nodes[0]).radio.set_parameters({'FREQ': initial_cf_enb})
-	# # gevent.sleep(10)
-	# # meas = controller.node(nodes[0]).radio.get_measurements({'SNR'})
-	# # snr = meas['SNR']
-	# # print ('\t snr is \n', snr)
-	# # gevent.sleep(2)
-	# # if snr < 10:
-	# #     controller.node(nodes[1]).radio.set_parameters({'GAIN': 20})
-	# #
-	# #
-	# # gevent.sleep(5)
-	# # meas  =  controller.node(nodes[0]).radio.get_measurements({'PDSCH_MISS'})
-	# # pdsch_miss = meas['PDSCH_MISS']
-	# # print ('\t pdsch_miss is \n',pdsch_miss)
-	# # gevent.sleep(2)
-	# # if pdsch_miss < 5:
-	# #     param = controller.node(nodes[1]).radio.get_parameters(['MCS'])
-	# #     mcs = param['MCS']
-	# #     controller.node(nodes[1]).radio.set_parameters({'MCS': mcs + 2})
-	# #
-	# # gevent.sleep(30)
-	# #
-	# # meas = controller.node(nodes[0]).radio.get_measurements({'N_FRAMES'})
-	# # n_frames = meas['N_FRAMES']
-	# # print ('\t n_frames received  is \n', n_frames)
-	# #
-	# # controller.node(nodes[0]).radio.deactivate_radio_program('UE')
-	# # controller.node(nodes[1]).radio.deactivate_radio_program('ENB')
-
+	return
 
 
 if __name__ == "__main__":
@@ -1107,4 +909,4 @@ if __name__ == "__main__":
 		log.debug("Controller exits")
 	finally:
 		log.debug("Exit")
-		# controller.stop()
+		controller.stop()

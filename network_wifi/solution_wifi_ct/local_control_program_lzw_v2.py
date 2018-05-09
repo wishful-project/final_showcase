@@ -132,9 +132,6 @@ def remote_control_program(controller):
     lte_pattern_4 = [1, 1, 1, 1]
     lte_pattern_4_array = array.array('B', lte_pattern_4)
 
-    lte_zigbee_pattern = [0, 1, 1, 0]
-    lte_zigbee_pattern_array = array.array('B', lte_zigbee_pattern)
-
     # tdma3_pattern_5 = [0, 0, 1, 1, 1]
     tdma3_pattern_5 = [1, 1, 1, 0, 0]
     tdma3_pattern_5_array = array.array('B', tdma3_pattern_5)
@@ -156,95 +153,48 @@ def remote_control_program(controller):
         tdma_mask = psuc_mask[:]
         tdma_mask.append(tdma_mask[0])
         tdma_mask.append(tdma_mask[1])
-        # tdma_mask.append(tdma_mask[2])
-        # tdma_mask.append(tdma_mask[3])
+        tdma_mask.append(tdma_mask[2])
+        tdma_mask.append(tdma_mask[3])
         tdma_mask_array = array.array('B', tdma_mask)
-        print(tdma_mask_array)
-        num_pattern_3_finded = 0
-        index_pattern_3_finded = []
+        num_pattern_5_finded = 0
+        index_pattern_5_finded = []
         # find pattern preable 4
-        for ii in range(0, 10):
-            if tdma3_pattern_3_array == tdma_mask_array[ii:ii + len(tdma3_pattern_3_array)]:
-                index_pattern_3_finded.append(ii)
-                num_pattern_3_finded += 1
-        print(index_pattern_3_finded)
-        print(num_pattern_3_finded)
+        for ii in range(0, len(tdma_mask_array) - 4):
+            if tdma3_pattern_5_array == tdma_mask_array[ii:ii + len(tdma3_pattern_5_array)]:
+                index_pattern_5_finded.append(ii)
+                num_pattern_5_finded += 1
+        print(index_pattern_5_finded)
+        print(num_pattern_5_finded)
 
-        if num_pattern_3_finded == 0:
+        if num_pattern_5_finded == 0:
             LTE_PATTERN_STATE = 0
-            print("WARNING NO PATTERN3 FINDED")
+            print("WARNING NO PATTERN5 FINDED")
             return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
 
-        elif num_pattern_3_finded == 1:
+        elif num_pattern_5_finded == 1:
             # return position of the pattern 4
             LTE_PATTERN_STATE = 1
-            # print("1")
+            print("1")
 
             tdma_mask_output = tdma_mask_array_full_off[:]
-            # print("2")
+            print("2")
 
             print(tdma_mask_output)
-            print(index_pattern_3_finded[0])
-            print(lte_pattern_3)
+            print(index_pattern_5_finded[0])
+            print(lte_pattern_5)
 
             # tdma_mask_output[index_pattern_5_finded:index_pattern_5_finded+5] = lte_pattern_5
-            for ii in range(0, len(lte_pattern_3)):
-                tdma_mask_output[(index_pattern_3_finded[0]+ii)%10] = lte_pattern_3[ii]
+            for ii in range(0, len(lte_pattern_5)):
+                tdma_mask_output[(index_pattern_5_finded[0]+ii)%10] = lte_pattern_5[ii]
             print("3")
 
-            return ([index_pattern_3_finded, tdma_mask_output, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
-
-        elif num_pattern_3_finded == 2:
-
-            # if LTE_PATTERN_STATE == 0:
-            if True:
-                tdma_mask = psuc_mask[:]
-                tdma_mask.append(tdma_mask[0])
-                tdma_mask.append(tdma_mask[1])
-                tdma_mask.append(tdma_mask[2])
-                tdma_mask_array = array.array('B', tdma_mask)
-                num_pattern_lte_zigbee_finded = 0
-                index_pattern_lte_zigbee_finded = []
-                # find pattern preable 4
-                for ii in range(0, 10):
-                    if lte_zigbee_pattern_array == tdma_mask_array[ii:ii + len(lte_zigbee_pattern_array)]:
-                        index_pattern_lte_zigbee_finded.append(ii)
-                        num_pattern_lte_zigbee_finded += 1
-                print(index_pattern_lte_zigbee_finded)
-                print(num_pattern_lte_zigbee_finded)
-
-                if num_pattern_lte_zigbee_finded == 0:
-                    LTE_PATTERN_STATE = 0
-                    print("WARNING NO PATTERN LTE ZIGBEE FINDED")
-                    return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
-
-                elif num_pattern_lte_zigbee_finded == 1:
-                    # return position of the pattern 4
-                    LTE_PATTERN_STATE = 1
-                    tdma_mask_output = tdma_mask_array_full_off[:]
-                    # print(tdma_mask_output)
-                    # tdma_mask_output[index_pattern_5_finded:index_pattern_5_finded+5] = lte_pattern_5
-                    for ii in range(0, len(lte_pattern_3)):
-                        tdma_mask_output[(index_pattern_lte_zigbee_finded[0] + 1 + ii) % 10] = lte_pattern_3[ii]
-                    return ([index_pattern_lte_zigbee_finded, tdma_mask_output, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
-                else:
-                    LTE_PATTERN_STATE = 3
-                    print("WARNING MANY PATTERN LTE ZIGBEE FINDED")
-                    return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
-
-            else:
-                print("WARNING 2 PATTERN3 FINDED")
-                LTE_PATTERN_STATE = 0
-                return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
+            return ([index_pattern_5_finded, tdma_mask_output, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
 
         else:
-            LTE_PATTERN_STATE = 3
-            print("WARNING MANY PATTERN3 FINDED")
+            LTE_PATTERN_STATE = 2
+            print("WARNING MANY PATTERN5 FINDED")
             return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
 
-        print("WARNING IN PATTERN3 FINDED")
-        LTE_PATTERN_STATE = 0
-        return ([0, tdma_mask_array_full_on, LTE_PATTERN_STATE, CORRECTION_DIRECTION])
 
     def tune_wifi_pattern(reading_buffer):
         reading_buffer_thread = threading.currentThread()

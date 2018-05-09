@@ -53,17 +53,17 @@ try:
                 json.dumps(data).encode('utf-8'),
             ])
             print(now, ctrl)
-        if (now - last_nsu) > 5:
-            current = []
-            for net in nsu:
-                net['channel'] = random.randint(1, 14)
-                net['load'] = random.choice(load)
-                net['active'] = random.choice([True, False])
-                current.append(net)
-            socket.send_multipart([
-                b'networkStatusUpdate',
-                json.dumps(nsu).encode('utf-8'),
-            ])
+        # if (now - last_nsu) > 5:
+        #     current = []
+        #     for net in nsu:
+        #         net['channel'] = random.randint(1, 14)
+        #         net['load'] = random.choice(load)
+        #         net['active'] = random.choice([True, False])
+        #         current.append(net)
+        #     socket.send_multipart([
+        #         b'networkStatusUpdate',
+        #         json.dumps(nsu).encode('utf-8'),
+        #     ])
         time.sleep(1)
 finally:
     socket.close()

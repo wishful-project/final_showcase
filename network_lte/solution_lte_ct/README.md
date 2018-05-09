@@ -18,7 +18,7 @@ Wishful FINAL SHOWCASE solution_lte_ct
 
     ssh dgarlisi@nuc12
         cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal
-            sudo bash run_usrp.sh 6
+            sudo bash run_usrp.sh 11
 
     http://172.16.16.12/WishfulWebPortal/only_usrp.html
 
@@ -42,6 +42,7 @@ Wishful FINAL SHOWCASE solution_lte_ct
     cd helper
      ex -sc $'%s/\r$//e|x' sync_date.sh
      sh sync_date.sh root alix04,alix05  #sync nodes time
+     sh sync_date.sh dgarlisi nuc11,nuc6
      cd ..
 
  #Solution Global Controller
@@ -65,7 +66,7 @@ Wishful FINAL SHOWCASE solution_lte_ct
     ssh nuc11
     python3 agent_tx.py
 
-    ssh nuc12
+    ssh nuc6
     python3 agent_rx.py
 
     ~~~~
@@ -79,6 +80,7 @@ Wishful FINAL SHOWCASE solution_lte_ct
     
  #Start LTE UE 
     ./srsLTE/build/srslte/examples/pdsch_ue -f 2437e6 -r 1234 -u 2001 -U 127.0.0.1 -H 127.0.0.1
+    ./srsLTE/build/srslte/examples/pdsch_ue -f 2437e6 -r 1234 -u 2001 -U 127.0.0.1 -H 172.16.16.12
     iperf -s -p 2001 -i 1
 
  #webui

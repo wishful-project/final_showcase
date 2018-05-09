@@ -36,6 +36,9 @@ def stats_listener(endpoint, server_context):
         full_msg = socket.recv_multipart()
 
         msg = json.loads(full_msg[1], encoding='utf-8')
+
+        #print(msg)
+
         if full_msg[0] == b'monitorReport':
             for ses in server_context.application_context.sessions:
                 ses._document.add_next_tick_callback(partial(

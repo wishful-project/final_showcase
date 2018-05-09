@@ -193,29 +193,29 @@ def start_command_connection():
 	print("Create server on port %s ... ready to receive command from experiment GUI" % socket_command_port)
 	return socket_command
 
-def start_visualizer_connection():
-	"""
-					****	SETUP STATISTICS VISUALIZER	****
-	This function is used to setup the connection with the experiment GUI,
-	a ZMQ socket client is created on port 8501, able to send statistical information to GUI
-	"""
-	print(controller.name)
-	socket_visualizer_port = "8501"
-	context = zmq.Context()
-	socket_visualizer = context.socket(zmq.PUSH)
-	socket_visualizer.connect("tcp://10.8.8.21:%s" % socket_visualizer_port)
-	print("Connecting to server on port %s ... ready to send information to experiment GUI" % socket_visualizer_port)
-
-	''' 
-	implement OML database setup for realtime visualizer 
-	in a different case, we can send the statistica information to the OMLBase
-	'''
-	# global omlInst
-	# omlInst = oml4py.OMLBase("LocalControlProgram", "WiSHFUL", socket.gethostname(),"tcp:am.wilab2.ilabt.iminds.be:3004")
-	# omlInst.addmp("IEEE802154_MACSTATS", "timestamp:int32 nodeID:int32 packetSize:int32 activeRadioprogram:string timeDiff:int32 numTxRequest:int32 numTxRequestFail:int32 numTxAttempt:int32 numTxSuccess:int32 numTxFail:int32 numTxBusy:int32 numTxNoAck:int32 numTxCollision:int32 numRx:int32 avgBackoffExponent:int32")
-	# omlInst.start()
-
-	return socket_visualizer
+# def start_visualizer_connection():
+# 	"""
+# 					****	SETUP STATISTICS VISUALIZER	****
+# 	This function is used to setup the connection with the experiment GUI,
+# 	a ZMQ socket client is created on port 8501, able to send statistical information to GUI
+# 	"""
+# 	print(controller.name)
+# 	socket_visualizer_port = "8501"
+# 	context = zmq.Context()
+# 	socket_visualizer = context.socket(zmq.PUSH)
+# 	socket_visualizer.connect("tcp://10.8.8.21:%s" % socket_visualizer_port)
+# 	print("Connecting to server on port %s ... ready to send information to experiment GUI" % socket_visualizer_port)
+#
+# 	'''
+# 	implement OML database setup for realtime visualizer
+# 	in a different case, we can send the statistica information to the OMLBase
+# 	'''
+# 	# global omlInst
+# 	# omlInst = oml4py.OMLBase("LocalControlProgram", "WiSHFUL", socket.gethostname(),"tcp:am.wilab2.ilabt.iminds.be:3004")
+# 	# omlInst.addmp("IEEE802154_MACSTATS", "timestamp:int32 nodeID:int32 packetSize:int32 activeRadioprogram:string timeDiff:int32 numTxRequest:int32 numTxRequestFail:int32 numTxAttempt:int32 numTxSuccess:int32 numTxFail:int32 numTxBusy:int32 numTxNoAck:int32 numTxCollision:int32 numRx:int32 avgBackoffExponent:int32")
+# 	# omlInst.start()
+#
+# 	return socket_visualizer
 
 def setAP(controller, node, iface, wlan_ip, essid):
 	""" Creates infrastructure BSS, uses node such as Access Point
@@ -227,7 +227,7 @@ def setAP(controller, node, iface, wlan_ip, essid):
 	# set ip address
 	rvalue = controller.nodes(node).net.set_ip_address(iface, wlan_ip)
 	# set hostapd configuration
-	rvalue = controller.nodes(node).net.set_hostapd_conf(iface, './helper/hostapd.conf', 6, essid)
+	rvalue = controller.nodes(node).net.set_hostapd_conf(iface, './helper/hostapd.conf', 11, essid)
 	# start hostapd
 	rvalue = controller.nodes(node).net.start_hostapd('./helper/hostapd.conf')
 	# set power
@@ -499,7 +499,7 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							{
 								'type': 'monitorReport',
 								'monitorType': 'performance'
-								'networkController':'WIFI_CNIT',
+								'networkController':'WIFI_A1',
 								'networkType':'80211',
 								'monitorValue': {
 									'timestamp': 1522169960.4682555,
@@ -507,6 +507,11 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 									'THR': 8760.0}
 								},
 							}
+							
+							WIFI_A1
+							{'type': 'monitorReport', 'monitorType': 'performance', 'networkController': 'LTE_virt', 'networkType': '80211', 
+                        	'monitorValue': {'timestamp': 1525764431.987996, 'PER': 0.30156620331886586, 'THR': 646057.1170200078}}
+							
 							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
 							value = { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2], "MASK":msg["measure"][3]}
@@ -548,7 +553,7 @@ def main(args):
 	"""
 
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-	networkName = "WIFI_CNIT"
+	networkName = "WIFI_TDMA"
 	solutionName = ["WIFI_CT"]
 	commands = {"STOP_WIFI": (lambda: stopWifi()), "START_WIFI": (lambda:startWifi()), "STOP_TDMA": (lambda:stopTdma()), "START_TDMA": (lambda:startTdma())}
 	monitorList = ["THR", "PER"]
@@ -648,29 +653,6 @@ def main(args):
 								pass
 							elif role[pos] == "STA":
 								pass
-							elif role[pos] == "EB":
-								pass
-								# print('\t- Starting program at TX Agent')
-								# controller.node(nodes[jj]).radio.set_parameters({'IS_UE': False})
-								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
-								#
-								# # controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.8})
-								# controller.node(nodes[jj]).radio.set_parameters({'RF_AMP': 0.7})
-								#
-								# # controller.node(nodes[0]).radio.set_parameters({'GAIN': 20})
-								# controller.node(nodes[jj]).radio.set_parameters({'GAIN': 120})
-								#
-								# # controller.node(nodes[1]).radio.set_parameters({'NO_OF_FRAMES': 100000})
-								# controller.node(nodes[jj]).radio.set_parameters({'NO_OF_PRBS': 25})
-								# controller.node(nodes[jj]).radio.set_parameters({'WHICH_PRBS': 0xFFFF})
-								#
-								# # controller.node(nodes[0]).radio.set_parameters({'MCS': 1})
-								# controller.node(nodes[jj]).radio.set_parameters({'MCS': 28})
-								#
-								# # set any static  parameters needed to be set here for the ENB
-								# # controller.node(nodes[jj]).radio.activate_radio_program('ENB')
-								# # gevent.sleep(10)
-
 							else:
 								print("no station role found ")
 								break
@@ -692,7 +674,7 @@ def main(args):
 								pass
 							elif role[pos] == "MON":
 								rvalue = controller.nodes(nodes[jj]).net.start_monitor(driver[pos], iface[pos])
-								rvalue = controller.nodes(nodes[jj]).radio.set_channel(iface[pos], "6")
+								rvalue = controller.nodes(nodes[jj]).radio.set_channel(iface[pos], "11")
 							elif role[pos] == "STA":
 								print("setup topology node %s - index %d" % (nodes[jj].ip, jj))
 								connection_result = setSTA(controller, nodes[jj], iface[pos], wlan_ip[pos], "solution-lte-ct")
@@ -808,8 +790,8 @@ def main(args):
 							nodes_source_rate[node_src_index] = value
 							source_rate = float(nodes_source_rate[node_src_index])
 							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '500')
-							controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '600')
-							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1000')
+							# controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '600')
+							controller.delay(1).nodes(nodes[node_src_index]).net.start_packetflow(wlan_ip[node_dst_index], '1234', '3000', str(value) + 'K', '1000')
 						elif wifiState == "DISABLE":
 							parsed_json = {'dst': 'A', 'type': 'traffic', 'command': 'off_traffic', 'src': 'B'}
 							# source
