@@ -78,6 +78,10 @@ def switch_channel(value):
     print("Switch channel")
     ap0_node = get_node_by_name(nodes, "ap0")
 
+    if value:
+        channel = value.get("channel", None)
+        print("Channel receved from AD controller: ", channel)
+
     if not ap0_node:
         return
 
