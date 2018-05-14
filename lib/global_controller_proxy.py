@@ -49,7 +49,7 @@ class GlobalSolutionControllerProxy(object):
         self.networkType = networkType
         self.solutionName = solutionName
         self.commands = commands
-        self.commandList = list(commands.keys())
+        self.commandList = sorted(list(commands.keys()))
         self.monitorList = monitorList
 
     def register_solution(self):
