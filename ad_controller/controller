@@ -64,7 +64,8 @@ class Network:
     commandList=None
     # eventList = None
     solutionCompatibilityList = None
-    channel = "0"
+    channels = []
+    frequencies = {}
     load = "off"
     active = True
 
@@ -78,12 +79,13 @@ class Network:
         self.monitorList = monitorList
         self.solutionCompatibilityList = solutionCompatibilityList
 
-    def update_channel(self, channel):
+    def update_channel(self, channel_information):
         """
         Update the used channels for this network
         :param channel: new channel
         """
-        self.channel = channel
+        self.channels = channel_information["channels"]
+        self.frequencies = channel_information["frequencies"]
         
     def update_load(self, load):
         """
@@ -152,7 +154,7 @@ def send_status_update(socket_visualizer):
         nsu.append({
             "name": network.name,
             "type": network.networkType,
-            "channel": str(network.channel),
+            "channel": str(network.channels),
             "load": network.load,
             "active": True,
         })

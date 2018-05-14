@@ -131,10 +131,36 @@ def mapWifiOnZigbeeChannels(log, channel_mapping):
     return dct
 
 def send_channel_update(channels):
-    value = { 
-        "2405" : "2"
+    channelisation = { 
+        11: { "2405" : "2" },
+        12: { "2410" : "2" },
+        13: { "2415" : "2" },
+        14: { "2420" : "2" },
+        15: { "2425" : "2" },
+        16: { "2430" : "2" },
+        17: { "2435" : "2" },
+        18: { "2440" : "2" },
+        19: { "2445" : "2" },
+        20: { "2450" : "2" },
+        21: { "2455" : "2" },
+        22: { "2460" : "2" },
+        23: { "2465" : "2" },
+        24: { "2470" : "2" },
+        25: { "2475" : "2" },
+        26: { "2480" : "2" }
     }
-    solutionCtrProxy.send_monitor_report("channelUsage", "6lowPAN", value)
+    
+    update_value = {
+		"channels" : [],
+		"frequencies" : {}
+	}
+	
+    for channel in channels:
+        update_value["channels"].extend([channel])
+        update_value["frequencies"].update(channelisation[channel])
+    print(update_value)
+       
+    solutionCtrProxy.send_monitor_report("channelUsage", "6lowPAN", update_value)
 
 def control_traffic(traffic_type):  
     global mac_mode, taisc_manager
@@ -269,7 +295,7 @@ def main(args):
     taisc_manager.activate_radio_program(mac_mode)
     taisc_manager.update_slotframe('taisc_slotframe.csv', mac_mode)
     taisc_manager.update_macconfiguration({'IEEE802154e_macSlotframeSize': len(contiki_nodes) + 1})
-    send_channel_update([])
+    send_channel_update([11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26])
     logging.info("Finished configuring TSCH")
     
     current_traffic_type = traffic_type
