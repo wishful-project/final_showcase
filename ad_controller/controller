@@ -24,20 +24,16 @@ __copyright__ = "Copyright (c) ..., "
 __version__ = "0.1.0"
 __email__ = "domenico.garlisi@cnit.it; ..."
 
+import time
 import threading
 import datetime
 import logging
 import sys
-import time
-import gevent
-import signal
 import os
 import yaml
 import zmq
 import json
-import zmq
-import _thread
-import struct # for packing integers
+import struct  # for packing integers
 
 sys.path.append('../')
 from lib.kvsimple import KVMsg
@@ -293,12 +289,12 @@ def print_menu_command():  ## Your menu design here
     if commandToSend == "TRAFFIC":
         traffic_load = "HIGH"
         msg["commandList"][selected_network.solution[0]] = {
-            "TRAFFIC" : { "TYPE" : traffic_load } # OFF, LOW, MEDIUM, HIGH
+            "TRAFFIC": {"TYPE": traffic_load}  # OFF, LOW, MEDIUM, HIGH
         }
         selected_network.update_load(traffic_load)
         send_status_update(socket_visualizer)
     else:
-        msg["commandList"] = {selected_network.solution[0]: {}}
+        msg["commandList"][selected_network.solution[0]] = {commandToSend: {}}
 
         #WIFI NETWORK COMMAND
         if commandToSend == "START_WIFI":

@@ -116,23 +116,22 @@ class GlobalSolutionControllerProxy(object):
 
                     # print(self.solutionName[0])
                     commandList = commandListSolutions.get(self.solutionName[0], None)
-                    if commandList and isinstance(commandList, list):
-                        for cmd in commandList:
-                            if cmd in self.commands:
-                                print("Execute command:", cmd)
-                                function = self.commands[cmd]
-                                function()
-                        continue
-                    if self.solutionName[0] in commandListSolutions:
+                    print("commandList", commandList)
+                    if bool(commandList):
                         commandList = commandListSolutions.get(self.solutionName[0], {})
                         print(commandList)
                         for command_name, command_parameter in commandList.items():
                             print("Execute command {} with parameters {}".format(command_name,command_parameter))
                             function = self.commands[command_name]
 
-                            if len(command_parameter):
+                            executed = False
+                            try:
                                 function(command_parameter)
-                            else:
+                                executed = True
+                            except Exception:
+                                pass
+
+                            if not executed:
                                 function()
 
             except KeyboardInterrupt:
