@@ -14,6 +14,7 @@ class GlobalSolutionControllerProxy(object):
     def __init__(self, ip_address="127.0.0.1", requestPort=7001, subPort=7000):
         super(GlobalSolutionControllerProxy, self).__init__()
 
+        self.controllerName = None
         self.networkName = None
         self.networkType = None
         self.solutionName = []
@@ -36,7 +37,7 @@ class GlobalSolutionControllerProxy(object):
         self.subSocket.connect(url)
         self.cmdRxThread = None
 
-    def set_solution_attributes(self, networkName, networkType, solutionName, commands, monitorList):
+    def set_solution_attributes(self, controllerName, networkType, solutionName, commands, monitorList):
         """
         Set attribute of the solution
         """
@@ -44,7 +45,7 @@ class GlobalSolutionControllerProxy(object):
         # De - activation
         # Event     List    of  monitoring  parameters
         # List  of  control knobs / parameters
-        self.networkName = networkName
+        self.controllerName = controllerName
         self.networkType = networkType
         self.solutionName = solutionName
         self.commands = commands
@@ -69,7 +70,7 @@ class GlobalSolutionControllerProxy(object):
         #        "monitorList": self.monitorList}
         # new json format
         msg = {"type": "registerRequest",
-               "networkController": self.networkName,
+               "networkController": self.controllerName,
                "networkType" : self.networkType,
                "solution": self.solutionName,
                "commandList": self.commandList,
@@ -109,7 +110,7 @@ class GlobalSolutionControllerProxy(object):
                 print("received command : " + str(mdict))
                 # {'type': 'publisherUpdate', 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'involvedController': ['WIFI']}
                 involvedController = mdict.get("involvedController", [])
-                if self.networkName in involvedController:
+                if self.controllerName in involvedController:
                     commandListSolutions = mdict.get("commandList", {} )
                     # print(commandListSolutions) # 'WIFI_CT': {'START_WIFI': {'2437': True}} # {'LTE_CT': {'ENABLE_LTE_2_SUBFRAME': {}}}
 
@@ -201,11 +202,11 @@ class GlobalSolutionControllerProxy(object):
         """
 
         msg = {
-            'type': 'monitorReport', 
-            'networkController': self.networkName, 
-            'monitorType': mon_type, 
-            'networkType': net_type, 
-            'monitorValue': value 
+            'type': 'monitorReport',
+            'networkController': self.controllerName,
+            'monitorType': mon_type,
+            'networkType': net_type,
+            'monitorValue': value
         }
         sequence = 0
         kvmsg = KVMsg(sequence)
