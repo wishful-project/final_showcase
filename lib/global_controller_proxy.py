@@ -15,6 +15,7 @@ class GlobalSolutionControllerProxy(object):
         super(GlobalSolutionControllerProxy, self).__init__()
 
         self.networkName = None
+        self.networkType = None
         self.solutionName = []
         self.commandList = []
         self.eventList = []
@@ -35,7 +36,7 @@ class GlobalSolutionControllerProxy(object):
         self.subSocket.connect(url)
         self.cmdRxThread = None
 
-    def set_solution_attributes(self, networkName, solutionName, commands, monitorList):
+    def set_solution_attributes(self, networkName, networkType, solutionName, commands, monitorList):
         """
         Set attribute of the solution
         """
@@ -44,6 +45,7 @@ class GlobalSolutionControllerProxy(object):
         # Event     List    of  monitoring  parameters
         # List  of  control knobs / parameters
         self.networkName = networkName
+        self.networkType = networkType
         self.solutionName = solutionName
         self.commands = commands
         self.commandList = list(commands.keys())
@@ -68,6 +70,7 @@ class GlobalSolutionControllerProxy(object):
         # new json format
         msg = {"type": "registerRequest",
                "networkController": self.networkName,
+               "networkType" : self.networkType,
                "solution": self.solutionName,
                "commandList": self.commandList,
                "monitorList": self.monitorList}
@@ -109,6 +112,7 @@ class GlobalSolutionControllerProxy(object):
                 if self.networkName in involvedController:
                     commandListSolutions = mdict.get("commandList", {} )
                     # print(commandListSolutions) # 'WIFI_CT': {'START_WIFI': {'2437': True}} # {'LTE_CT': {'ENABLE_LTE_2_SUBFRAME': {}}}
+
                     # print(self.solutionName[0])
                     commandList = commandListSolutions.get(self.solutionName[0], None)
                     if commandList and isinstance(commandList, list):
@@ -118,16 +122,17 @@ class GlobalSolutionControllerProxy(object):
                                 function = self.commands[cmd]
                                 function()
                         continue
-
                     if self.solutionName[0] in commandListSolutions:
                         commandList = commandListSolutions.get(self.solutionName[0], {})
-                        # print(commandList)
+                        print(commandList)
                         for command_name, command_parameter in commandList.items():
-                            # print("Execute command:", command_name)
-                            # print(command_parameter)
+                            print("Execute command {} with parameters {}".format(command_name,command_parameter))
                             function = self.commands[command_name]
-                            # function(command_parameter)
-                            function(command_parameter)
+
+                            if len(command_parameter):
+                                function(command_parameter)
+                            else:
+                                function()
 
             except KeyboardInterrupt:
                 return
@@ -195,7 +200,13 @@ class GlobalSolutionControllerProxy(object):
         }
         """
 
-        msg = {'type': 'monitorReport', 'networkController': self.networkName, 'monitorType': mon_type, 'networkType': net_type, 'monitorValue': value }
+        msg = {
+            'type': 'monitorReport', 
+            'networkController': self.networkName, 
+            'monitorType': mon_type, 
+            'networkType': net_type, 
+            'monitorValue': value 
+        }
         sequence = 0
         kvmsg = KVMsg(sequence)
         kvmsg.key = b"generic"
