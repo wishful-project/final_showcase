@@ -26,6 +26,7 @@ import sys
 sys.path.append('../')
 sys.path.append('../../')
 
+import os
 import time
 import datetime
 import logging
@@ -53,6 +54,10 @@ availableChannels = [1, 6, 11]
 curChanIx = 0
 channelUsage = {}
 
+ap0_iface = "wlp2s0"
+sta0_iface = "wlp2s0"
+
+
 
 def start_network(value):
     print("Enabling solution")
@@ -76,6 +81,8 @@ def switch_channel(value):
     global curChanIx
     global availableChannels
     global channelUsage
+    global ap0_iface
+    global sta0_iface
     print("Switch channel")
     ap0_node = get_node_by_name(nodes, "ap0")
 
@@ -86,8 +93,6 @@ def switch_channel(value):
     if not ap0_node:
         return
 
-    ap0_iface = "wlp2s0"
-    sta0_iface = "wlp2s0"
 
     controller._clear_call_context()
     curChannel = channelUsage["ap0"]
@@ -129,13 +134,12 @@ def stop_traffic(value):
 def set_low_traffic(value):
     global controller
     global trafficStarted
+    global ap0_iface
+    global sta0_iface
 
     print("Set LOW traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
-
-    ap0_iface = "wlp2s0"
-    sta0_iface = "wlp2s0"
 
     controller._clear_call_context()
     if not trafficStarted and ap0_node:
@@ -151,12 +155,12 @@ def set_low_traffic(value):
 def set_medium_traffic(value):
     global controller
     global trafficStarted
+    global ap0_iface
+    global sta0_iface
+
     print("Set MEDIUM traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
-
-    ap0_iface = "wlp2s0"
-    sta0_iface = "wlp2s0"
 
     controller._clear_call_context()
     if not trafficStarted and ap0_node:
@@ -172,12 +176,12 @@ def set_medium_traffic(value):
 def set_high_traffic(value):
     global controller
     global trafficStarted
+    global ap0_iface
+    global sta0_iface
+
     print("Set HIGH traffic")
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
-
-    ap0_iface = "wlp2s0"
-    sta0_iface = "wlp2s0"
 
     controller._clear_call_context()
     if not trafficStarted and ap0_node:
@@ -192,12 +196,12 @@ def set_high_traffic(value):
 def set_traffic(trafficValue):
     global controller
     global trafficStarted
+    global ap0_iface
+    global sta0_iface
     
     ap0_node = get_node_by_name(nodes, "ap0")
     sta0_node = get_node_by_name(nodes, "sta0")
 
-    ap0_iface = "wlp2s0"
-    sta0_iface = "wlp2s0"
     myRate = 0
 
     controller._clear_call_context()
@@ -254,6 +258,8 @@ def main(args):
     global showcaseState
     global trafficStarted
     global channelUsage
+    global ap0_iface
+    global sta0_iface
 
     log.debug(args)
 
@@ -316,17 +322,12 @@ def main(args):
 
     ap0_node = None
     sta0_node = None
-    ap0_iface = "wlp2s0"
-    sta0_iface = "wlp2s0"
-
-    ap1_node = None
-    sta1_node = None
-    ap1_iface = "wlp2s0"
-    sta1_iface = "wlp2s0"
-
     ssid = "Ph0-WiFi-1"
-    hostapd_fn = './configs/ap0_hostapd.conf'
-    wpa_supplicant_fn = './configs/sta0_wpa_supplicant.conf'
+    dirPath = os.path.dirname(config_file_path)
+    hostapd_fn = os.path.join(dirPath, 'ap0_hostapd.conf')
+    wpa_supplicant_fn = os.path.join(dirPath, 'sta0_wpa_supplicant.conf')
+    print("hostapd path", hostapd_fn)
+    print("wpa_supplicant path", wpa_supplicant_fn)
 
     cellThroughputDict = {}
 
@@ -337,9 +338,6 @@ def main(args):
 
         ap0_node = get_node_by_name(nodes, "ap0")
         sta0_node = get_node_by_name(nodes, "sta0")
-
-        ap1_node = get_node_by_name(nodes, "ap1")
-        sta1_node = get_node_by_name(nodes, "sta1")
 
         if not ap0_node or not sta0_node:
             continue
