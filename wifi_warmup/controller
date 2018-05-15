@@ -363,7 +363,7 @@ def main(args):
             controller.nodes(sta0_node).net.destroy_packetflow_sink()
             controller.nodes(ap0_node).net.stop_packetflow()
             controller.nodes(sta0_node).radio.iface(sta0_iface).set_tx_power(0)
-            controller.nodes(ap0_node).radio.iface(sta0_iface).set_tx_power(0)
+            controller.nodes(ap0_node).radio.iface(ap0_iface).set_tx_power(0)
             trafficStarted = False
 
             print("Setup Access Points")
@@ -381,6 +381,10 @@ def main(args):
             print("Install traffic shapers")
             controller.nodes(ap0_node).net.install_traffic_shaper(interface=ap0_iface)
             controller.nodes(sta0_node).net.install_traffic_shaper(interface=sta0_iface)
+
+            print("Set TX power")
+            controller.nodes(sta0_node).radio.iface(sta0_iface).set_tx_power(0)
+            controller.nodes(ap0_node).radio.iface(ap0_iface).set_tx_power(0)
 
         if showcaseState == "Stop":
             print("Stop APs and STAs")
