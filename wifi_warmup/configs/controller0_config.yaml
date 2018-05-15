@@ -5,8 +5,8 @@ parameters:
   ssid: "Ph0-WiFi-0"
   hostapd_config: "ap0_hostapd.conf"
   wpa_supplicant_config: "sta0_wpa_supplicant.conf"
-  ap0_iface: "wlan0"
-  sta0_iface: "wlan0"
+  ap0_iface: "wlan1"
+  sta0_iface: "wlan1"
 
 controller:
     name: "OBSS_Management_Solution"

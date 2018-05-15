@@ -11,11 +11,6 @@ modules:
       class_name : PyreDiscoveryAgentModule
       kwargs: {"iface":"eth0", "groupName":"wifi_warmup_wifi_0"}
 
-  simple:
-      module : wishful_module_simple
-      class_name : SimpleModule2
-      interfaces : ['wlan0']
-
   iperf:
       module : wishful_module_iperf
       class_name : IperfModule
@@ -23,7 +18,7 @@ modules:
   wifi:
       module : wishful_module_wifi
       class_name : WifiModule
-      interfaces : ['wlan0']
+      interfaces : ['wlan1']
 
   net:
       module : wishful_module_net_linux
