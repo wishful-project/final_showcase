@@ -1,6 +1,7 @@
 ## WiSHFUL Controller's config file
 
 parameters:
+  ad_address: "172.16.16.9"
   controllerName: "WIFI_TUB_0"
   ssid: "Ph0-WiFi-0"
   hostapd_config: "ap0_hostapd.conf"

@@ -278,11 +278,12 @@ def main(args):
         wpa_supplicant_config = parameters.get("wpa_supplicant_config", None)
         ap0_iface = parameters.get("ap0_iface", None)
         sta0_iface = parameters.get("sta0_iface", None)
+        ad_address = parameters.get("ad_address", "127.0.0.1")
 
     controller.load_config(config)
     controller.start()
 
-    solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1",
+    solutionCtrProxy = GlobalSolutionControllerProxy(ip_address=ad_address,
                                                      requestPort=7001,
                                                      subPort=7000)
 
