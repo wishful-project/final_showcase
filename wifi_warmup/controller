@@ -268,6 +268,17 @@ def main(args):
     with open(config_file_path, 'r') as f:
         config = yaml.load(f)
 
+
+    # Load controller script parameters
+    parameters = config.get("parameters", None)
+    if parameters:
+        controllerName = parameters.get("controllerName", None)
+        ssid = parameters.get("ssid", None)
+        hostapd_config = parameters.get("hostapd_config", None)
+        wpa_supplicant_config = parameters.get("wpa_supplicant_config", None)
+        ap0_iface = parameters.get("ap0_iface", None)
+        sta0_iface = parameters.get("sta0_iface", None)
+
     controller.load_config(config)
     controller.start()
 
@@ -275,7 +286,6 @@ def main(args):
                                                      requestPort=7001,
                                                      subPort=7000)
 
-    controllerName = "WIFI_TUB_1"
     networkName = [controllerName]
     networkType = 'IEEE_802.11'
     solutionName = ["WiFi_Channel_Switching"]
@@ -322,10 +332,9 @@ def main(args):
 
     ap0_node = None
     sta0_node = None
-    ssid = "Ph0-WiFi-1"
     dirPath = os.path.dirname(config_file_path)
-    hostapd_fn = os.path.join(dirPath, 'ap0_hostapd.conf')
-    wpa_supplicant_fn = os.path.join(dirPath, 'sta0_wpa_supplicant.conf')
+    hostapd_fn = os.path.join(dirPath, hostapd_config)
+    wpa_supplicant_fn = os.path.join(dirPath, wpa_supplicant_config)
     print("hostapd path", hostapd_fn)
     print("wpa_supplicant path", wpa_supplicant_fn)
 

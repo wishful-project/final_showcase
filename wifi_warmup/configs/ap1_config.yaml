@@ -1,15 +1,15 @@
 ## WiSHFUL Agent config file
 
 agent_info:
-  name: 'ap1'
-  info: 'Access Point 1'
+  name: 'ap0'
+  info: 'Access Point 0'
   iface: 'eno1'
 
 modules:
   discovery:
       module : wishful_module_discovery_pyre
       class_name : PyreDiscoveryAgentModule
-      kwargs: {"iface":"eno1", "groupName":"wifi_warmup"}
+      kwargs: {"iface":"eno1", "groupName":"wifi_warmup_wifi_1"}
 
   simple:
       module : wishful_module_simple

@@ -3,5 +3,5 @@ OBSS_PATH=$WISHFUL_PATH/final_showcase/wifi_warmup
 
 source $WISHFUL_PATH/dev/bin/activate
 cd $OBSS_PATH
-./controller --config ./configs/controller_config.yaml
+./agent --config ./configs/ap1_config.yaml
 cd ..

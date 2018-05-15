@@ -9,7 +9,7 @@ modules:
   discovery:
       module : wishful_module_discovery_pyre
       class_name : PyreDiscoveryAgentModule
-      kwargs: {"iface":"eno1", "groupName":"wifi_warmup"}
+      kwargs: {"iface":"eno1", "groupName":"wifi_warmup_wifi_0"}
 
   simple:
       module : wishful_module_simple
