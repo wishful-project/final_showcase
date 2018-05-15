@@ -24,6 +24,7 @@ Other options:
 import sys
 # get access to lib dir
 sys.path.append('../')
+sys.path.append('../../')
 
 import time
 import datetime
@@ -409,15 +410,20 @@ def main(args):
                      }
             solutionCtrProxy.send_monitor_report('performance', networkType, value)
 
-        if bool(channelUsage):
-            channel = channelUsage['ap0']
+        # Notify channel usage
+        channels = []
+        frequencies = {}
+        channel = channelUsage.get('ap0', None)
+
+        if channel:
             channels = [channel]
             frequencies = {channelToFreq[channel] : 20}
-            value = {"channels" : channels,
-                     "frequencies": frequencies
-                     }
-            print("Notify AD controller about used channels", channels)
-            solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
+
+        value = {"channels" : channels,
+                 "frequencies": frequencies
+                 }
+        print("Notify AD controller about used channels", channels)
+        solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
 
 
 if __name__ == "__main__":
