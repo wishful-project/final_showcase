@@ -3,7 +3,7 @@
 
 """
 Usage:
-   controller [options] [-q | -v]
+   controller [options] [-q | -v | -n]
 
 Options:
    --logfile name       Name of the logfile
@@ -13,10 +13,11 @@ Example:
    ./
 
 Other options:
-   -h, --help           show this help message and exit
+   -h, --help            show this help message and exit
    -q, --quiet           print less text
-   -v, --verbose       print more text
-   --version           show version and exit
+   -v, --verbose         print more text
+   -n, --novisualizer    do not start visualizer communication
+   --version             show version and exit
 """
 
 __author__ = "Domenico Garlisi, ...."
@@ -303,7 +304,8 @@ def print_menu_command():  ## Your menu design here
 			"TRAFFIC": {"TYPE": traffic_load}  # OFF, LOW, MEDIUM, HIGH
 		}
 		selected_network.update_load(traffic_load)
-		send_status_update(socket_visualizer)
+		if startVisualizer:
+			send_status_update(socket_visualizer)
 	else:
 		msg["commandList"][selected_network.solution[0]] = {commandToSend: {}}
 
@@ -418,6 +420,11 @@ def main(args):
 	networkNum = 0
 	sequence_publisher = 0
 
+	startVisualizer = True
+	if args['--novisualizer']:
+		print("Communication with visualizer won't be started")
+		startVisualizer = False
+
 	log.info('*******     WISHFUL *************')
 	log.info('********  Starting solution global controller ***************')
 
@@ -440,7 +447,8 @@ def main(args):
 	poller.register(request, zmq.POLLIN)
 
 	# Init connection with GUI ffor LOG
-	socket_visualizer = start_visualizer_connection("172.16.16.3")
+	if startVisualizer:
+		socket_visualizer = start_visualizer_connection("172.16.16.3")
 
 	reader, stdin_thread = forward_standard_input(ctx)
 	poller.register(reader, zmq.POLLIN)
@@ -532,11 +540,13 @@ def main(args):
                     """
 					if received_request["monitorType"] == "channelUsage":
 						network.update_channel(received_request["monitorValue"])
-						send_status_update(socket_visualizer)
+						if startVisualizer:
+							send_status_update(socket_visualizer)
 					elif received_request["monitorType"] == "performance":
 						now = datetime.datetime.now().timestamp()
 						received_request["monitorValue"]["timestamp"] = now
-						socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
+						if startVisualizer:
+							socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
 
 				# Process command Report
 				if received_request["type"] == "commandReport":
