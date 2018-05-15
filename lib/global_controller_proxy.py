@@ -14,9 +14,7 @@ class GlobalSolutionControllerProxy(object):
     def __init__(self, ip_address="127.0.0.1", requestPort=7001, subPort=7000):
         super(GlobalSolutionControllerProxy, self).__init__()
 
-        self.controllerName = None
         self.networkName = None
-        self.networkType = None
         self.solutionName = []
         self.commandList = []
         self.eventList = []
@@ -37,7 +35,7 @@ class GlobalSolutionControllerProxy(object):
         self.subSocket.connect(url)
         self.cmdRxThread = None
 
-    def set_solution_attributes(self, controllerName, networkType, solutionName, commands, monitorList):
+    def set_solution_attributes(self, networkName, solutionName, commands, monitorList):
         """
         Set attribute of the solution
         """
@@ -45,11 +43,10 @@ class GlobalSolutionControllerProxy(object):
         # De - activation
         # Event     List    of  monitoring  parameters
         # List  of  control knobs / parameters
-        self.controllerName = controllerName
-        self.networkType = networkType
+        self.networkName = networkName
         self.solutionName = solutionName
         self.commands = commands
-        self.commandList = sorted(list(commands.keys()))
+        self.commandList = list(commands.keys())
         self.monitorList = monitorList
 
     def register_solution(self):
@@ -70,8 +67,7 @@ class GlobalSolutionControllerProxy(object):
         #        "monitorList": self.monitorList}
         # new json format
         msg = {"type": "registerRequest",
-               "networkController": self.controllerName,
-               "networkType" : self.networkType,
+               "networkController": self.networkName,
                "solution": self.solutionName,
                "commandList": self.commandList,
                "monitorList": self.monitorList}
@@ -110,29 +106,27 @@ class GlobalSolutionControllerProxy(object):
                 print("received command : " + str(mdict))
                 # {'type': 'publisherUpdate', 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'involvedController': ['WIFI']}
                 involvedController = mdict.get("involvedController", [])
-                if self.controllerName in involvedController:
+                if self.networkName in involvedController:
                     commandListSolutions = mdict.get("commandList", {} )
                     # print(commandListSolutions) # 'WIFI_CT': {'START_WIFI': {'2437': True}} # {'LTE_CT': {'ENABLE_LTE_2_SUBFRAME': {}}}
-
                     # print(self.solutionName[0])
                     commandList = commandListSolutions.get(self.solutionName[0], None)
-                    print("commandList", commandList)
-                    if bool(commandList):
-                        commandList = commandListSolutions.get(self.solutionName[0], {})
-                        print(commandList)
-                        for command_name, command_parameter in commandList.items():
-                            print("Execute command {} with parameters {}".format(command_name,command_parameter))
-                            function = self.commands[command_name]
-
-                            executed = False
-                            try:
-                                function(command_parameter)
-                                executed = True
-                            except Exception:
-                                pass
-
-                            if not executed:
+                    if commandList and isinstance(commandList, list):
+                        for cmd in commandList:
+                            if cmd in self.commands:
+                                print("Execute command:", cmd)
+                                function = self.commands[cmd]
                                 function()
+                        continue
+
+                    if self.solutionName[0] in commandListSolutions:
+                        commandList = commandListSolutions.get(self.solutionName[0], {})
+                        # print(commandList)
+                        for command_name, command_parameter in commandList.items():
+                            # print("Execute command:", command_name)
+                            # print(command_parameter)
+                            function = self.commands[command_name]
+                            function()
 
             except KeyboardInterrupt:
                 return
@@ -200,13 +194,7 @@ class GlobalSolutionControllerProxy(object):
         }
         """
 
-        msg = {
-            'type': 'monitorReport',
-            'networkController': self.controllerName,
-            'monitorType': mon_type,
-            'networkType': net_type,
-            'monitorValue': value
-        }
+        msg = {'type': 'monitorReport', 'networkController': self.networkName, 'monitorType': mon_type, 'networkType': net_type, 'monitorValue': value }
         sequence = 0
         kvmsg = KVMsg(sequence)
         kvmsg.key = b"generic"

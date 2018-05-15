@@ -34,18 +34,35 @@ import numpy as np
 
 
 class SpectralRecorder:
-	phy = "phy1"
-	dev = "wlan1"
-	drv= "ath9k_htc"
+	# phy = "phy0"
+	# dev = "wlan0"
+	# drv = "ath10k"
+
+	# phy = "phy1"
+	# dev = "wlan1"
+	# drv = "ath9k"
+
+	phy = "phy4"
+	dev = "wlan0"
+	drv = "ath9k"
+
+
+	# phy = "phy2"
+	# dev = "wlxec086b0837f1"
+	# drv = "ath9k_htc"
+
 	mode="manual"		#works
 	fft_period=15
 	spectral_count=100
 	spectral_period=1
 	short_repeat=1
-	f0=2437e6
-	def __init__(self, phy="phy1", dev="wlan1", drv="ath9k_htc",
-			mode="manual", fft_period=15, spectral_count=100, 	spectral_period=1,short_repeat=1,
-		load=False, offline=True, freq=2437e6):
+	f0=2462e6
+	# f0 = 2437e6
+
+
+	def __init__(self, phy="phy3", dev="wlan0", drv="ath9k",
+			# mode="manual", fft_period=15, spectral_count=100, 	spectral_period=1,short_repeat=1, load=False, offline=True, freq=2462e6):
+			mode = "manual", fft_period = 15, spectral_count = 100, spectral_period = 1, short_repeat = 1, load = False, offline = True, freq = 2437e6):
 		self.phy 		= phy
 		self.dev 		= dev
 		self.drv		= drv
@@ -368,7 +385,6 @@ class SpectralRecorder:
 			# 		duration_energy_det_features.append(
 			# 		 	{"tsf": t_energy_det_start, "duration": energy_det_duration})
 			# 	else:
-
 
 			if P_av >= P_thr and start_energy_det:
 						t_energy_det_start = tt;
