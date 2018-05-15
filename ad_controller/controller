@@ -36,6 +36,7 @@ import json
 import struct  # for packing integers
 
 sys.path.append('../')
+sys.path.append('../../')
 from lib.kvsimple import KVMsg
 from lib.zhelpers import zpipe
 
