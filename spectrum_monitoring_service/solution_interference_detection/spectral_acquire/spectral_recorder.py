@@ -34,35 +34,15 @@ import numpy as np
 
 
 class SpectralRecorder:
-	# phy = "phy0"
-	# dev = "wlan0"
-	# drv = "ath10k"
-
-	# phy = "phy1"
-	# dev = "wlan1"
-	# drv = "ath9k"
-
-	phy = "phy4"
-	dev = "wlan0"
-	drv = "ath9k"
-
-
-	# phy = "phy2"
-	# dev = "wlxec086b0837f1"
-	# drv = "ath9k_htc"
-
 	mode="manual"		#works
 	fft_period=15
 	spectral_count=100
 	spectral_period=1
 	short_repeat=1
-	f0=2462e6
-	# f0 = 2437e6
 
 
-	def __init__(self, phy="phy3", dev="wlan0", drv="ath9k",
-			# mode="manual", fft_period=15, spectral_count=100, 	spectral_period=1,short_repeat=1, load=False, offline=True, freq=2462e6):
-			mode = "manual", fft_period = 15, spectral_count = 100, spectral_period = 1, short_repeat = 1, load = False, offline = True, freq = 2437e6):
+	def __init__(self, phy="phy0", dev="wlan0", drv="ath9k",
+			mode="manual", fft_period=15, spectral_count=100, spectral_period=1, short_repeat=1, load=False, offline=True, freq=2462e6):
 		self.phy 		= phy
 		self.dev 		= dev
 		self.drv		= drv
@@ -97,7 +77,7 @@ class SpectralRecorder:
 
 	def acquire(self,filename="data",T_acquire=1,T=0.1):
 		call("cat /sys/kernel/debug/ieee80211/" + self.phy + "/"+ self.drv +"/spectral_scan0 > {}".format(filename), shell=True)
-		time.sleep(T)
+		# time.sleep(T)
 		t0=time.time()
 		t0_a=t0
 		now=t0

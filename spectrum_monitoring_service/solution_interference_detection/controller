@@ -366,20 +366,20 @@ def receive_data_spectral(solutionCtrProxy):
 	# 5.0
 	# 2437.15625
 	# 2462
-	# bbMedianThMinLte = np.float32(4)
-	# bbMedianThMaxLte = np.float32(6)
-	bbMedianThMinLte = np.float32(10)
-	bbMedianThMaxLte = np.float32(14)
+	bbMedianThMinLte = np.float32(3)
+	bbMedianThMaxLte = np.float32(7)
+	# bbMedianThMinLte = np.float32(10)
+	# bbMedianThMaxLte = np.float32(14)
 	ff2MedianThMinLte = np.float32(2462)
-	ff2MedianThMaxLte = np.float32(2465)
+	ff2MedianThMaxLte = np.float32(2467)
 	# WiFi detection
 	# == == == == == == == == == == == == == == == == == ==
 	# 16.875
 	# 2436.84375
 	bbMedianThMinWiFi = np.float32(10)
 	bbMedianThMaxWiFi = np.float32(20)
-	ff2MedianThMinWiFi = np.float32(2433)
-	ff2MedianThMaxWiFi = np.float32(2438)
+	ff2MedianThMinWiFi = np.float32(2459)
+	ff2MedianThMaxWiFi = np.float32(2464)
 
 	predicted_value = "0000"
 	prediction_zigbee_count = 0
@@ -397,7 +397,7 @@ def receive_data_spectral(solutionCtrProxy):
 	reading_time = 1000
 	reading_time_sec = 1
 	filename = "/tmp/demo.tlv"
-	reading_interval = 1
+	reading_interval = 0.5
 	local_starttime = time.time()
 
 	# phy = "phy0"
@@ -408,17 +408,17 @@ def receive_data_spectral(solutionCtrProxy):
 	# dev = "wlan1"
 	# drv = "ath9k"
 
-	phy = "phy4"
-	dev = "wlan0"
-	drv = "ath9k"
+	# phy = "phy4"
+	# dev = "wlan0"
+	# drv = "ath9k"
 
-	# phy = "phy2"
-	# dev = "wlxec086b0837f1"
-	# drv = "ath9k_htc"
+	phy = "phy5"
+	dev = "wlxec086b0837f1"
+	drv = "ath9k_htc"
+	spectrum_center_freq = 2462e6 #2437e6
 
 	print("start spectral acquire")
-	sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
-	# sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2462e6)
+	sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=spectrum_center_freq)
 	sr.acquire(filename, T_acquire=0.4)
 	print("started")
 	dt = 0
@@ -426,8 +426,7 @@ def receive_data_spectral(solutionCtrProxy):
 
 	while True:
 		try:
-			# sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2462e6)
-			sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=2437e6)
+			sr = spectral_recorder.SpectralRecorder(phy=phy, dev=dev, drv=drv, load=True, offline=False, freq=spectrum_center_freq)
 			sr.acquire(filename, T_acquire=0.4)
 			[measurements, spectrum_features, duration_energy_det_features, duration_features, freq, power_features] = sr.get_spectrum_scan_features( filename, T=500e3)
 
@@ -485,16 +484,16 @@ def receive_data_spectral(solutionCtrProxy):
 					bandwidth_in_freq_range[ii] = 0
 
 			# print("3.2")
-			for ii in range(7):
-				print(round(center_in_freq_range[ii]), "\t\t", end='')
-			print("")
-			for ii in range(7):
-				print(num_element_in_freq_range[ii], "\t\t", end='')
-			print("")
-			# print("3.3")
-			for ii in range(7):
-				print(round(bandwidth_in_freq_range[ii]), "\t\t", end='')
-			print("")
+			# for ii in range(7):
+			# 	print(round(center_in_freq_range[ii]), "\t\t", end='')
+			# print("")
+			# for ii in range(7):
+			# 	print(num_element_in_freq_range[ii], "\t\t", end='')
+			# print("")
+			# # print("3.3")
+			# for ii in range(7):
+			# 	print(round(bandwidth_in_freq_range[ii]), "\t\t", end='')
+			# print("")
 
 
 			"""
@@ -521,7 +520,7 @@ def receive_data_spectral(solutionCtrProxy):
 			# print(ff2Median)
 
 			for ii in range(0,7):
-				if num_element_in_freq_range[ii] > 10:
+				if num_element_in_freq_range[ii] > 4:
 					if  bandwidth_in_freq_range[ii] < bbMedianThMaxZigbee and bandwidth_in_freq_range[ii] > bbMedianThMinZigbee:
 						prediction_zigbee_count += 1
 						prediction_zigbee_freq = center_in_freq_range[ii]
@@ -540,7 +539,22 @@ def receive_data_spectral(solutionCtrProxy):
 		except Exception as e:
 			print(e)
 
-		if not (dt % 3):
+		# if not (dt % 3):
+		if True:
+			print("Frequencies :", "\t\t", end='')
+			for ii in range(7):
+				print(round(center_in_freq_range[ii]), "\t\t", end='')
+			print("")
+			print("Occurances :", "\t\t", end='')
+			for ii in range(7):
+				print(num_element_in_freq_range[ii], "\t\t", end='')
+			print("")
+			print("Bandwidth :", "\t\t", end='')
+			for ii in range(7):
+				print(round(bandwidth_in_freq_range[ii]), "\t\t", end='')
+			print("")
+
+
 			print("take decision")
 			monitorValue = {}
 
@@ -592,7 +606,8 @@ def receive_data_spectral(solutionCtrProxy):
 			prediction_lte_count = 0
 
 		dt += 1
-		time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
+		# print(time.time())
+		# time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
 
 def setAP(controller, node, iface, wlan_ip, essid):
@@ -723,11 +738,12 @@ def main(args):
 	}
 	"""
 	networkName = "MONITOR_SERVICE_CNIT"
+	networkType = "MONITOR_SERVICE"
 	solutionName = ["INTERFERENCE_DETECTION"]
 	commands = {}
 	# commands = {"ON": enable_solution, "OFF": disable_solution}
 	monitorList = ["centerFreq"]
-	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList)
+	solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList)
 	# Register SpectrumSensing solution to global solution controller
 	response = solutionCtrProxy.register_solution()
 	if response:

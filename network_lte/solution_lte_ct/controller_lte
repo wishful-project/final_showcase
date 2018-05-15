@@ -714,7 +714,9 @@ def main(args):
 								print('\t- Starting program at TX Agent')
 								controller.node(nodes[jj]).radio.set_parameters({'IS_UE': False})
 								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
-								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2440000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2465000000})
 
 								# controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.8})
 								controller.node(nodes[jj]).radio.set_parameters({'RF_AMP': 0.7})
@@ -739,7 +741,10 @@ def main(args):
 							elif role[pos] == "UE":
 								controller.node(nodes[jj]).radio.set_parameters({'IS_UE': True})
 								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
-								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2440000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2465000000})
+
 								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 30})
 								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
 								controller.node(nodes[jj]).radio.set_parameters({'EQUALIZER_MODE': 'mmse'})
