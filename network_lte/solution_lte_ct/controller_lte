@@ -517,15 +517,15 @@ def wifiStatus():
 
 	wifiStateChange = True
 
-def startLte():
-	print("change lte state")
+def startLte(freq=2462):
+	print("start LTE on freq : ", freq)
 	global lteState, lteStateChange
 	lteState = "ENABLE"
 	lteStateChange = True
 
 
-def stopLte():
-	print("change lte state")
+def stopLte(freq=2462):
+	print("stop LTE on freq : ", freq)
 	global lteState, lteStateChange
 	lteState = "DISABLE"
 	lteStateChange = True
@@ -612,14 +612,11 @@ def main(args):
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
 	networkName = "LTE_TDMA"
 	solutionName = ["LTE_CT"]
+	networkType = 'LTE-U'
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
 	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
-	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
-
-
-
-
+	solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList )
 	# Register lte_ct solution to global solution controller
 	response = solutionCtrProxy.register_solution()
 	if response:
