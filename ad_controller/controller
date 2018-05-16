@@ -562,8 +562,8 @@ def main(args):
 						if startVisualizer:
 							send_status_update(socket_visualizer)
 
-						if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
-							obssManager.notify_channel_usage(received_request["monitorValue"])
+						if network and network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+							obssManager.notify_channel_usage(received_request)
 
 					elif received_request["monitorType"] == "performance":
 						now = datetime.datetime.now().timestamp()
@@ -572,11 +572,11 @@ def main(args):
 						if startVisualizer:
 							socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
 
-						if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
-							obssManager.notify_performance_report(received_request["monitorValue"])
+						if network and network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+							obssManager.notify_performance_report(received_request)
 
 					elif received_request["monitorType"] == "interference":
-						obssManager.notify_interference_report(received_request["monitorValue"])
+						obssManager.notify_interference_report(received_request)
 
 				# Process command Report
 				if received_request["type"] == "commandReport":
