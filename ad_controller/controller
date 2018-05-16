@@ -347,6 +347,10 @@ def print_menu_command():  ## Your menu design here
 		if commandToSend == "ENABLE_LTE_6_SUBFRAME":
 			msg["commandList"][selected_network.solution[0]] = {"ENABLE_LTE_6_SUBFRAME": {}}
 
+		if selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+			if commandToSend == "SWITCH_CHANNEL":
+				msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
+
 	if msg:
 		print('update message %s' % str(msg))
 		# Distribute as key-value message
