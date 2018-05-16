@@ -51,6 +51,7 @@ clear = lambda: os.system('clear')
 do_run = True
 solutionCompatibilityMatrix = []
 socket_visualizer = None
+startVisualizer = True
 
 # Overlapping BSS Management - AD logic
 obssManager = ObssManager()
@@ -233,6 +234,7 @@ def print_menu_command():  ## Your menu design here
 	global publisher
 	global socket_visualizer
 	global obssManager
+	global startVisualizer
 
 	# Command menu (choice of network)
 	print(30 * "-", "COMMAND MENU", 30 * "-")
@@ -426,13 +428,13 @@ def main(args):
 	global publisher
 	global socket_visualizer
 	global obssManager
+	global startVisualizer
 
 	# Init variables
 	kvmap = {}
 	networkNum = 0
 	sequence_publisher = 0
 
-	startVisualizer = True
 	if args['--novisualizer']:
 		print("Communication with visualizer won't be started")
 		startVisualizer = False
