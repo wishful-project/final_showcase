@@ -1,6 +1,13 @@
 Warm-up phase - Overlapping BSS Management
 ==========================================
 
+0. Login as root to following nodes (passwd: root):
+
+		ssh root@172.16.16.2
+		ssh root@172.16.16.4
+		ssh root@172.16.16.9
+		ssh root@172.16.16.10
+
 1. Start AD WiSHFUL controller on nuc9:
 
 		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ad.sh
