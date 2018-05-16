@@ -1,38 +1,30 @@
 Warm-up phase - Overlapping BSS Management
 ==========================================
 
-1. Install dependencies:
+1. Start AD WiSHFUL controller
 
-		apt-get install hostapd
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ad.sh
 
-2. Go to WiFi Warm-up phase:
+2. Start WiSHFUL controller
 
-		cd /final_showcase/wifi_warmup/scripts/
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller0.sh
 
-3. Start AD WiSHFUL controller
+3. Start AP0 WiSHFUL agent
+
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ap0.sh
+
+4. Start STA0 WiSHFUL agent
 		
-		./start_ad.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_sta0.sh
 
-4. Start WiSHFUL controller
+5. Start WiSHFUL controller
 
-		./start_controller0.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller1.sh
 
-5. Start AP0 WiSHFUL agent
+6. Start AP1 WiSHFUL agent
 
-		./start_ap0.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scriptsts/start_ap1.sh
 
-6. Start STA0 WiSHFUL agent
+7. Start STA1 WiSHFUL agent
 		
-		./start_sta0.sh
-
-7. Start WiSHFUL controller
-
-		./start_controller1.sh
-
-8. Start AP1 WiSHFUL agent
-
-		./start_ap1.sh
-
-9. Start STA1 WiSHFUL agent
-		
-		./start_sta1.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_sta1.sh
