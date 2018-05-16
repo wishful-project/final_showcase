@@ -36,6 +36,9 @@ import zmq
 import json
 import struct  # for packing integers
 
+# Overlapping BSS Management - AD logic
+from obss_manager import ObssManager
+
 sys.path.append('../')
 sys.path.append('../../')
 from lib.kvsimple import KVMsg
@@ -48,6 +51,9 @@ clear = lambda: os.system('clear')
 do_run = True
 solutionCompatibilityMatrix = []
 socket_visualizer = None
+
+# Overlapping BSS Management - AD logic
+obssManager = ObssManager()
 
 
 ###############################
@@ -226,6 +232,7 @@ def print_menu_command():  ## Your menu design here
 	global sequence_publisher
 	global publisher
 	global socket_visualizer
+	global obssManager
 
 	# Command menu (choice of network)
 	print(30 * "-", "COMMAND MENU", 30 * "-")
@@ -347,6 +354,10 @@ def print_menu_command():  ## Your menu design here
 		kvmsg.body = json.dumps(msg).encode('utf-8')
 		kvmsg.send(publisher)
 		print("sent update information with sequence %d" % sequence_publisher)
+
+		if selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+			obssManager.notify_command_msg(msg)
+
 	else:
 		print("Malformed message, sending failed")
 		print('update message %s' % str(msg))
@@ -414,6 +425,7 @@ def main(args):
 	global sequence_publisher
 	global publisher
 	global socket_visualizer
+	global obssManager
 
 	# Init variables
 	kvmap = {}
@@ -452,6 +464,9 @@ def main(args):
 
 	reader, stdin_thread = forward_standard_input(ctx)
 	poller.register(reader, zmq.POLLIN)
+
+	# Overlapping BSS Management - AD logic
+	obssManager.set_pub_socket(publisher)
 
 	clear()
 	print_log("START")
@@ -505,6 +520,10 @@ def main(args):
 								received_request["monitorList"]
 							)
 							solutionCompatibilityMatrix.append(network)
+
+							if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+								obssManager.add_network(network)
+
 						responseMsg = {"type": "registerResponse", "result": "ok"}
 					else:
 						print("received malformed registration request")
@@ -542,11 +561,22 @@ def main(args):
 						network.update_channel(received_request["monitorValue"])
 						if startVisualizer:
 							send_status_update(socket_visualizer)
+
+						if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+							obssManager.notify_channel_usage(received_request["monitorValue"])
+
 					elif received_request["monitorType"] == "performance":
 						now = datetime.datetime.now().timestamp()
 						received_request["monitorValue"]["timestamp"] = now
+
 						if startVisualizer:
 							socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
+
+						if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+							obssManager.notify_performance_report(received_request["monitorValue"])
+
+					elif received_request["monitorType"] == "interference":
+						obssManager.notify_interference_report(received_request["monitorValue"])
 
 				# Process command Report
 				if received_request["type"] == "commandReport":
