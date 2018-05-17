@@ -33,6 +33,25 @@ class WiFiNetwork(object):
         self.satisfied = True
         # throughput on each channel
         self.throughputCache = {}
+        self.cacheSize = 5
+        self.collectSamples = True
+
+        self.lastOptimizationTime = None
+        self.measurementsRunning = False
+
+    def check_cache(self, channels):
+        full = True
+        for ch in channels:
+            chanStats = self.throughputCache.get(ch, {})
+            samples = chanStats.get("thrSamples", [])
+            print(ch, samples, len(samples), self.cacheSize)
+            if len(samples) < self.cacheSize:
+                full = False
+
+        return full
+
+    def clean_thr_cache(self):
+        self.throughputCache = {}
 
     def send_switch_channel_cmd(self, socket, newChannel):
         msg = {'type': 'publisherUpdate',
@@ -86,32 +105,62 @@ class ObssManager(object):
 
         # check if active networks are satisfied with current traffic
         for n in activeNets:
-            # if no traffic do nothing
-            if n.requestedTraffic == 0:
-                return
-
-            if n.currentTraffic > 0.7 * n.requestedTraffic:
+            if n.currentTraffic >= 1.7 * n.requestedTraffic:
                 n.satisfied = True
             else:
                 n.satisfied = False
 
         if activeNetNumber == 1:
             net0 = activeNets[0]
-            if net0.satisfied:
-                # do nothing
+
+            # if no traffic do nothing
+            if net0.requestedTraffic == 0:
                 return
-            else:
-                # find channel with the best performance
+
+            now = time.time()
+            if net0.lastOptimizationTime is None or now - net0.lastOptimizationTime > 60:
+                # start checking channels
+                net0.lastOptimizationTime = now
+                net0.clean_thr_cache()
+                net0.measurementsRunning = True
+
+            # if no measurements return
+            if not net0.measurementsRunning:
+                return
+
+            print(net0.throughputCache)
+            # if we have all samples
+            if net0.check_cache(self.avaiableChannels):
+                net0.measurementsRunning = False
+                # select best channel
+                thrList = []
+
+                for ch in self.avaiableChannels:
+                    channelStats = net0.throughputCache.get(ch, {})
+                    meanThr = channelStats.get("mean", [])
+                    thrList.append(meanThr)
+
+                bestThr = max(thrList)
+                bestChanIdx = thrList.index(bestThr)
+                bestChan = self.avaiableChannels[bestChanIdx]
+                print("Best channel ", bestChan)
+                net0.send_switch_channel_cmd(self.pubSocket, bestChan)
+                net0.channel = bestChan
+                net0.lastChanSwitchTime = now
+                net0.clean_thr_cache()
+
+            # if we have samples for current channel-> switch channel
+            if net0.check_cache([net0.channel]):
                 newChannelIdx = self.avaiableChannels.index(net0.channel) + 1
                 if newChannelIdx >= len(self.avaiableChannels):
                     newChannelIdx = 0
 
                 newChannel = self.avaiableChannels[newChannelIdx]
                 now = time.time()
-                if now - net0.lastChanSwitchTime > self.minChanSwitchInterval:
-                    net0.send_switch_channel_cmd(self.pubSocket, newChannel)
-                    net0.channel = newChannel
-                    net0.lastChanSwitchTime = now
+                # if now-net0.lastChanSwitchTime > self.minChanSwitchInterval:
+                net0.send_switch_channel_cmd(self.pubSocket, newChannel)
+                net0.channel = newChannel
+                net0.lastChanSwitchTime = now
 
         elif activeNetNumber == 2:
             # manage networks
@@ -120,6 +169,10 @@ class ObssManager(object):
 
             if net0.satisfied and net1.satisfied:
                 # do nothing
+                return
+
+            # if no traffic do nothing
+            if net0.requestedTraffic == 0 and net1.requestedTraffic == 0:
                 return
 
     def add_network(self, network):
@@ -237,12 +290,17 @@ class ObssManager(object):
         network.performance = performance
         network.currentTraffic = throughput
 
-        # cache performance
-        network.throughputCache[network.channel] = {"timestamp": time.time(),
-                                                    "throughput": throughput}
-
         if network.channel is None:
             # wait for first channel usage report
             return
+
+        # cache performance
+        channelStats = network.throughputCache.get(network.channel, {})
+        thrSamples = channelStats.get("thrSamples", [])
+        thrSamples.append(throughput)
+        mean = sum(thrSamples) / len(thrSamples)
+        network.throughputCache[network.channel] = {"timestamp": time.time(),
+                                                    "thrSamples": thrSamples,
+                                                    "mean": mean}
 
         self._perform_optimization()
