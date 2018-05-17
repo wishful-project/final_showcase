@@ -27,9 +27,12 @@ class WiFiNetwork(object):
         self.bandwidth = None
         self.lastChanSwitchTime = time.time()
 
-        self.requestedTraffic = 0
-        self.currentTraffic = 0
+        self.requestedTraffic = 0.0
+        self.currentTraffic = 0.0
         self.performance = 0
+        self.satisfied = True
+        # throughput on each channel
+        self.throughputCache = {}
 
     def send_switch_channel_cmd(self, socket, newChannel):
         msg = {'type': 'publisherUpdate',
@@ -53,24 +56,71 @@ class ObssManager(object):
         self.wifiNetworks = {}
         self.pubSocket = None
         self.minChanSwitchInterval = 10
+        self.avaiableChannels = [1, 6, 11]
 
     def set_pub_socket(self, pubSocket):
         self.pubSocket = pubSocket
 
+    def get_active_networks(self,):
+        activeNets = []
+        for name, net in self.wifiNetworks.items():
+            if net.activated:
+                activeNets.append(net)
+
+        return activeNets
+
     def _perform_optimization(self):
-        net0 = self.wifiNetworks.get("WIFI_TUB_0", None)
+        activeNets = self.get_active_networks()
+        activeNetNumber = len(activeNets)
+        print("Number of active networks: ", activeNetNumber)
+        for n in activeNets:
+            print("---Net: ", n.ctrName,
+                  " Channel: ", n.channel,
+                  " Traffic: ",
+                  " Requested: ", n.requestedTraffic,
+                  " Current: ", n.currentTraffic)
 
-        if net0 and net0.activated:
-            if net0.requestedTraffic * 0.8 > net0.currentTraffic:
-                newChannel = net0.channel + 1
-                if newChannel > 11:
-                    newChannel = 1
+        if activeNetNumber == 0:
+            # do nothing
+            return
 
+        # check if active networks are satisfied with current traffic
+        for n in activeNets:
+            # if no traffic do nothing
+            if n.requestedTraffic == 0:
+                return
+
+            if n.currentTraffic > 0.7 * n.requestedTraffic:
+                n.satisfied = True
+            else:
+                n.satisfied = False
+
+        if activeNetNumber == 1:
+            net0 = activeNets[0]
+            if net0.satisfied:
+                # do nothing
+                return
+            else:
+                # find channel with the best performance
+                newChannelIdx = self.avaiableChannels.index(net0.channel) + 1
+                if newChannelIdx >= len(self.avaiableChannels):
+                    newChannelIdx = 0
+
+                newChannel = self.avaiableChannels[newChannelIdx]
                 now = time.time()
                 if now - net0.lastChanSwitchTime > self.minChanSwitchInterval:
                     net0.send_switch_channel_cmd(self.pubSocket, newChannel)
                     net0.channel = newChannel
                     net0.lastChanSwitchTime = now
+
+        elif activeNetNumber == 2:
+            # manage networks
+            net0 = activeNets[0]
+            net1 = activeNets[1]
+
+            if net0.satisfied and net1.satisfied:
+                # do nothing
+                return
 
     def add_network(self, network):
         self.networks.append(network)
@@ -134,6 +184,9 @@ class ObssManager(object):
                     requestedTraffic = 100
 
                 network.requestedTraffic = requestedTraffic
+                # stay on the channel for a while
+                # to measure the performance
+                network.lastChanSwitchTime = time.time()
 
     def notify_channel_usage(self, channelUsageMsg):
         print("ObssManager: Received Channel Usage Report")
@@ -148,6 +201,7 @@ class ObssManager(object):
         freqUsage = values["frequencies"]
         channelUsage = values["channels"]
 
+        oldChannel = network.channel
         try:
             network.channel = channelUsage[0]
             network.frequency = list(freqUsage.keys())[0]
@@ -156,6 +210,10 @@ class ObssManager(object):
             network.channel = None
             network.frequency = None
             network.bandwidth = None
+
+        if oldChannel is None and network.channel is not None:
+            # stay on the channel for a while
+            network.lastChanSwitchTime = time.time()
 
     def notify_interference_report(self, interferenceReport):
         print("ObssManager: Received Interference Report")
@@ -178,5 +236,13 @@ class ObssManager(object):
 
         network.performance = performance
         network.currentTraffic = throughput
+
+        # cache performance
+        network.throughputCache[network.channel] = {"timestamp": time.time(),
+                                                    "throughput": throughput}
+
+        if network.channel is None:
+            # wait for first channel usage report
+            return
 
         self._perform_optimization()

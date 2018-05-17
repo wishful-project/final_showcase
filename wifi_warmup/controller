@@ -100,8 +100,9 @@ def switch_channel(value):
     print("Channel receved from AD controller: ", newChannel)
     if newChannel == 0:
         curChannel = channelUsage["ap0"]
-        curChanIx = curChanIx + 1
+        curChanIx = availableChannels.index(curChannel)
 
+        curChanIx = curChanIx + 1
         if curChanIx >= len(availableChannels):
             curChanIx = 0
 
@@ -361,22 +362,23 @@ def main(args):
             print("Clean state")
             controller.nodes(sta0_node).net.destroy_packetflow_sink()
             controller.nodes(ap0_node).net.stop_packetflow()
-            controller.nodes(ap0_node).net.remove_traffic_shaper(interface=ap0_iface)
-            controller.nodes(sta0_node).net.remove_traffic_shaper(interface=sta0_iface)
-            controller.nodes(sta0_node).radio.iface(sta0_iface).set_tx_power(0)
-            controller.nodes(ap0_node).radio.iface(ap0_iface).set_tx_power(0)
+            trafficStarted = False
+
             controller.nodes(ap0_node).net.iface(ap0_iface).stop_hostapd()
             controller.nodes(ap0_node).net.iface(ap0_iface).disconnect_from_network(ap0_iface)
             controller.nodes(sta0_node).net.iface(sta0_iface).stop_hostapd()
             controller.nodes(sta0_node).net.iface(sta0_iface).disconnect_from_network(sta0_iface)
-            trafficStarted = False
-            time.sleep(1)
+            channelUsage = {}
+            controller.nodes(ap0_node).net.remove_traffic_shaper(interface=ap0_iface)
+            controller.nodes(sta0_node).net.remove_traffic_shaper(interface=sta0_iface)
+            time.sleep(2)
 
             print("Setup Access Points")
             controller.nodes(ap0_node).net.iface(ap0_iface).set_hostapd_conf(ap0_iface, hostapd_fn, 1, ssid)
             controller.nodes(ap0_node).net.iface(ap0_iface).start_hostapd(hostapd_fn)
             controller.nodes(ap0_node).net.iface(ap0_iface).set_ip_address(ap0_iface, "192.168.10.1")
             channelUsage["ap0"] = 1
+            time.sleep(2)
 
             print("Setup and connect STAs")
             controller.nodes(sta0_node).net.iface(sta0_iface).connect_to_network(sta0_iface, ssid, wpa_supplicant_fn)
