@@ -30,7 +30,7 @@ Warm-up phase - Overlapping BSS Management
 
 6. Start AP1 WiSHFUL agent on nuc4:
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scriptsts/start_ap1.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ap1.sh
 
 7. Start STA1 WiSHFUL agent on nuc2:
 		
