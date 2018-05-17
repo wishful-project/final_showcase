@@ -34,10 +34,17 @@ class WiFiNetwork(object):
         # throughput on each channel
         self.throughputCache = {}
         self.cacheSize = 5
-        self.collectSamples = True
 
         self.lastOptimizationTime = None
         self.measurementsRunning = False
+
+    def reset_stats(self):
+        self.lastOptimizationTime = None
+        self.measurementsRunning = False
+        self.satisfied = True
+        # throughput on each channel
+        self.throughputCache = {}
+        self.cacheSize = 5
 
     def check_cache(self, channels):
         full = True
@@ -200,6 +207,9 @@ class ObssManager(object):
 
         cmdList = cmdMsg["commandList"]
         cmds = cmdList["WiFi_Channel_Switching"]
+
+        for name, net in self.wifiNetworks.items():
+            net.reset_stats()
 
         for commandName, commandParameters in cmds.items():
             print("ObssManager: Received Command Message: ", commandName)
