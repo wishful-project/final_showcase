@@ -99,7 +99,7 @@ def main(args):
                                                      subPort=7000)
 
     networkName = [controllerName]
-    networkType = 'LTE_U'
+    networkType = 'DETECTOR'
     solutionName = ["WiPLUS_DETECTOR"]
     commands = {"ACTIVATE": start_bs,
                 "DEACTIVATE": stop_bs,
@@ -120,9 +120,45 @@ def main(args):
     else:
         print("Solution was not registered to Global Solution Controller")
 
+    channelToFreq = {1: 2412,
+                     2: 2417,
+                     3: 2422,
+                     4: 2427,
+                     5: 2432,
+                     6: 2437,
+                     7: 2442,
+                     8: 2447,
+                     9: 2452,
+                     10: 2457,
+                     11: 2462,
+                     12: 2467,
+                     13: 2472,
+                     14: 2484,
+                     }
+
+    channels = list(channelToFreq.keys())
+    channels = [1, 6, 11]
+
     # control loop
     while True:
         gevent.sleep(1)
+
+        # detect LTE
+        BW = 20
+        duty = 0.5
+
+        if wiplusEnabled:
+            # send interference report to AD controller
+            value = {}
+            lte = {}
+            busy = {}
+            for chan in channels:
+                lte[channelToFreq[chan]] = [BW, duty]
+                busy[channelToFreq[chan]] = [BW, duty]
+
+            value['LTE'] = lte
+            value['Busy'] = busy
+            solutionCtrProxy.send_monitor_report('interference', networkType, value)
 
 
 if __name__ == "__main__":
