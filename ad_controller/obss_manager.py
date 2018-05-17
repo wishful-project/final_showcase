@@ -112,7 +112,7 @@ class ObssManager(object):
 
         # check if active networks are satisfied with current traffic
         for n in activeNets:
-            if n.currentTraffic >= 1.7 * n.requestedTraffic:
+            if n.currentTraffic >= 0.8 * n.requestedTraffic:
                 n.satisfied = True
             else:
                 n.satisfied = False
@@ -135,7 +135,6 @@ class ObssManager(object):
             if not net0.measurementsRunning:
                 return
 
-            print(net0.throughputCache)
             # if we have all samples
             if net0.check_cache(self.avaiableChannels):
                 net0.measurementsRunning = False
@@ -144,9 +143,13 @@ class ObssManager(object):
 
                 for ch in self.avaiableChannels:
                     channelStats = net0.throughputCache.get(ch, {})
-                    meanThr = channelStats.get("mean", [])
+                    thrSamples = channelStats.get("thrSamples", [])
+                    # remove last as it may contain results from next channel
+                    del thrSamples[-1]
+                    meanThr = sum(thrSamples) / len(thrSamples)
                     thrList.append(meanThr)
 
+                print("Mean Thr ", thrList)
                 bestThr = max(thrList)
                 bestChanIdx = thrList.index(bestThr)
                 bestChan = self.avaiableChannels[bestChanIdx]
