@@ -72,6 +72,7 @@ Wishful FINAL SHOWCASE solution_lte_ct
     ~~~~
 
  #Start LTE traffic
+    ./srsLTE/build/srslte/examples/pdsch_enodeb -f 2462000000 -p 25 -w 1,1,1,1,1,1,1,0,0,0 -b f -g 78 -l 0.7 -m 4 -u 2000
     iperf -c 127.0.0.1 -p 2000 -i 1 -t 10000
 
  #Change LTE pattern

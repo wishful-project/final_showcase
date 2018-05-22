@@ -15,7 +15,7 @@ set -x
     ssh dgarlisi@nuc11 "cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct &&
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/python3.6/config-3.6m-x86_64-linux-gnu &&
     python3 agent_tx.py > agent.out 2> agent.err < /dev/null &" &
-    ssh dgarlisi@nuc6 "cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct &&
+    ssh dgarlisi@nuc6 "cd /groups/portable-ilabt-imec-be/wish/imec/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct &&
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/python3.6/config-3.6m-x86_64-linux-gnu &&
     python3 agent_rx.py > agent.out 2> agent.err < /dev/null &" &
     sleep 2

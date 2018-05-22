@@ -321,13 +321,13 @@ def print_menu_command():  ## Your menu design here
         elif commandToSend == "STOP_LTE":
             msg["commandList"][selected_network.solution[0]] = {"STOP_LTE": {}}
             msg["commandList"][selected_network.solution[0]]["STOP_LTE"]= {"2437": False}
-
-        if commandToSend == "ENABLE_LTE_TDM_SUBFRAME":
-            msg["commandList"][selected_network.solution[0]] = {"ENABLE_LTE_TDM_SUBFRAME": {}}
-        if commandToSend == "ENABLE_LTE_8_SUBFRAME":
-            msg["commandList"][selected_network.solution[0]] = {"ENABLE_LTE_8_SUBFRAME": {}}
-        if commandToSend == "ENABLE_LTE_6_SUBFRAME":
-            msg["commandList"][selected_network.solution[0]] = {"ENABLE_LTE_6_SUBFRAME": {}}
+            
+        #No arguments:
+        else:
+            msg["commandList"][selected_network.solution[0]] = {commandToSend: {}}
+            
+        #ELSE:
+        
 
     if msg:
         print('update message %s' % str(msg))

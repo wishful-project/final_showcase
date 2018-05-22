@@ -609,17 +609,15 @@ def main(args):
 	"""
 
 	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
+	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.3", requestPort=7001, subPort=7000)
+	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
 	networkName = "LTE_TDMA"
+	networkType = "Wi-Fi"
 	solutionName = ["LTE_CT"]
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
 	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
-	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
-
-
-
-
+	solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList )
 	# Register lte_ct solution to global solution controller
 	response = solutionCtrProxy.register_solution()
 	if response:
