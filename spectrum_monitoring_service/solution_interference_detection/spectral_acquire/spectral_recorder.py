@@ -34,18 +34,15 @@ import numpy as np
 
 
 class SpectralRecorder:
-	phy = "phy1"
-	dev = "wlan1"
-	drv= "ath9k_htc"
 	mode="manual"		#works
 	fft_period=15
 	spectral_count=100
 	spectral_period=1
 	short_repeat=1
-	f0=2437e6
-	def __init__(self, phy="phy1", dev="wlan1", drv="ath9k_htc",
-			mode="manual", fft_period=15, spectral_count=100, 	spectral_period=1,short_repeat=1,
-		load=False, offline=True, freq=2437e6):
+
+
+	def __init__(self, phy="phy0", dev="wlan0", drv="ath9k",
+			mode="manual", fft_period=15, spectral_count=100, spectral_period=1, short_repeat=1, load=False, offline=True, freq=2462e6):
 		self.phy 		= phy
 		self.dev 		= dev
 		self.drv		= drv
@@ -80,7 +77,7 @@ class SpectralRecorder:
 
 	def acquire(self,filename="data",T_acquire=1,T=0.1):
 		call("cat /sys/kernel/debug/ieee80211/" + self.phy + "/"+ self.drv +"/spectral_scan0 > {}".format(filename), shell=True)
-		time.sleep(T)
+		# time.sleep(T)
 		t0=time.time()
 		t0_a=t0
 		now=t0
@@ -368,7 +365,6 @@ class SpectralRecorder:
 			# 		duration_energy_det_features.append(
 			# 		 	{"tsf": t_energy_det_start, "duration": energy_det_duration})
 			# 	else:
-
 
 			if P_av >= P_thr and start_energy_det:
 						t_energy_det_start = tt;

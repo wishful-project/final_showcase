@@ -555,9 +555,10 @@ def main(args):
 	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
 	networkName = "WIFI_TDMA"
 	solutionName = ["WIFI_CT"]
+	networkType = 'IEEE_802.11'
 	commands = {"STOP_WIFI": (lambda: stopWifi()), "START_WIFI": (lambda:startWifi()), "STOP_TDMA": (lambda:stopTdma()), "START_TDMA": (lambda:startTdma())}
 	monitorList = ["THR", "PER"]
-	solutionCtrProxy.set_solution_attributes(networkName, solutionName, commands, monitorList )
+	solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList )
 
 	# Register lte_ct solution to global solution controller
 	response = solutionCtrProxy.register_solution()

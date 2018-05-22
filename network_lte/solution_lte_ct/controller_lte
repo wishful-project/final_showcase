@@ -517,15 +517,15 @@ def wifiStatus():
 
 	wifiStateChange = True
 
-def startLte():
-	print("change lte state")
+def startLte(freq=2462):
+	print("start LTE on freq : ", freq)
 	global lteState, lteStateChange
 	lteState = "ENABLE"
 	lteStateChange = True
 
 
-def stopLte():
-	print("change lte state")
+def stopLte(freq=2462):
+	print("stop LTE on freq : ", freq)
 	global lteState, lteStateChange
 	lteState = "DISABLE"
 	lteStateChange = True
@@ -609,11 +609,10 @@ def main(args):
 	"""
 
 	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.3", requestPort=7001, subPort=7000)
-	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
+	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
 	networkName = "LTE_TDMA"
-	networkType = "Wi-Fi"
 	solutionName = ["LTE_CT"]
+	networkType = 'LTE-U'
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
 	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
@@ -715,7 +714,9 @@ def main(args):
 								print('\t- Starting program at TX Agent')
 								controller.node(nodes[jj]).radio.set_parameters({'IS_UE': False})
 								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
-								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2440000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2465000000})
 
 								# controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.8})
 								controller.node(nodes[jj]).radio.set_parameters({'RF_AMP': 0.7})
@@ -740,7 +741,10 @@ def main(args):
 							elif role[pos] == "UE":
 								controller.node(nodes[jj]).radio.set_parameters({'IS_UE': True})
 								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2437000000})
-								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2440000000})
+								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
+								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2465000000})
+
 								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 30})
 								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
 								controller.node(nodes[jj]).radio.set_parameters({'EQUALIZER_MODE': 'mmse'})

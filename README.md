@@ -64,8 +64,13 @@ Start CNIT_LTE_NETWORK  (SHELL 3) (need AD controller activated):
     ex -sc $"%s/\r$//e|x" start_lte_network.sh
     bash start_lte_network.sh
 
+Start CNIT_LTE_NETWORK  (SHELL 4) (need AD controller activated):
 
-Start USRP channel trace visualizer on web portal  (SHELL 4):
+    ssh dgarlisi@nuc11
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/spectrum_monitoring_service/solution_interference_detection/
+    sudo python3 controller --config controller_cfg_nuc11.yaml --nodes node_info.txt
+
+Start USRP channel trace visualizer on web portal  (SHELL 5):
 
     ssh dgarlisi@nuc12
     cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal
@@ -73,7 +78,7 @@ Start USRP channel trace visualizer on web portal  (SHELL 4):
 
 you can see the trace via web browser at address : http://172.16.16.12/WishfulWebPortal/only_usrp.html
 
-Start graphical interface (SHELL 5):
+Start graphical interface (SHELL 6):
 
     ssh dgarlisi@nuc12
     cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/webui/

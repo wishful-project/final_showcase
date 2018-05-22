@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-wishful_agent.py: First implementation of WiSHFUL agent
+wishful_agent_simple.py: First implementation of WiSHFUL agent
 
 Usage:
-   wishful_agent.py [options] [-q | -v]
+   wishful_agent_simple.py [options] [-q | -v]
 
 Options:
    --logfile name      Name of the logfile
@@ -22,8 +22,6 @@ Other options:
 """
 
 import logging
-import signal
-import sys, os
 import yaml
 import wishful_agent
 
@@ -34,6 +32,7 @@ __email__ = "{gawlowicz, chwalisz}@tkn.tu-berlin.de"
 
 log = logging.getLogger('wishful_agent.main')
 agent = wishful_agent.Agent()
+
 
 def main(args):
     log.debug(args)
@@ -51,7 +50,7 @@ def main(args):
 if __name__ == "__main__":
     try:
         from docopt import docopt
-    except:
+    except Exception:
         print("""
         Please install docopt using:
             pip install docopt==0.6.1
