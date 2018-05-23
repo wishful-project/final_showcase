@@ -17,5 +17,6 @@ setup(
     description='WiSHFUL Final Showcase',
     long_description='WiSHFUL Final Showcase',
     keywords='wireless control',
-    install_requires=['pyyaml', 'docopt']
+    install_requires=['pyyaml', 'docopt', 'matplotlib']
 )
+

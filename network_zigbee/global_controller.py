@@ -46,6 +46,8 @@ taisc_manager = None
 app_manager = None
 global_node_manager = None
 solutionCtrProxy = None
+tdma_channel = 23
+channel_update = tdma_channel
 blacklisted_channels = []
 whitelisted_channels = []
 wifi_to_tsch_channels_dct = {}
@@ -54,8 +56,7 @@ number_of_packets_received = 0
 traffic_type = {"TYPE":"OFF"}
 mac_mode = "TSCH"
 lte_wifi_coexistence_enabled = 0
-lte_subframe_size = 6
-lte_subframe_size_cur = 6
+hopping_sequence = []
 # 0 = OFF
 # 1 = LOW
 # 2 = MEDIUM
@@ -72,7 +73,7 @@ def print_response(group, node, data):
 # Keep track on the number of failed packets
 # Dictionary with:
 # - keys = node id's
-# - values = [ number_of_packets_requested_prev, number_of_packets_success_prev, number_of_packets_requested_prev, number_of_packets_success_prev,  ]
+# - values = [ number_of_packets_requested_prev, number_of_packets_success_prev, number_of_packets_requested, number_of_packets_success,  ]
 per_value_prev = 0
 def macstats_event_cb(mac_address, event_name, event_value):
     global solutionCtrProxy, number_of_packets_received, per_value_prev
@@ -85,7 +86,7 @@ def macstats_event_cb(mac_address, event_name, event_value):
             number_of_packets_requested += per_dictionary[node_id][2] - per_dictionary[node_id][0]
             number_of_packets_transmitted += per_dictionary[node_id][3] - per_dictionary[node_id][1]
         if number_of_packets_requested != 0:
-            per_value = (
+            per_value = 1.0 - (
                 (number_of_packets_requested - number_of_packets_transmitted) 
                 / number_of_packets_requested
                 + per_value_prev) * 1.0
@@ -108,12 +109,20 @@ def macstats_event_cb(mac_address, event_name, event_value):
         if mac_address not in per_dictionary:
             per_dictionary[mac_address] = [0,0,0,0]
         per_dictionary[mac_address][0] = per_dictionary[mac_address][2] 
-        per_dictionary[mac_address][1] = per_dictionary[mac_address][3] 
         per_dictionary[mac_address][2] = event_value[1]
-        per_dictionary[mac_address][3] = event_value[4]
+        if per_dictionary[mac_address][3] != event_value[4]:
+            per_dictionary[mac_address][1] = per_dictionary[mac_address][3] 
+            per_dictionary[mac_address][3] = event_value[4]
 
 
 ## HELPER functions:
+def get_new_hopping_sequence(default_hopping_sequence, blacklisted_channels):
+    new_hopping_sequence = []
+    for channel in default_hopping_sequence:
+        if channel not in blacklisted_channels:
+            new_hopping_sequence.append(channel)
+    return new_hopping_sequence
+
 def mapWifiOnZigbeeChannels(log, channel_mapping):
     dct = {}
     try:
@@ -151,10 +160,10 @@ def send_channel_update(channels):
     }
     
     update_value = {
-		"channels" : [],
-		"frequencies" : {}
-	}
-	
+        "channels" : [],
+        "frequencies" : {}
+    }
+    
     for channel in channels:
         update_value["channels"].extend([channel])
         update_value["frequencies"].update(channelisation[channel])
@@ -170,6 +179,11 @@ def control_traffic(traffic_type):
         "MEDIUM": 5,
         "HIGH": 10,
     }
+
+    # Disable all applications:    
+    taisc_manager.update_macconfiguration({'TAISC_PG_ACTIVE' : 0})
+    app_manager.update_configuration({"app_send_interval": 0}, global_node_manager.get_mac_address_list())
+ 
     
     if traffic_type["TYPE"] in traffic_types:
         traffic_amount = traffic_types[traffic_type["TYPE"]]
@@ -184,6 +198,9 @@ def control_traffic(traffic_type):
                 * (len(global_node_manager.get_mac_address_list()) + 2) # Superframe size (beacon, upstream, downstream+)
                 / 1000 * max(traffic_types.values()) / traffic_amount))
 
+            # Set send interval:
+            print(app_manager.update_configuration({"app_send_interval": send_interval}, global_node_manager.get_mac_address_list()))
+
             # Activate:
             logging.info("Activating server {}".format(server_nodes))
             app_manager.update_configuration({"app_activate": 1},server_nodes)
@@ -192,10 +209,11 @@ def control_traffic(traffic_type):
         elif mac_mode == "LTE_COEXISTENCE":
             server_nodes = [1]
             client_nodes = [3]
-            send_interval = 30
-            taisc_manager.update_macconfiguration({'TAISC_PG_ACTIVE' : 1})            
-        logging.error("Send interval is {}".format(send_interval))
-        app_manager.update_configuration({"app_send_interval": send_interval}, global_node_manager.get_mac_address_list())
+            send_interval = int(5 * max(traffic_types.values()) / traffic_amount)
+            print(taisc_manager.update_macconfiguration(
+                {"TAISC_PG_INTERVAL": send_interval,
+                'TAISC_PG_ACTIVE' : 1}, client_nodes))
+        print("Send interval is {}".format(send_interval))
 
     else:
         # De-activate:
@@ -203,15 +221,24 @@ def control_traffic(traffic_type):
         app_manager.update_configuration({"app_activate": 0},global_node_manager.get_mac_address_list())
 
 ## Commands implementation:
-def blacklist():
+def blacklist(spectrum_scan):
     global blacklisted_channels
-    blacklisted_channels.append(wifi_to_tsch_channels_dct[6])
+    blacklisted_channels = []
+    for technology in spectrum_scan["monitorValue"]:
+        if technology != "ZigBee":
+            interference = spectrum_scan["monitorValue"][technology]
+            for interference_center, interference_information in interference.items():
+                interference_center = float(interference_center)
+                interference_bandwidth = float(interference_information[0])
+                interference_dutycycle = float(interference_information[1])
+                logging.info("INTERFERENCE ({}): {} {} {}".format(technology,interference_center, interference_bandwidth, interference_dutycycle))
+                for sicslowpan_channel in range(11,27):
+                    center_frequency = 2350 + sicslowpan_channel * 5
+                    if (center_frequency > interference_center - interference_bandwidth
+                            and center_frequency < interference_center + interference_bandwidth):
+                        if sicslowpan_channel not in blacklisted_channels:
+                            blacklisted_channels.append(sicslowpan_channel)
     logging.info("BLACKLIST {}".format(blacklisted_channels))
-
-def whitelist():
-    global whitelisted_channels
-    whitelisted_channels.append(wifi_to_tsch_channels_dct[6])
-    logging.info("WHITELIST {}".format(whitelisted_channels))
 
 def sicslowpan_traffic(traffic_type_value):
     global traffic_type
@@ -221,44 +248,43 @@ def lte_wifi_coexistence(enable):
     global lte_wifi_coexistence_enabled
     lte_wifi_coexistence_enabled = enable
     logging.info("lte_wifi_coexistence {}".format(lte_wifi_coexistence_enabled))
+    
+def set_channel(channel):
+    global channel_update
+    channel_update = channel
+    
+def set_tx_power(tx_power):
+    global tx_power_update
+    tx_power_update = tx_power
 
-def lte_wifi_coexistence_enable():
-    lte_wifi_coexistence(True)
-
-def lte_wifi_coexistence_disable():
-    lte_wifi_coexistence(False)
-
-def set_lte_subframe(lte_subframe_size):
-    global taisc_manager
-    lte_subframe_configs = {
-        2: {"lte_duration_min": 2000, "lte_duration_max": 2150 },
-        4: {"lte_duration_min": 4000, "lte_duration_max": 4150 },
-        6: {"lte_duration_min": 6000, "lte_duration_max": 6150 },
-    }
-    logging.info("Setting subframe size to {}".format(lte_subframe_size))
-    taisc_manager.update_macconfiguration(lte_subframe_configs[lte_subframe_size])  
-
-def enable_lte_2_subframe_sync():
-    global lte_subframe_size
-    lte_subframe_size = 2
-
-def enable_lte_4_subframe_sync():
-    global lte_subframe_size 
-    lte_subframe_size = 4
-
-def enable_lte_6_subframe_sync():
-    global lte_subframe_size 
-    lte_subframe_size = 6
     
 ## MAIN functionality:
 def main(args):
     global solutionCtrProxy, whitelisted_channels, blacklisted_channels, \
-        mac_mode, lte_wifi_coexistence_enablenetd, lte_subframe_size_cur, lte_subframe_size
+        mac_mode, channel_update, tdma_channel, tx_power_update, hopping_sequence
     # Init logging
     logging.debug(args)
     logging.info('******     WISHFUL  *****')
     logging.info('****** Starting solution (network_zigbee) ******')
 
+
+    # Update the TSCH configuration:
+    contiki_nodes = global_node_manager.get_mac_address_list()
+    logging.info("Connected nodes {}".format([str(node) for node in contiki_nodes]))
+    
+    mac_mode = "TSCH"
+    taisc_manager.activate_radio_program(mac_mode)
+    taisc_manager.update_slotframe('taisc_slotframe.csv', mac_mode)
+    taisc_manager.update_macconfiguration({'IEEE802154e_macSlotframeSize': len(contiki_nodes) + 1})
+    
+    # Read the default hopping sequence:
+    hopping_sequence = read_taisc_hoppingsequence("default_tsch_hopping_sequence.csv")
+    taisc_manager.update_hopping_sequence_from_list(hopping_sequence)
+    logging.info("Hopping sequence is {}".format(hopping_sequence))
+    logging.info("Finished configuring TSCH")
+    
+    current_traffic_type = traffic_type
+    
     """
     ****** setup the communication with the solution global controller ******
     """
@@ -268,13 +294,9 @@ def main(args):
     solutionName = ["blacklisting"]
     commands = {
         "6LOWPAN_BLACKLIST": blacklist,
-        "6LOWPAN_WHITELIST": whitelist,
         "TRAFFIC": sicslowpan_traffic,
-        "LTE_WIFI_ZIGBEE_DISABLE": lte_wifi_coexistence_disable,
-        "LTE_WIFI_ZIGBEE_ENABLE": lte_wifi_coexistence_enable,
-        "ENABLE_LTE_2_SUBFRAME_SYNC": enable_lte_2_subframe_sync,
-        "ENABLE_LTE_4_SUBFRAME_SYNC": enable_lte_4_subframe_sync,
-        "ENABLE_LTE_6_SUBFRAME_SYNC": enable_lte_6_subframe_sync,
+        "LTE_WIFI_ZIGBEE": lte_wifi_coexistence,
+        "CHANNEL" : set_channel
         }
     monitorList = ["6lowpan-THR", "6lowpan-PER"]
     solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList)
@@ -286,38 +308,39 @@ def main(args):
         solutionCtrProxy.start_command_listener()
     else:
         logging.error("Solution was not registered to Global Solution Controller")
+        
+    send_channel_update(hopping_sequence)
+    current_hopping_sequence = hopping_sequence
+    new_hopping_sequence = hopping_sequence
 
-    # Update the TSCH configuration:
-    contiki_nodes = global_node_manager.get_mac_address_list()
-    logging.info("Connected nodes {}".format([str(node) for node in contiki_nodes]))
-    
-    mac_mode = "TSCH"
-    taisc_manager.activate_radio_program(mac_mode)
-    taisc_manager.update_slotframe('taisc_slotframe.csv', mac_mode)
-    taisc_manager.update_macconfiguration({'IEEE802154e_macSlotframeSize': len(contiki_nodes) + 1})
-    send_channel_update([11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26])
-    logging.info("Finished configuring TSCH")
-    
-    current_traffic_type = traffic_type
-
+    """
+    ****** MAIN LOOP ******
+    """
     while True:
-        if len(whitelisted_channels):
-            taisc_manager.whitelist_channels(whitelisted_channels)
-            whitelisted_channels = []
-        if len(blacklisted_channels):
-            taisc_manager.blacklist_channels(blacklisted_channels)
-            blacklisted_channels = []
+        new_hopping_sequence = get_new_hopping_sequence(hopping_sequence, blacklisted_channels)
+        if set(new_hopping_sequence) != set(current_hopping_sequence):
+            taisc_manager.update_hopping_sequence_from_list(new_hopping_sequence)
+            current_hopping_sequence = new_hopping_sequence
         if current_traffic_type != traffic_type:
             control_traffic(traffic_type)
             current_traffic_type = traffic_type
         if lte_wifi_coexistence_enabled and mac_mode != "LTE_COEXISTENCE":
             mac_mode = "LTE_COEXISTENCE"
+            taisc_manager.update_macconfiguration({'IEEE802154_phyCurrentChannel': tdma_channel})
+            taisc_manager.activate_radio_program(mac_mode)
+            send_channel_update([tdma_channel])
+            control_traffic(current_traffic_type)
+        if not lte_wifi_coexistence_enabled and mac_mode == "LTE_COEXISTENCE":
+            mac_mode = "TSCH"
+            send_channel_update([11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26])
             taisc_manager.activate_radio_program(mac_mode)
             control_traffic(current_traffic_type)
-        if lte_subframe_size_cur != lte_subframe_size:
-            set_lte_subframe(lte_subframe_size)
-            lte_subframe_size_cur = lte_subframe_size
-            
+        if channel_update != tdma_channel:
+            tdma_channel = channel_update
+            taisc_manager.update_macconfiguration({'IEEE802154_phyCurrentChannel': tdma_channel})
+            if mac_mode == "LTE_COEXISTENCE":
+                send_channel_update([tdma_channel])
+
         gevent.sleep(1)
     logging.info('Controller Exiting')
     sys.exit()
@@ -352,7 +375,7 @@ if __name__ == "__main__":
     if "--cca_threshold" in args and args["--cca_threshold"] is not None:
         cca_threshold = int(args['--cca_threshold'])
     else:
-        cca_threshold = -75
+        cca_threshold = -80
         
     
     if "--tx_power" in args and args["--tx_power"] is not None:

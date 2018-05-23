@@ -39,6 +39,7 @@ import struct  # for packing integers
 # Overlapping BSS Management - AD logic
 from obss_manager import ObssManager
 
+
 sys.path.append('../')
 sys.path.append('../../')
 from lib.kvsimple import KVMsg
@@ -55,6 +56,10 @@ startVisualizer = True
 
 # Overlapping BSS Management - AD logic
 obssManager = ObssManager()
+
+# Management function for 6lowpan (zigbee)
+from sicslowpan_manager import SICSLOWPANNetwork
+sicslowpanManager = SICSLOWPANNetwork()
 
 
 ###############################
@@ -339,18 +344,19 @@ def print_menu_command():  ## Your menu design here
         elif commandToSend == "STOP_LTE":
             msg["commandList"][selected_network.solution[0]] = {"STOP_LTE": {}}
             msg["commandList"][selected_network.solution[0]]["STOP_LTE"]= {"2437": False}
+
+        # 6LOWPAN NETWORK COMMANDS:
+        elif commandToSend == "LTE_WIFI_ZIGBEE":
+            msg["commandList"][selected_network.solution[0]] = {"LTE_WIFI_ZIGBEE": True}
+
+        # TUB WIFI:
         elif selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
             if commandToSend == "SWITCH_CHANNEL":
-                msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}    
-        #No arguments:
+                msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
+        # No arguments:
         else:
             msg["commandList"][selected_network.solution[0]] = {commandToSend: {}}
             
-        #ELSE:
-        
-        if selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
-            if commandToSend == "SWITCH_CHANNEL":
-                msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
 
     if msg:
         print('update message %s' % str(msg))
@@ -529,6 +535,9 @@ def main(args):
 
                             if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
                                 obssManager.add_network(network)
+                            elif network.name == "6lowPAN":
+                                sicslowpanManager.set_network(network)
+                                sicslowpanManager.set_publisher(publisher)
 
                         responseMsg = {"type": "registerResponse", "result": "ok"}
                     else:
@@ -583,6 +592,7 @@ def main(args):
 
                     elif received_request["monitorType"] == "interference":
                         obssManager.notify_interference_report(received_request)
+                        sicslowpanManager.notify_interference_report(received_request)
 
                 # Process command Report
                 if received_request["type"] == "commandReport":
