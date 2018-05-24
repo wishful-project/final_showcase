@@ -353,7 +353,17 @@ def print_menu_command():  ## Your menu design here
         elif selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
             if commandToSend == "SWITCH_CHANNEL":
                 msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
-        # No arguments:
+
+        # TCD NB-IoT Virtual
+        elif commandToSend == "START_NBIOT":
+            msg["commandList"][selected_network.solution[0]] = {"START_NBIOT": {}}
+            msg["commandList"][selected_network.solution[0]]["START_NBIOT"] = {"2437": True}
+        elif commandToSend == "STOP_NBIOT":
+            msg["commandList"][selected_network.solution[0]] = {"STOP_NBIOT": {}}
+            msg["commandList"][selected_network.solution[0]]["STOP_NBIOT"] = {"2437": False}
+
+
+        # No arguments
         else:
             msg["commandList"][selected_network.solution[0]] = {commandToSend: {}}
             
@@ -472,7 +482,7 @@ def main(args):
 
     # Init connection with GUI ffor LOG
     if startVisualizer:
-        socket_visualizer = start_visualizer_connection("172.16.16.3")
+        socket_visualizer = start_visualizer_connection("172.16.16.5")
 
     reader, stdin_thread = forward_standard_input(ctx)
     poller.register(reader, zmq.POLLIN)
