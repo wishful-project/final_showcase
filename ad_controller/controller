@@ -482,7 +482,7 @@ def main(args):
 
     # Init connection with GUI ffor LOG
     if startVisualizer:
-        socket_visualizer = start_visualizer_connection("172.16.16.5")
+        socket_visualizer = start_visualizer_connection("172.16.16.3")
 
     reader, stdin_thread = forward_standard_input(ctx)
     poller.register(reader, zmq.POLLIN)
