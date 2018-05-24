@@ -37,7 +37,7 @@ def stats_listener(endpoint, server_context):
 
         msg = json.loads(full_msg[1].decode('utf-8'), encoding='utf-8')
 
-        #print(msg)
+        print(msg)
 
         if full_msg[0] == b'monitorReport':
             for ses in server_context.application_context.sessions:
