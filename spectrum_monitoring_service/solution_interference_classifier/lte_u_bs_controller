@@ -8,8 +8,9 @@ Usage:
    controller [options] [-q | -v]
 
 Options:
-   --logfile name      Name of the logfile
-   --config configFile Config file path
+   --logfile name        Name of the logfile
+   --config configFile   Config file path
+   --ad_address ipAddress IP address of AD controller
 
 Example:
    ./controller -v --config ./config.yaml 
@@ -93,6 +94,9 @@ def main(args):
     if parameters:
         controllerName = parameters.get("controllerName", None)
         ad_address = parameters.get("ad_address", "127.0.0.1")
+
+    if args['--ad_address']:
+        ad_address = args['--ad_address']
 
     controller.load_config(config)
     controller.start()

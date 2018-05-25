@@ -8,8 +8,8 @@ WiPLUS - LTE-U detector
 
 1. Start WiPLUS detector controller on nuc1:
 
-		/home/piotr/wifi_warmup/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_lte_u_bs.sh
+		/home/piotr/wishful/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_lte_u_bs.sh 172.16.16.9
 
 2. Start LTE-U BS controller on nuc2:
 
-		/home/piotr/wifi_warmup/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_wiplus.sh
+		/home/piotr/wishful/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_wiplus.sh 172.16.16.9
