@@ -14,7 +14,7 @@ Warm-up phase - Overlapping BSS Management
 
 2. Start WiSHFUL controller on nuc9:
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller0.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller0.sh 172.16.16.9
 
 3. Start AP0 WiSHFUL agent on nuc9:
 
@@ -24,9 +24,9 @@ Warm-up phase - Overlapping BSS Management
 		
 		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_sta0.sh
 
-5. Start WiSHFUL controller on nuc4:
+5. Start WiSHFUL controller on nuc4 (arg = IP address of AD controller):
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller1.sh
+		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller1.sh 172.16.16.9
 
 6. Start AP1 WiSHFUL agent on nuc4:
 
