@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#ssh kistm@nuc5 "killall -9 python2; killall -9 python3"
+ssh kistm@nuc5 "killall -9 python2; killall -9 python3"
 ssh kistm@nuc7 "killall -9 python2; killall -9 python3"
 ssh kistm@nuc8 "killall -9 python2; killall -9 python3"
 
