@@ -1,7 +1,11 @@
 Wishful FINAL SHOWCASE network_zigbee
 ==========================================
 
-0. Flash the sensor nodes (only necessary if zolertia remotes were not flashed with this image before)
+0. Change to wishful user (password wishful)
+
+        su wishful 
+
+1. Flash the sensor nodes (ONLY NECESSARY if zolertia remotes were not flashed with this image before)
 
 Navigate to the udp example directory:
 
@@ -9,9 +13,9 @@ Navigate to the udp example directory:
 
 Execute the make command (X is the node id)
         
-        make TARGET=zoul udp-example.upload NODE_ID=X MOTES=/dev/ttyUSB0
+        make TARGET=zoul udp-example.upload NODE_ID=1
         
-1. run the agent:
+2. run the agent:
 
 Activate the virtual environment:
 
@@ -25,7 +29,7 @@ Start the agent:
 
         python agent.py --config config/portable/agent_config.yaml
 
-2. run the global controller:
+3. run the global controller:
 
 Activate the virtual environment:
 
@@ -37,4 +41,4 @@ Go to the zigbee network directory:
 
 Start the global controller:
 
-        python global_controller.py
+        python global_controller.py --config config/portable --solution_controller "AD_CONTROLLER_IP"
