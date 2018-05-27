@@ -351,8 +351,32 @@ def print_menu_command():  ## Your menu design here
 
         # TUB WIFI:
         elif selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
-            if commandToSend == "SWITCH_CHANNEL":
+            if commandToSend == "ACTIVATE":
+                msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {}}
+            elif commandToSend == "DEACTIVATE":
+                msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+            elif commandToSend == "TRAFFIC_SET_OFF":
+                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_OFF": {}}
+            elif commandToSend == "TRAFFIC_SET_LOW":
+                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_LOW": {}}
+            elif commandToSend == "TRAFFIC_SET_MEDIUM":
+                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_MEDIUM": {}}
+            elif commandToSend == "TRAFFIC_SET_HIGH":
+                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_HIGH": {}}
+            elif commandToSend == "TRAFFIC":
+                traffic_load = "HIGH"
+                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC": {"TYPE": traffic_load}}
+            elif commandToSend == "SWITCH_CHANNEL":
                 msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
+
+        # TUB NON_WISHFUL_LTE_U:
+        elif selected_network.name in ["NON_WISHFUL_LTE_U", "Non_WiSHFUL_LTE_U_BS"]:
+            if commandToSend == "ACTIVATE":
+                msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {"freq" : 2412}}
+            elif commandToSend == "DEACTIVATE":
+                msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+            elif commandToSend == "SET_FREQ":
+                msg["commandList"][selected_network.solution[0]] = {"SET_FREQ": {"freq" : 2437}}
 
         # TCD NB-IoT Virtual
         elif commandToSend == "START_NBIOT":
