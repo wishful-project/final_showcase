@@ -12,7 +12,11 @@ def on_server_loaded(server_context):
         ),
         Thread(
             target=collector.usrp_listener,
-            args=('tcp://*:5507', server_context),
+            args=('tcp://*:5507', server_context, "spec_low"),
+        ),
+        Thread(
+            target=collector.usrp_listener,
+            args=('tcp://*:5508', server_context, "spec_high"),
         ),
     ]
     for t in threads:

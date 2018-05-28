@@ -5,14 +5,14 @@ from bokeh.models import Title
 from bokeh.plotting import figure
 
 
-def get_plot():
+def get_plot(name='spectrogram'):
     data = ColumnDataSource(
         data=dict(spectrogram=[]),
-        name='spectrogram',
+        name=name,
     )
     variables = ColumnDataSource(
         data=dict(fc=[2e9], bw=[20e6], size=[512]),
-        name='spectrogram_vars',
+        name=name + '_vars',
     )
     plot = figure(
         plot_height=300, plot_width=400,

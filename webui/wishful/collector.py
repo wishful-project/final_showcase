@@ -75,7 +75,7 @@ def usrp_fig_update(source, fc, bw, size):
     source.update(data=dict(fc=[fc], bw=[bw], size=[size]))
 
 
-def usrp_listener(endpoint, server_context):
+def usrp_listener(endpoint, server_context, name="spectrogram"):
     logging.info('Starting USRP listener on %s', endpoint)
 
     context = zmq.Context()
@@ -93,7 +93,7 @@ def usrp_listener(endpoint, server_context):
         for ses in server_context.application_context.sessions:
             ses._document.add_next_tick_callback(partial(
                 usrp_plot_update,
-                source=ses._document.select_one({'name': 'spectrogram'}),
+                source=ses._document.select_one({'name': name}),
                 spectrogram=spectrogram,
             ))
 
@@ -103,7 +103,7 @@ def usrp_listener(endpoint, server_context):
             ses._document.add_next_tick_callback(partial(
                 usrp_fig_update,
                 source=ses._document.select_one(
-                    {'name': 'spectrogram_vars'}),
+                    {'name': name + '_vars'}),
                 fc=fc,
                 bw=bw,
                 size=size,

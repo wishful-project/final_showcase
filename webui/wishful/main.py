@@ -28,7 +28,10 @@ active_networks_table = DataTable(
     columns=nsu_cols,
 )
 
-plots = [[usrp.get_plot(), active_networks_table]]
+plots = [[
+    usrp.get_plot('spec_low'),
+    usrp.get_plot('spec_high'),
+    active_networks_table]]
 master_range = None
 
 for technology in conf.controllers:
