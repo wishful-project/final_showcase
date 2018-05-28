@@ -48,32 +48,15 @@ controller = wishful_controller.Controller()
 wiplusEnabled = True
 nodes = []
 
-def start_bs(value):
+def start_detector(value):
     print("Start WiPLUS")
     global wiplusEnabled
     wiplusEnabled = True
 
-def stop_bs(value):
+def stop_detector(value):
     print("Stop WiPLUS")
     global wiplusEnabled
     wiplusEnabled = False
-
-@controller.new_node_callback()
-def new_node(node):
-    nodes.append(node)
-    print("New node appeared:", node.name)
-
-@controller.node_exit_callback()
-def node_exit(node, reason):
-    if node in nodes:
-        nodes.remove(node);
-    print("NodeExit : NodeID : {} Reason : {}".format(node.id, reason))
-
-def get_node_by_name(nodes, nodeName):
-    for n in nodes:
-        if n.name == nodeName:
-            return n
-    return None
 
 def main(args):
     global controller
@@ -105,8 +88,8 @@ def main(args):
     networkName = [controllerName]
     networkType = 'DETECTOR'
     solutionName = ["WiPLUS_DETECTOR"]
-    commands = {"ACTIVATE": start_bs,
-                "DEACTIVATE": stop_bs,
+    commands = {"ACTIVATE": start_detector,
+                "DEACTIVATE": stop_detector,
                 }
     monitorList = []
     solutionCtrProxy.set_solution_attributes(controllerName,
