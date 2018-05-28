@@ -93,34 +93,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(303, 19)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>center_freq</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>2.462e9</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(407, 19)</value>
+      <value>(304, 20)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -147,7 +120,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(512, 20)</value>
+      <value>(208, 20)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -163,7 +136,11 @@
     </param>
   </block>
   <block>
-    <key>variable</key>
+    <key>parameter</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
     <param>
       <key>comment</key>
       <value></value>
@@ -174,7 +151,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(199, 19)</value>
+      <value>(24, 424)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -182,38 +159,23 @@
     </param>
     <param>
       <key>id</key>
-      <value>samp_rate</value>
+      <value>bandwidth</value>
+    </param>
+    <param>
+      <key>label</key>
+      <value>Collected bandwidth</value>
+    </param>
+    <param>
+      <key>short_id</key>
+      <value>b</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>eng_float</value>
     </param>
     <param>
       <key>value</key>
-      <value>22e6</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(624, 20)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>usrp_addr</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>"192.168.20.2"</value>
+      <value>22000000</value>
     </param>
   </block>
   <block>
@@ -480,6 +442,49 @@
     </param>
   </block>
   <block>
+    <key>parameter</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(24, 312)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>center_frequency</value>
+    </param>
+    <param>
+      <key>label</key>
+      <value>Center frequency</value>
+    </param>
+    <param>
+      <key>short_id</key>
+      <value>c</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>eng_float</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>2462000000</value>
+    </param>
+  </block>
+  <block>
     <key>epy_block</key>
     <param>
       <key>alias</key>
@@ -588,7 +593,7 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(504, 152)</value>
+      <value>(496, 152)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -616,7 +621,7 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     </param>
     <param>
       <key>sample_rate</key>
-      <value>samp_rate</value>
+      <value>bandwidth</value>
     </param>
   </block>
   <block>
@@ -631,11 +636,11 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     </param>
     <param>
       <key>bw0</key>
-      <value>0</value>
+      <value>bandwidth</value>
     </param>
     <param>
       <key>center_freq0</key>
-      <value>center_freq</value>
+      <value>center_frequency</value>
     </param>
     <param>
       <key>dc_offs_enb0</key>
@@ -1791,7 +1796,7 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     </param>
     <param>
       <key>dev_addr</key>
-      <value>"type=b200"</value>
+      <value>usrp_addr</value>
     </param>
     <param>
       <key>dev_args</key>
@@ -1803,7 +1808,7 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(112, 160)</value>
+      <value>(56, 152)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1931,11 +1936,11 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     </param>
     <param>
       <key>samp_rate</key>
-      <value>samp_rate</value>
+      <value>bandwidth</value>
     </param>
     <param>
       <key>hide_cmd_port</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>hide_lo_controls</key>
@@ -1956,6 +1961,49 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     <param>
       <key>otw</key>
       <value>sc16</value>
+    </param>
+  </block>
+  <block>
+    <key>parameter</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(24, 544)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>usrp_addr</value>
+    </param>
+    <param>
+      <key>label</key>
+      <value>Select USRP</value>
+    </param>
+    <param>
+      <key>short_id</key>
+      <value>u</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>string</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>"type=b200"</value>
     </param>
   </block>
   <block>
@@ -2125,12 +2173,16 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
   <block>
     <key>epy_block</key>
     <param>
+      <key>addr</key>
+      <value>zmq_addr</value>
+    </param>
+    <param>
       <key>alias</key>
       <value></value>
     </param>
     <param>
       <key>_io_cache</key>
-      <value>('Waterfall ZMQ Sink', 'blk', [('freq_Size', '128'), ('num_Samples', '1000'), ('msg_interval', '1000')], [('0', 'float', 128)], [], 'Waterfall ZMQ Sink\n\n    It will send Waterfall plot data over ZMQ PUB socket.\n    ', ['msg_interval'])</value>
+      <value>('Waterfall ZMQ Sink', 'blk', [('freq_Size', '128'), ('num_Samples', '1000'), ('msg_interval', '1000'), ('addr', "'tcp://localhost:5507'")], [('0', 'float', 128)], [], 'Waterfall ZMQ Sink\n\n    It will send Waterfall plot data over ZMQ PUB socket.\n    ', ['msg_interval'])</value>
     </param>
     <param>
       <key>_source_code</key>
@@ -2155,7 +2207,11 @@ class blk(gr.sync_block):
     It will send Waterfall plot data over ZMQ PUB socket.
     """
 
-    def __init__(self, freq_Size=128, num_Samples=1000, msg_interval=1000):
+    def __init__(self,
+            freq_Size=128,
+            num_Samples=1000,
+            msg_interval=1000,
+            addr='tcp://localhost:5507'):
         """arguments to this function show up as parameters in GRC"""
         self.freq_size = freq_Size
         gr.sync_block.__init__(
@@ -2172,16 +2228,19 @@ class blk(gr.sync_block):
 
         context = zmq.Context()
         self.sock = context.socket(zmq.PUB)
-        self.sock_bind = False
+        self.sock_addr = addr
+        self.sock_connected = False
         self.last_msg_time = datetime.datetime.now()
 
     def work(self, input_items, output_items):
-        if not self.sock_bind:
-            self.sock.bind('tcp://*:9055')
-            self.sock_bind = True
+        if not self.sock_connected:
+            print('Connecting to {}'.format(self.sock_addr))
+            self.sock.connect(self.sock_addr)
+            self.sock_connected = True
         current_time = datetime.datetime.now()
 
-        if (current_time - self.last_msg_time) &gt; datetime.timedelta(seconds=10):
+        if ((current_time - self.last_msg_time)
+                &gt; datetime.timedelta(seconds=10)):
             return -1
 
         tags = self.get_tags_in_window(0, 0, self.nsamples)
@@ -2213,9 +2272,10 @@ class blk(gr.sync_block):
             data.ravel().tobytes(),
         ]
         self.sock.send_multipart(full_msg)
-        print('i: %s, p: %s' % (
+        print('i: %s, p: %s %s' % (
             str(now - self.last_msg_time),
             str(datetime.datetime.now() - now),
+            str(self.sock_connected),
         ))
 </value>
     </param>
@@ -2250,6 +2310,49 @@ class blk(gr.sync_block):
     <param>
       <key>num_Samples</key>
       <value>1000</value>
+    </param>
+  </block>
+  <block>
+    <key>parameter</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(24, 656)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>zmq_addr</value>
+    </param>
+    <param>
+      <key>label</key>
+      <value></value>
+    </param>
+    <param>
+      <key>short_id</key>
+      <value>a</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>string</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>"tcp://localhost:5507"</value>
     </param>
   </block>
   <connection>

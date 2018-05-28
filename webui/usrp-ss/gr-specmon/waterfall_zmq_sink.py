@@ -19,7 +19,11 @@ class blk(gr.sync_block):
     It will send Waterfall plot data over ZMQ PUB socket.
     """
 
-    def __init__(self, freq_Size=128, num_Samples=1000, msg_interval=1000):
+    def __init__(self,
+            freq_Size=128,
+            num_Samples=1000,
+            msg_interval=1000,
+            addr='tcp://localhost:5507'):
         """arguments to this function show up as parameters in GRC"""
         self.freq_size = freq_Size
         gr.sync_block.__init__(
@@ -36,18 +40,19 @@ class blk(gr.sync_block):
 
         context = zmq.Context()
         self.sock = context.socket(zmq.PUB)
-        self.sock_bind = False
+        self.sock_addr = addr
+        self.sock_connected = False
         self.last_msg_time = datetime.datetime.now()
 
     def work(self, input_items, output_items):
-        if self.sock_bind:
-            self.sock.bind('tcp://*:9055')
-            self.sock_bind = True
-        else:
-            self.sock.connect('tcp://localhost:5507')
+        if not self.sock_connected:
+            print('Connecting to {}'.format(self.sock_addr))
+            self.sock.connect(self.sock_addr)
+            self.sock_connected = True
         current_time = datetime.datetime.now()
 
-        if (current_time - self.last_msg_time) > datetime.timedelta(seconds=10):
+        if ((current_time - self.last_msg_time)
+                > datetime.timedelta(seconds=10)):
             return -1
 
         tags = self.get_tags_in_window(0, 0, self.nsamples)
@@ -79,7 +84,8 @@ class blk(gr.sync_block):
             data.ravel().tobytes(),
         ]
         self.sock.send_multipart(full_msg)
-        print('i: %s, p: %s' % (
+        print('i: %s, p: %s %s' % (
             str(now - self.last_msg_time),
             str(datetime.datetime.now() - now),
+            str(self.sock_connected),
         ))

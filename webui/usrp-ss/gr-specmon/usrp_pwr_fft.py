@@ -4,7 +4,7 @@
 # GNU Radio Python Flow Graph
 # Title: USRP Spectrum Monitor
 # Author: Mikołaj Chwalisz
-# Generated: Wed Apr 11 15:29:56 2018
+# Generated: Mon May 28 15:38:20 2018
 ##################################################
 
 from gnuradio import blocks
@@ -21,36 +21,42 @@ import waterfall_zmq_sink
 
 class usrp_pwr_fft(gr.top_block):
 
-    def __init__(self):
+    def __init__(self, bandwidth=22000000, center_frequency=2462000000, usrp_addr="type=b200", zmq_addr="tcp://localhost:5507"):
         gr.top_block.__init__(self, "USRP Spectrum Monitor")
+
+        ##################################################
+        # Parameters
+        ##################################################
+        self.bandwidth = bandwidth
+        self.center_frequency = center_frequency
+        self.usrp_addr = usrp_addr
+        self.zmq_addr = zmq_addr
 
         ##################################################
         # Variables
         ##################################################
-        self.usrp_addr = usrp_addr = "192.168.20.2"
-        self.samp_rate = samp_rate = 22e6
         self.frame_rate = frame_rate = 0.001
         self.fft_size = fft_size = 128
-        self.center_freq = center_freq = 2.462e9
 
         ##################################################
         # Blocks
         ##################################################
-        self.waterfall_zmq_sink = waterfall_zmq_sink.blk(freq_Size=fft_size, num_Samples=1000, msg_interval=1000)
+        self.waterfall_zmq_sink = waterfall_zmq_sink.blk(freq_Size=fft_size, num_Samples=1000, msg_interval=1000, addr=zmq_addr)
         self.uhd_usrp_source_0_0 = uhd.usrp_source(
-        	",".join(("type=b200", '')),
+        	",".join((usrp_addr, '')),
         	uhd.stream_args(
         		cpu_format="fc32",
         		otw_format='sc16',
         		channels=range(1),
         	),
         )
-        self.uhd_usrp_source_0_0.set_samp_rate(samp_rate)
-        self.uhd_usrp_source_0_0.set_center_freq(center_freq, 0)
+        self.uhd_usrp_source_0_0.set_samp_rate(bandwidth)
+        self.uhd_usrp_source_0_0.set_center_freq(center_frequency, 0)
         self.uhd_usrp_source_0_0.set_gain(30, 0)
+        self.uhd_usrp_source_0_0.set_bandwidth(bandwidth, 0)
         (self.uhd_usrp_source_0_0).set_min_output_buffer(2024)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
-        	sample_rate=samp_rate,
+        	sample_rate=bandwidth,
         	fft_size=fft_size,
         	ref_scale=2,
         	frame_rate=1000,
@@ -74,19 +80,33 @@ class usrp_pwr_fft(gr.top_block):
         self.connect((self.logpwrfft_x_0, 0), (self.blocks_vector_to_stream_0, 0))
         self.connect((self.uhd_usrp_source_0_0, 0), (self.logpwrfft_x_0, 0))
 
+    def get_bandwidth(self):
+        return self.bandwidth
+
+    def set_bandwidth(self, bandwidth):
+        self.bandwidth = bandwidth
+        self.uhd_usrp_source_0_0.set_samp_rate(self.bandwidth)
+        self.uhd_usrp_source_0_0.set_bandwidth(self.bandwidth, 0)
+        self.logpwrfft_x_0.set_sample_rate(self.bandwidth)
+
+    def get_center_frequency(self):
+        return self.center_frequency
+
+    def set_center_frequency(self, center_frequency):
+        self.center_frequency = center_frequency
+        self.uhd_usrp_source_0_0.set_center_freq(self.center_frequency, 0)
+
     def get_usrp_addr(self):
         return self.usrp_addr
 
     def set_usrp_addr(self, usrp_addr):
         self.usrp_addr = usrp_addr
 
-    def get_samp_rate(self):
-        return self.samp_rate
+    def get_zmq_addr(self):
+        return self.zmq_addr
 
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.uhd_usrp_source_0_0.set_samp_rate(self.samp_rate)
-        self.logpwrfft_x_0.set_sample_rate(self.samp_rate)
+    def set_zmq_addr(self, zmq_addr):
+        self.zmq_addr = zmq_addr
 
     def get_frame_rate(self):
         return self.frame_rate
@@ -100,19 +120,31 @@ class usrp_pwr_fft(gr.top_block):
     def set_fft_size(self, fft_size):
         self.fft_size = fft_size
 
-    def get_center_freq(self):
-        return self.center_freq
 
-    def set_center_freq(self, center_freq):
-        self.center_freq = center_freq
-        self.uhd_usrp_source_0_0.set_center_freq(self.center_freq, 0)
+def argument_parser():
+    parser = OptionParser(usage="%prog: [options]", option_class=eng_option)
+    parser.add_option(
+        "-b", "--bandwidth", dest="bandwidth", type="eng_float", default=eng_notation.num_to_str(22000000),
+        help="Set Collected bandwidth [default=%default]")
+    parser.add_option(
+        "-c", "--center-frequency", dest="center_frequency", type="eng_float", default=eng_notation.num_to_str(2462000000),
+        help="Set Center frequency [default=%default]")
+    parser.add_option(
+        "-u", "--usrp-addr", dest="usrp_addr", type="string", default="type=b200",
+        help="Set Select USRP [default=%default]")
+    parser.add_option(
+        "-a", "--zmq-addr", dest="zmq_addr", type="string", default="tcp://localhost:5507",
+        help="Set zmq_addr [default=%default]")
+    return parser
 
 
 def main(top_block_cls=usrp_pwr_fft, options=None):
+    if options is None:
+        options, _ = argument_parser().parse_args()
     if gr.enable_realtime_scheduling() != gr.RT_OK:
         print "Error: failed to enable real-time scheduling."
 
-    tb = top_block_cls()
+    tb = top_block_cls(bandwidth=options.bandwidth, center_frequency=options.center_frequency, usrp_addr=options.usrp_addr, zmq_addr=options.zmq_addr)
     tb.start()
     tb.wait()
 
