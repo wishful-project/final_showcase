@@ -179,12 +179,16 @@ def main(args):
                 freq = channelToFreq[chan]
                 freqStats = detectorStats.get(freq, None)
                 if freqStats:
-                    lteuDC = freqStats.get('DC')
-                    lte[freq] = [bandwidth, lteuDC]
+                    lteDetected = freqStats.get('LTE-U')
+                    if lteDetected:
+                        lteuDC = freqStats.get('DC')
+                        lte[freq] = [bandwidth, lteuDC]
                     busyRatio = freqStats.get('busy')
                     busy[freq] = [bandwidth, busyRatio]
 
-            value['LTE'] = lte
+
+            if lte:
+                value['LTE'] = lte
             value['Busy'] = busy
             solutionCtrProxy.send_monitor_report('interference', networkType, value)
 
