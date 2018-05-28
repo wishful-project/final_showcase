@@ -76,3 +76,11 @@ To get better performance you can try to add following to `/etc/security/limits.
 ```
 
 Make sure you are member of `wheel` group.
+
+# Other
+
+```
+sudo cp ~/final_showcase/webui/services/* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl status specmon-low specmon-high webui
+```

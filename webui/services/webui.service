@@ -1,0 +1,18 @@
+[Unit]
+Description=WiSHFUL UI
+
+[Service]
+PrivateTmp=true
+Type=simple
+Environment=PYTHONUNBUFFERED=true
+ExecStart=/usr/local/bin/pipenv run bokeh serve --allow-websocket-origin="*:5006" wishful
+WorkingDirectory=/home/tub/final_showcase/webui/
+# ExecStart=/usr/bin/stress -c 2
+User=tub
+CPUAccounting=true
+#CPUQuota=200%
+#MemoryMax=200M
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
