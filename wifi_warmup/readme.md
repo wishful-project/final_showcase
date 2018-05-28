@@ -1,5 +1,8 @@
-Warm-up phase - Overlapping BSS Management
-==========================================
+Warm-up phase - Overlapping BSS Management (OBSSM)
+==================================================
+
+Start WiSHFUL Controller and Agents
+-----------------------------------
 
 0. Login as root to following nodes (passwd: root):
 
@@ -35,3 +38,23 @@ Warm-up phase - Overlapping BSS Management
 7. Start STA1 WiSHFUL agent on nuc2:
 		
 		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_sta1.sh
+
+
+AD controller commands
+----------------------
+
+1. After starting all WiSHFUL controllers and agents, the following network should be registered in AD contoller:
+
+* WIFI_TUB_0
+* WIFI_TUB_1
+
+2. Both networks expose the following commands:
+
+* ACTIVATE - start network (i.e. all APs and STAs are setup)
+* DEACTIVATE - stop network (i.e. all APs and STAs are switched off)
+* TRAFFIC_SET_OFF - disable iperf traffic from AP to STA
+* TRAFFIC_SET_LOW - set low traffic from AP to STA (i.e. 1 Mbps)
+* TRAFFIC_SET_MEDIUM - set medium traffic from AP to STA (i.e. 20 Mbps)
+* TRAFFIC_SET_HIGH - set medium traffic from AP to STA (i.e. 100 Mbps)
+* TRAFFIC - set traffic from AP to STA, volume (type) is given as argument
+* SWITCH_CHANNEL - switch channel of WiFi BSS, new channel is given as argument
