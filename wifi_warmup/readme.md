@@ -15,7 +15,7 @@ Start WiSHFUL Controller and Agents
 
 		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ad.sh
 
-2. Start WiSHFUL controller on nuc9:
+2. Start WiSHFUL controller on nuc9 (arg = IP address of AD controller):
 
 		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller0.sh 172.16.16.9
 
