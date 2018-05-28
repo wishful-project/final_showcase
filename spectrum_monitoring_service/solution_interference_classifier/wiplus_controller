@@ -28,6 +28,7 @@ sys.path.append('../')
 sys.path.append('../../')
 
 import os
+import sh
 import time
 import datetime
 import logging
@@ -36,6 +37,9 @@ import gevent
 import yaml
 import wishful_upis as upis
 from lib.global_controller_proxy import GlobalSolutionControllerProxy
+from lte_u_synch.regmon_reader import RegMonReader
+from lte_u_synch.regmon_data_receiver import RegMonDataReceiver
+from lte_u_synch.lteu_synchronization import LteuDetector
 
 __author__ = "Piotr Gawlowicz"
 __copyright__ = "Copyright (c) 2018, Technische Universität Berlin"
@@ -126,22 +130,59 @@ def main(args):
     channels = list(channelToFreq.keys())
     channels = [1, 6, 11]
 
+    winterface = "wlan0"
+    mode = "monitor"
+    channel = "1"
+    samplingInt = 0.25  # ms
+    readInt = 1  # s
+
+    # configure interface
+    sh.ifconfig(winterface, "down")
+    sh.iw(winterface, "set", "type", mode)
+    sh.ifconfig(winterface, "up")
+    sh.iw(winterface, "set", "channel", channel)
+
+    detector = LteuDetector(samplingInt=samplingInt)
+    detector.daemon = True
+    detector.start()
+
+    rawDataReceiver = RegMonDataReceiver()
+    rawDataReceiver.add_signal_receiver_queue(detector.get_signal_queue())
+    rawDataReceiver.daemon = True
+    rawDataReceiver.start()
+
+    logging.info("Read MAC states for interface: {}".format(winterface))
+    regmon = RegMonReader(iface=winterface,
+                          sampling_interval=samplingInt,
+                          read_interval=readInt)
+    regmon.set_signal_receiver_queue(rawDataReceiver.get_signal_queue())
+    regmon.daemon = True
+    regmon.start()
+
     # control loop
     while True:
         gevent.sleep(1)
 
-        # detect LTE
-        BW = 20
-        duty = 0.5
+        detectorStats = detector.get_detection_stats()
+        # {2412: {'LTE-U': False, 'DC': 0, 'cycleTime': 0, 'idle': 0.89, 'busy': 0.11, 'onTime': 0},
+        # 2437: {'LTE-U': True, 'DC': 0.25, 'cycleTime': 40, 'idle': 0.74, 'busy': 0.26, 'onTime': 10},
+        # 2462: {'LTE-U': False, 'DC': 0, 'cycleTime': 0, 'idle': 0.95, 'busy': 0.05, 'onTime': 0}}
 
+        # detect LTE
+        bandwidth = 20
         if wiplusEnabled:
             # send interference report to AD controller
             value = {}
             lte = {}
             busy = {}
             for chan in channels:
-                lte[channelToFreq[chan]] = [BW, duty]
-                busy[channelToFreq[chan]] = [BW, duty]
+                freq = channelToFreq[chan]
+                freqStats = detectorStats.get(freq, None)
+                if freqStats:
+                    lteuDC = freqStats.get('DC')
+                    lte[freq] = [bandwidth, lteuDC]
+                    busyRatio = freqStats.get('busy')
+                    busy[freq] = [bandwidth, busyRatio]
 
             value['LTE'] = lte
             value['Busy'] = busy
