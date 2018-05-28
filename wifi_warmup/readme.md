@@ -43,7 +43,7 @@ Start WiSHFUL Controller and Agents
 AD controller commands
 ----------------------
 
-1. After starting all WiSHFUL controllers and agents, the following network should be registered in AD contoller:
+1. After starting all WiSHFUL controllers and agents, the following networks should be registered in AD contoller:
 
 * WIFI_TUB_0
 * WIFI_TUB_1
@@ -56,5 +56,5 @@ AD controller commands
 * TRAFFIC_SET_LOW - set low traffic from AP to STA (i.e. 1 Mbps)
 * TRAFFIC_SET_MEDIUM - set medium traffic from AP to STA (i.e. 20 Mbps)
 * TRAFFIC_SET_HIGH - set medium traffic from AP to STA (i.e. 100 Mbps)
-* TRAFFIC - set traffic from AP to STA, volume (type) is given as argument
+* TRAFFIC - set traffic from AP to STA, type (LOW/MEDIUM/HIGH) is given as argument
 * SWITCH_CHANNEL - switch channel of WiFi BSS, new channel is given as argument
