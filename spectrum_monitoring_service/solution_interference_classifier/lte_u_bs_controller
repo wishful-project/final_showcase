@@ -8,8 +8,9 @@ Usage:
    controller [options] [-q | -v]
 
 Options:
-   --logfile name      Name of the logfile
-   --config configFile Config file path
+   --logfile name        Name of the logfile
+   --config configFile   Config file path
+   --ad_address ipAddress IP address of AD controller
 
 Example:
    ./controller -v --config ./config.yaml 
@@ -27,6 +28,7 @@ sys.path.append('../')
 sys.path.append('../../')
 
 import os
+import subprocess
 import time
 import datetime
 import logging
@@ -35,6 +37,7 @@ import gevent
 import yaml
 import wishful_upis as upis
 from lib.global_controller_proxy import GlobalSolutionControllerProxy
+from lte_u_synch.ltfi_enb_manager import LtFiEnbManager
 
 __author__ = "Piotr Gawlowicz"
 __copyright__ = "Copyright (c) 2018, Technische Universität Berlin"
@@ -47,35 +50,72 @@ controller = wishful_controller.Controller()
 bsEnabled = True
 nodes = []
 
-def start_bs(value):
+srsLteEnbPath = "/home/piotr/demo/pdsch_enodeb_lteu -g 100 -p 100 -f 2412e6"
+srsLteEnbProcess = None
+
+# LTE-U Manager
+srsLteEnbUri = "tcp://127.0.0.1:5555"
+lteuCycleTime = 40
+lteuOnTime = 10
+
+eNbManager = LtFiEnbManager(srsLteEnbUri)
+eNbManager.set_cycle_duration(lteuCycleTime)
+eNbManager.set_ontime_duration(lteuOnTime)
+
+
+def start_bs(args):
     print("Start LTE-U BS")
     global bsEnabled
-    global showcaseState
-    global controller
+    global srsLteEnbProcess
+    global eNbManager
     bsEnabled = True
 
-def stop_bs(value):
+    newFreq = 2412  # channel 1
+    if args:
+        newFreq = args.get("freq", newFreq)
+
+    if srsLteEnbProcess is None:
+        cmd = ['/home/piotr/demo/pdsch_enodeb_lteu']
+        cmd.extend(['-g', '100'])  # tx gain 100
+        cmd.extend(['-p', '100'])  # number of RBs 100->20MHz
+        cmd.extend(['-f', '2412e6'])  # central freq
+
+        srsLteEnbProcess = subprocess.Popen(cmd)
+
+        time.sleep(1)
+        eNbManager.start_tx()
+        eNbManager.set_rf_freq(newFreq)
+
+
+def stop_bs(args):
     print("Stop LTE-U BS")
     global bsEnabled
-    global showcaseState
+    global srsLteEnbProcess
+    global eNbManager
     bsEnabled = False
 
-@controller.new_node_callback()
-def new_node(node):
-    nodes.append(node)
-    print("New node appeared:", node.name)
+    if srsLteEnbProcess:
+        cmd = ['/bin/kill']
+        cmd.extend(['-9'])
+        cmd.extend([str(srsLteEnbProcess.pid)])
+        subprocess.Popen(cmd)
+        srsLteEnbProcess = None
 
-@controller.node_exit_callback()
-def node_exit(node, reason):
-    if node in nodes:
-        nodes.remove(node);
-    print("NodeExit : NodeID : {} Reason : {}".format(node.id, reason))
 
-def get_node_by_name(nodes, nodeName):
-    for n in nodes:
-        if n.name == nodeName:
-            return n
-    return None
+def set_freq(args):
+    global bsEnabled
+    global srsLteEnbProcess
+    global eNbManager
+
+    newFreq = 2437  # channel 6
+    if args:
+        newFreq = args.get("freq", newFreq)
+
+    print("Change LTE-U BS central frequency to :", newFreq)
+
+    if srsLteEnbProcess and bsEnabled:
+        eNbManager.set_rf_freq(newFreq)
+
 
 def main(args):
     global controller
@@ -94,6 +134,9 @@ def main(args):
         controllerName = parameters.get("controllerName", None)
         ad_address = parameters.get("ad_address", "127.0.0.1")
 
+    if args['--ad_address']:
+        ad_address = args['--ad_address']
+
     controller.load_config(config)
     controller.start()
 
@@ -106,6 +149,7 @@ def main(args):
     solutionName = ["Non_WiSHFUL_LTE_U_BS"]
     commands = {"ACTIVATE": start_bs,
                 "DEACTIVATE": stop_bs,
+                "SET_FREQ": set_freq,
                 }
     monitorList = []
     solutionCtrProxy.set_solution_attributes(controllerName,
