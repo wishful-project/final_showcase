@@ -346,8 +346,20 @@ def print_menu_command():  ## Your menu design here
             msg["commandList"][selected_network.solution[0]]["STOP_LTE"]= {"2437": False}
 
         # 6LOWPAN NETWORK COMMANDS:
-        elif commandToSend == "LTE_WIFI_ZIGBEE":
-            msg["commandList"][selected_network.solution[0]] = {"LTE_WIFI_ZIGBEE": True}
+        elif network.name == "6lowPAN":
+            msg["commandList"][selected_network.solution[0]] = {commandToSend: None}
+            if commandToSend == "LTE_WIFI_ZIGBEE":
+                msg["commandList"][selected_network.solution[0]] = {"LTE_WIFI_ZIGBEE": True}
+            elif commandToSend == "ENABLE_TRAFFIC":
+                traffic_load = "High"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+            elif commandToSend == "DISABLE_TRAFFIC":
+                traffic_load = "Off"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
 
         # TUB WIFI:
         elif selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:

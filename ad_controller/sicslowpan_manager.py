@@ -20,7 +20,7 @@ class SICSLOWPANNetwork:
     def set_publisher(self, publisher):
         self.publisher = publisher
 
-    def notify_interference_report(self, interfence_message):
+    def send_commands(self,command_list):
         msg = None
         if self.network is not None:
             msg = {
@@ -29,8 +29,7 @@ class SICSLOWPANNetwork:
                 "commandList": {}
             }
             msg["commandList"] = {self.network.solution[0]: {}}            
-            msg["commandList"][self.network.solution[0]] = {"6LOWPAN_BLACKLIST": {}}
-            msg["commandList"][self.network.solution[0]]["6LOWPAN_BLACKLIST"] = interfence_message["monitorValue"]
+            msg["commandList"][self.network.solution[0]] = command_list
         if msg:
             print('update message %s' % str(msg))
             # Distribute as key-value message
@@ -39,3 +38,18 @@ class SICSLOWPANNetwork:
             kvmsg.key = b"generic"
             kvmsg.body = json.dumps(msg).encode('utf-8')
             kvmsg.send(self.publisher)
+
+    def notify_interference_report(self, interfence_message):
+        command_list = {"6LOWPAN_BLACKLIST": {}}
+        command_list["6LOWPAN_BLACKLIST"] = interfence_message["monitorValue"]
+        self.send_commands(command_list)
+
+    def start_three_way_tdma(self):
+        command_list = {"LTE_WIFI_ZIGBEE": {}}
+        command_list["LTE_WIFI_ZIGBEE"] = True
+        self.send_commands(command_list)
+    
+    def stop_three_way_tdma(self):
+        command_list = {"LTE_WIFI_ZIGBEE": {}}
+        command_list["LTE_WIFI_ZIGBEE"] = False
+        self.send_commands(command_list)
