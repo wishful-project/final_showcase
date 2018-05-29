@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 
 case $1 in
     "stop")
@@ -21,8 +22,11 @@ case $1 in
     "start")
         ssh kistm@nuc7 "cd /root/gr-hydra/apps/wishful_control/ && ./wishful_simple_agent.py --config rx1_config.yaml > rx1.log &" & 
         ssh kistm@nuc8 "cd /root/gr-hydra/apps/wishful_control/ && ./wishful_simple_agent.py --config rx2_config.yaml > rx2.log &"  &
-        ssh kistm@nuc5 "cd /root/gr-hydra/apps/wishful_control/ && ./wishful_simple_controller.py > control.log &"  &
-        ssh kistm@nuc5 "cd /root/gr-hydra/apps/wishful_control/ && ./wishful_simple_agent.py --config tx_config.yaml > tx.log" &
+        ssh kistm@nuc5 "cd /root/gr-hydra/apps/wishful_control/ && ./wishful_simple_agent.py --config tx_config.yaml > tx.log &" &
+
+        pushd /root/gr-hydra/apps/wishful_control/ ; ./wishful_simple_controller.py
+        
+
         ;;
 
     *)
