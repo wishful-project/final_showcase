@@ -82,7 +82,7 @@ def start_bs(args):
 
         srsLteEnbProcess = subprocess.Popen(cmd)
 
-        time.sleep(1)
+        time.sleep(5)
         eNbManager.start_tx()
         eNbManager.set_rf_freq(newFreq)
 

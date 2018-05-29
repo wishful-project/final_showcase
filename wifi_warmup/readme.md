@@ -13,31 +13,31 @@ Start WiSHFUL Controller and Agents
 
 1. Start AD WiSHFUL controller on nuc9:
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ad.sh
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ad.sh
 
 2. Start WiSHFUL controller on nuc9 (arg = IP address of AD controller):
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller0.sh 172.16.16.9
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_controller0.sh 172.16.16.9
 
 3. Start AP0 WiSHFUL agent on nuc9:
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ap0.sh
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ap0.sh
 
 4. Start STA0 WiSHFUL agent on nuc10:
 		
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_sta0.sh
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_sta0.sh
 
 5. Start WiSHFUL controller on nuc4 (arg = IP address of AD controller):
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_controller1.sh 172.16.16.9
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_controller1.sh 172.16.16.9
 
 6. Start AP1 WiSHFUL agent on nuc4:
 
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_ap1.sh
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ap1.sh
 
 7. Start STA1 WiSHFUL agent on nuc2:
 		
-		/home/piotr/wifi_warmup/final_showcase/wifi_warmup/scripts/start_sta1.sh
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_sta1.sh
 
 
 AD controller commands
@@ -45,8 +45,8 @@ AD controller commands
 
 1. After starting all WiSHFUL controllers and agents, the following networks should be registered in AD contoller:
 
-* WIFI_TUB_0
-* WIFI_TUB_1
+* WIFI_A1
+* WIFI_A2
 
 2. Both networks expose the following commands:
 

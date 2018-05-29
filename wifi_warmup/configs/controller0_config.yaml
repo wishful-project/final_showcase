@@ -2,7 +2,7 @@
 
 parameters:
   ad_address: "172.16.16.9"
-  controllerName: "WIFI_TUB_0"
+  controllerName: "WIFI_A1"
   ssid: "Ph0-WiFi-0"
   hostapd_config: "ap0_hostapd.conf"
   wpa_supplicant_config: "sta0_wpa_supplicant.conf"
