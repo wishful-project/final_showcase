@@ -18,6 +18,8 @@ Wishful FINAL SHOWCASE network_virtual_radio
 5. Send a "START_LTE" or "START_NBIOT" command from the AD controller to the Virtual Radio Network controller.
      
 6. Check if everything is OK. Output should contain a line as:
+     ```
      ... TX is OK
      ... LTE RX is OK
      ... NB-IoT RX is OK
+     ```
