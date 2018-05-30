@@ -362,7 +362,7 @@ def print_menu_command():  ## Your menu design here
                     send_status_update(socket_visualizer)
 
         # TUB WIFI:
-        elif selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+        elif selected_network.name in ["WIFI_A1", "WIFI_A2"]:
             if commandToSend == "ACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {}}
             elif commandToSend == "DEACTIVATE":
@@ -414,7 +414,7 @@ def print_menu_command():  ## Your menu design here
         kvmsg.send(publisher)
         print("sent update information with sequence %d" % sequence_publisher)
 
-        if selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+        if selected_network.name in ["WIFI_A1", "WIFI_A2"]:
             obssManager.notify_command_msg(msg)
 
     else:
@@ -579,7 +579,7 @@ def main(args):
                             )
                             solutionCompatibilityMatrix.append(network)
 
-                            if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+                            if network.name in ["WIFI_A1", "WIFI_A2"]:
                                 obssManager.add_network(network)
                             elif network.name == "6lowPAN":
                                 sicslowpanManager.set_network(network)
@@ -623,7 +623,7 @@ def main(args):
                         if startVisualizer:
                             send_status_update(socket_visualizer)
 
-                        if network and network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+                        if network and network.name in ["WIFI_A1", "WIFI_A2"]:
                             obssManager.notify_channel_usage(received_request)
 
                     elif received_request["monitorType"] == "performance":
@@ -633,7 +633,7 @@ def main(args):
                         if startVisualizer:
                             socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
 
-                        if network and network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+                        if network and network.name in ["WIFI_A1", "WIFI_A2"]:
                             obssManager.notify_performance_report(received_request)
 
                     elif received_request["monitorType"] == "interference":
