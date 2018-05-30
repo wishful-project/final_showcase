@@ -433,9 +433,10 @@ def main(args):
             print("---CellId: {}, Throughput: {}". format(cellId, cellThroughputDict[cellId] / 1e6))
 
             # send performance report to AD controller
+            maxTHR = 150 * 1e6
             value = {'timestamp': curTime,
-                     'PER': cellThroughputDict[cellId]/100.0,
-                     'THR': cellThroughputDict[cellId]/1e8,
+                     'PER': cellThroughputDict[cellId]/maxTHR,
+                     'THR': cellThroughputDict[cellId],
                      }
             solutionCtrProxy.send_monitor_report('performance', networkType, value)
 
