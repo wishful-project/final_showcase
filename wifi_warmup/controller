@@ -430,12 +430,12 @@ def main(args):
         cellThroughputDict[0] = cellThroughput
         print("***Throughput Stats:***")
         for cellId in cellThroughputDict.keys():
-            print("---CellId: {}, Throughput: {}". format(cellId, cellThroughputDict[cellId]))
+            print("---CellId: {}, Throughput: {}". format(cellId, cellThroughputDict[cellId] / 1e6))
 
             # send performance report to AD controller
             value = {'timestamp': curTime,
                      'PER': cellThroughputDict[cellId]/100.0,
-                     'THR': cellThroughputDict[cellId],
+                     'THR': cellThroughputDict[cellId]/1e8,
                      }
             solutionCtrProxy.send_monitor_report('performance', networkType, value)
 

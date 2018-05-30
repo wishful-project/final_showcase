@@ -365,19 +365,45 @@ def print_menu_command():  ## Your menu design here
         elif selected_network.name in ["WIFI_A1", "WIFI_A2"]:
             if commandToSend == "ACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {}}
+
             elif commandToSend == "DEACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+
             elif commandToSend == "TRAFFIC_SET_OFF":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_OFF": {}}
+                traffic_load = "OFF"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_LOW":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_LOW": {}}
+                traffic_load = "LOW"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_MEDIUM":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_MEDIUM": {}}
+                traffic_load = "MEDIUM"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_HIGH":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_HIGH": {}}
+                traffic_load = "HIGH"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC":
                 traffic_load = "HIGH"
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC": {"TYPE": traffic_load}}
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "SWITCH_CHANNEL":
                 msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
 
@@ -518,7 +544,7 @@ def main(args):
 
     # Init connection with GUI ffor LOG
     if startVisualizer:
-        socket_visualizer = start_visualizer_connection("172.16.16.3")
+        socket_visualizer = start_visualizer_connection("172.16.17.2")
 
     reader, stdin_thread = forward_standard_input(ctx)
     poller.register(reader, zmq.POLLIN)
