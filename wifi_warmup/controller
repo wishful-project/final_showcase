@@ -423,8 +423,8 @@ def main(args):
         [txBytes0, rxBytes0] = controller.nodes(ap0_node).net.get_iface_stats(iface=ap0_iface)
         gevent.sleep(interval)
         [txBytes, rxBytes] = controller.nodes(ap0_node).net.get_iface_stats(iface=ap0_iface)
-        txThroughput = (txBytes - txBytes0) * 8 / 1e6 / interval
-        rxThroughput = (rxBytes - rxBytes0) * 8 / 1e6 / interval
+        txThroughput = (txBytes - txBytes0) * 8 / interval
+        rxThroughput = (rxBytes - rxBytes0) * 8 / interval
         cellThroughput = txThroughput + rxThroughput
 
         cellThroughputDict[0] = cellThroughput
