@@ -197,9 +197,11 @@ def main(args):
                 value['LTE'] = lte
             if wifi:
                 value['WIFI'] = wifi
+            if busy:
+                value['Busy'] = busy
 
-            value['Busy'] = busy
-            solutionCtrProxy.send_monitor_report('interference', networkType, value)
+            if value:
+                solutionCtrProxy.send_monitor_report('interference', networkType, value)
 
 
 if __name__ == "__main__":
