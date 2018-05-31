@@ -21,10 +21,12 @@ Start WiSHFUL Controller and Agents
 
 3. Start AP0 WiSHFUL agent on nuc9:
 
+		sudo -s
 		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ap0.sh
 
 4. Start STA0 WiSHFUL agent on nuc10:
 		
+		sudo -s
 		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_sta0.sh
 
 5. Start WiSHFUL controller on nuc4 (arg = IP address of AD controller):
@@ -33,10 +35,12 @@ Start WiSHFUL Controller and Agents
 
 6. Start AP1 WiSHFUL agent on nuc4:
 
+		sudo -s
 		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ap1.sh
 
 7. Start STA1 WiSHFUL agent on nuc2:
 		
+		sudo -s
 		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_sta1.sh
 
 
