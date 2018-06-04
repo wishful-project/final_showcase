@@ -12,6 +12,17 @@ Start WiSHFUL Controller and Agents
 1. Start WiPLUS detector controller on nuc1:
 
 		sudo -s
+
+		# After reboot modified ath9k driver has to be started:
+		# IMPORTANT: do not install those modules, as it might cause problems with booting of NUC
+
+		# Stop default driver
+		/home/piotr/demo/myrmmod.sh
+
+		# Start modified driver (takes around 15s)
+		/home/piotr/demo/myinsmod.sh
+
+		# Start WiPLUS detector
 		/home/piotr/wishful/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_wiplus.sh 172.16.16.9
 
 2. Start LTE-U BS controller on nuc2:
