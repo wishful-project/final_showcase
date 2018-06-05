@@ -203,6 +203,19 @@ def main(args):
             if value:
                 solutionCtrProxy.send_monitor_report('interference', networkType, value)
 
+        # Notify channel usage
+        value = {"channels" : [],
+                 "frequencies": []
+                 }
+
+        if wiplusEnabled:
+            value = {"channels" : [1,6,11],
+                     "frequencies": [2412, 2437, 2462]
+                     }
+
+        # print("Notify AD controller about used channels", channels)
+        solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
+
 
 if __name__ == "__main__":
     try:
