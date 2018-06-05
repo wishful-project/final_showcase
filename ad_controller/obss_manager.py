@@ -228,9 +228,9 @@ class ObssManager(object):
 
                 newChannel = self.avaiableChannels[newChannelIdx1]
                 now = time.time()
-                net0.send_switch_channel_cmd(self.pubSocket, newChannel)
-                net0.channel = newChannel
-                net0.lastChanSwitchTime = now
+                net1.send_switch_channel_cmd(self.pubSocket, newChannel)
+                net1.channel = newChannel
+                net1.lastChanSwitchTime = now
 
     def add_network(self, network):
         self.networks.append(network)
