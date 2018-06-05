@@ -1,6 +1,12 @@
+
+
 body {
+    margin: 0;
+    padding: 0;
+    text-align: center; /* !!! */
     color: #777;
 }
+
 
 .pure-img-responsive {
     max-width: 100%;
@@ -41,11 +47,38 @@ The content `<div>` is where all your content goes.
 */
 .content {
     margin: 0 auto;
-    padding: 0 2em;
-    max-width: 1200px;
-    margin-bottom: 50px;
-    line-height: 1.6em;
+    text-align: left;
+    width: 1650px;
+    border-left-width: 12px;
 }
+
+
+
+/*
+.bk-layout-fixed{
+    width: 1100px;
+    height: 400px;
+}
+
+.bk-grid{
+    width: 2000px;
+    height: 400px;
+}
+.bk-widget-box {
+    width: 600px;
+    height: 200px;
+}
+*/
+/*
+.bk-grid-row{
+    width: 1100px;
+    height: 400px;
+}
+.bk-grid-column{
+    width: 1100px;
+    height: 400px;
+}
+*/
 
 .header {
      margin: 0;

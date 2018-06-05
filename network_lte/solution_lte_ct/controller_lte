@@ -517,18 +517,24 @@ def wifiStatus():
 
 	wifiStateChange = True
 
-def startLte(freq=2462):
+def startLte():
+	freq = 2462
 	print("start LTE on freq : ", freq)
 	global lteState, lteStateChange
-	lteState = "ENABLE"
-	lteStateChange = True
+
+	if lteState == "DISABLE":
+		lteState = "ENABLE"
+		lteStateChange = True
 
 
-def stopLte(freq=2462):
+def stopLte():
+	freq = 2462
 	print("stop LTE on freq : ", freq)
 	global lteState, lteStateChange
-	lteState = "DISABLE"
-	lteStateChange = True
+	if lteState == "ENABLE":
+		lteState = "DISABLE"
+		lteStateChange = True
+
 
 def enable_lte_8_subframe():
 	print("set subframes 8")
@@ -555,6 +561,16 @@ def enable_lte_6_subframe():
 	UDP_IP = "172.16.16.11"
 	UDP_PORT = 8888
 	MESSAGE = "1,1,1,1,1,1,0,0,0,0"
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
+	sock.close()
+
+
+def enable_lte_7_subframe():
+	print("set subframes 7")
+	UDP_IP = "172.16.16.11"
+	UDP_PORT = 8888
+	MESSAGE = "1,1,1,1,1,1,1,0,0,0"
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
 	sock.close()
@@ -594,6 +610,23 @@ def main(args):
 	global role
 	global tdmaState, tdmaStateChange, wifiState, wifiStateChange, lteState, lteStateChange
 
+	channelToFreq = {1: 2412,
+					 2: 2417,
+					 3: 2422,
+					 4: 2427,
+					 5: 2432,
+					 6: 2437,
+					 7: 2442,
+					 8: 2447,
+					 9: 2452,
+					 10: 2457,
+					 11: 2462,
+					 12: 2467,
+					 13: 2472,
+					 14: 2484,
+					 }
+
+
 	# Init variables
 	do_run = True
 	# Init logging
@@ -608,13 +641,13 @@ def main(args):
 	****** setup the communication with the solution global controller ******
 	"""
 
-	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
-	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
+	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.17.2", requestPort=7001, subPort=7000)
+	# solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="127.0.0.1", requestPort=7001, subPort=7000)
 	networkName = "LTE_TDMA"
 	solutionName = ["LTE_CT"]
 	networkType = 'LTE-U'
 	# commands = { "STOP_LTE": (lambda: stopLte()), "STOP_TDMA": (lambda:tdmaStatus()), "START_LTE": (lambda:startLte()), "START_TDMA": (lambda:tdmaStatus())}
-	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe())}
+	commands = { "STOP_LTE": (lambda: stopLte()), "START_LTE": (lambda:startLte()), "ENABLE_LTE_8_SUBFRAME": (lambda: enable_lte_8_subframe()), "ENABLE_LTE_TDM_SUBFRAME": (lambda: enable_lte_tdm_subframe()), "ENABLE_LTE_6_SUBFRAME": (lambda: enable_lte_6_subframe()), "ENABLE_LTE_7_SUBFRAME": (lambda: enable_lte_7_subframe())}
 	monitorList = ["LTE-THR", "LTE-PER"]
 	solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList )
 	# Register lte_ct solution to global solution controller
@@ -622,6 +655,13 @@ def main(args):
 	if response:
 		print("Solution was correctly registered to GlobalSolutionController")
 		solutionCtrProxy.start_command_listener()
+		channels = [12]
+		frequencies = {channelToFreq[12]: 20}
+		value = {"channels": channels,
+				 "frequencies": frequencies
+				 }
+		print("Notify AD controller about used channels", channels)
+		solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
 	else:
 		print("Solution was not registered to Global Solution Controller")
 
@@ -721,9 +761,9 @@ def main(args):
 								# controller.node(nodes[0]).radio.set_parameters({'RF_AMP': 0.8})
 								controller.node(nodes[jj]).radio.set_parameters({'RF_AMP': 0.7})
 
-								# controller.node(nodes[0]).radio.set_parameters({'GAIN': 20})
+								controller.node(nodes[0]).radio.set_parameters({'GAIN': 78})
 								#controller.node(nodes[jj]).radio.set_parameters({'GAIN': 120})
-								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 78})
+								#controller.node(nodes[jj]).radio.set_parameters({'GAIN': 90})
 
 								# controller.node(nodes[1]).radio.set_parameters({'NO_OF_FRAMES': 100000})
 								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_PRBS': 25})
@@ -745,7 +785,7 @@ def main(args):
 								# controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2462000000})
 								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2465000000})
 
-								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 30})
+								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 90})
 								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
 								controller.node(nodes[jj]).radio.set_parameters({'EQUALIZER_MODE': 'mmse'})
 								controller.node(nodes[jj]).radio.set_parameters({'MAX_TURBO_ITS': 3})

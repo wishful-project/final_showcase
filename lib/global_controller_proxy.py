@@ -102,13 +102,13 @@ class GlobalSolutionControllerProxy(object):
     def command_subscriber(self):
         while True:
             try:
-                print("Wait for command")
+                #print("Wait for command")
                 kvmsg = KVMsg.recv(self.subSocket)
                 # update message {'involvedSolutions': 'WIFI', 'type': 'publisherUpdate', 'commandList': 'START_WIFI'}
                 # {'involvedController': ['WIFI'], 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'type': 'publisherUpdate'}
                 mdict = kvmsg.body.decode('utf-8')
                 mdict = json.loads(mdict)
-                print("received command : " + str(mdict))
+                #print("received command : " + str(mdict))
                 # {'type': 'publisherUpdate', 'commandList': {'WIFI_CT': {'START_WIFI': {'2437': True}}}, 'involvedController': ['WIFI']}
                 involvedController = mdict.get("involvedController", [])
                 if self.controllerName in involvedController:

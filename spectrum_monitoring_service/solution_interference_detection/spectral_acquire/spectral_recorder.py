@@ -295,13 +295,14 @@ class SpectralRecorder:
 		y_nofilt_ = y
 
 		tt = tsf[0]
-		tt_ = tt;
+		tt_ = tt
 
-		start_corr = True
-		corr_duration = 0;
-		energy_det_duration = 0;
-		t_corr_start = 0;
-		t_energy_det_start = 0;
+		start_corr = False
+		corr_duration = 0
+		corr_duration_num = 0
+		energy_det_duration = 0
+		t_corr_start = tt
+		t_energy_det_start = 0
 
 		y_cont=[]
 		P_av_w=[]
@@ -324,7 +325,6 @@ class SpectralRecorder:
 			freq_meas = []
 
 			y = np.array(cc)
-
 			tt = tsf[ii]
 			dt = tt - tt_
 
@@ -395,20 +395,6 @@ class SpectralRecorder:
 						# {"tsf": t_energy_det_start, "duration": t_energy_det_stop-t_energy_det_start})
 					duration_energy_det_features.append(
 						{"tsf": t_energy_det_start, "tsf_stop": t_energy_det_stop, "duration": t_energy_det_stop - t_energy_det_start})
-			# print(dt)
-			# else:
-			# 	if start_energy_det == False:
-			# 		energy_det_duration = tt - t_energy_det_start
-			# 		start_energy_det = True
-			# 		if energy_det_duration != 0:
-			# 			if not mark_as_failure:
-			# 				duration_energy_det_features.append(
-			# 					{"tsf": t_energy_det_start, "duration": energy_det_duration})
-			# 			else:
-			# 				print("FAILED")
-			# 				print({"tsf": t_energy_det_start, "duration": energy_det_duration})
-			# 				mark_as_failure=False;
-			# 		energy_det_duration = 0
 
 			P_av_ = P_av
 			#print(duration_energy_det_features)
@@ -417,6 +403,7 @@ class SpectralRecorder:
 			N_av = 10
 			if len(y_cont) >= N_av:
 				y_cont.pop(0)  # window step=1
+
 			if P_av >= P_thr:
 				# collect some consecutive samples and average it!
 				y_cont.append(yy)
@@ -442,26 +429,29 @@ class SpectralRecorder:
 				# CORRELATION
 				y_corr = np.correlate(y_det, y_det_, "same")
 				# y_corr = np.correlate(y_det_nofilt, y_det_nofilt_, "same")
-				if dt >= dt_thr:
-					start_corr = True
-					corr_duration = 0
-				else:
-					# if np.median(y_corr) <= thr_corr_mean and P_av >= P_thr:
-					if np.median(y_corr) <= thr_corr_mean:
-						if start_corr:
-							t_corr_start = tt;
-							start_corr = False
-						else:
-							corr_duration = tt - t_corr_start
-					else:
-						if start_corr == False:
-							start_corr = True
-							if corr_duration != 0:
-								duration_features.append({"tsf": t_corr_start, "duration": corr_duration})
+				# if np.median(y_corr) <= thr_corr_mean and P_av >= P_thr:
+				if np.median(y_corr) <= thr_corr_mean:
+					if start_corr:
+						corr_duration = tt - t_corr_start
+						if corr_duration != 0:
+							duration_features.append({"tsf": t_corr_start, "duration": corr_duration, "duration_num": corr_duration_num })
 							corr_duration = 0
+							corr_duration_num = 0
+						start_corr = False
+				else:
+					if start_corr == False:
+						t_corr_start = tt
+						start_corr = True
+						corr_duration_num = 1
+					else:
+						corr_duration_num += 1
+
+
 				spectrum_features.append({"tsf": tsf[ii], "bw": bw_meas, "freq": freq_meas})
 			else:
 				y_cont = []
+
+
 			# update state variables, ready for next round
 			tt_ = tt
 			y_ = y
@@ -472,7 +462,7 @@ class SpectralRecorder:
 			#else:
 			# print(spectrum_features)
 
-		return measurements, spectrum_features, duration_energy_det_features, duration_features,freq,power_features
+		return measurements, spectrum_features, duration_energy_det_features, duration_features, freq,power_features
 
 	def plot_waterfall(self,ax,measurements,exp_name):
 		csi_data = list(map(itemgetter('fft_sub'), measurements))

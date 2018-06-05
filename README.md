@@ -40,53 +40,147 @@ sends activation command to solution TDMA cross interference, if not conflict ar
 172.16.16.6 nuc6   --> LTE UE
 
 ### 2. run the showcase 
-Start the AD controller (SHELL 1):
+Wishful final showcase start howto
+============================
 
-    ssh dgarlisi@nuc12
-    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/ad_controller/
-    python3 ./controller
+CONTROLLER
+==================================================
+    ssh dgarlisi@172.16.17.2
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/ad_controller
+    python3 ./controller_v3
+
+WEBUI
+==================================================
+    ssh dgarlisi@172.16.17.2
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/webui/
+    sudo pipenv shell bokeh serve --allow-websocket-origin="*:5006" wishful
+    http://172.16.17.2:5006/wishful
+
+Warm-up phase - Overlapping BSS Management (OBSSM)
+==================================================
+    2. Start WiSHFUL controller on nuc9 (arg = IP address of AD controller):
+        ssh piotr@172.16.16.9
+        sudo su
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_controller0.sh 172.16.17.2
+
+    3. Start AP0 WiSHFUL agent on nuc9:
+        ssh piotr@172.16.16.9
+        sudo su
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ap0.sh
+
+    4. Start STA0 WiSHFUL agent on nuc10:
+		ssh piotr@172.16.16.10
+		sudo su
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_sta0.sh
+
+    5. Start WiSHFUL controller on nuc4 (arg = IP address of AD controller):
+        ssh piotr@172.16.16.4
+        sudo su
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_controller1.sh 172.16.17.2
+
+    6. Start AP1 WiSHFUL agent on nuc4:
+        ssh piotr@172.16.16.4
+        sudo su
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_ap1.sh
+
+    7. Start STA1 WiSHFUL agent on nuc2:
+		ssh piotr@172.16.16.2
+		/home/piotr/wishful/final_showcase/wifi_warmup/scripts/start_sta1.sh
+
+ZigBee network
+==================================================
+    ssh dgarlisi@172.16.16.3
+    cd /groups/portable-ilabt-imec-be/wish/imec/wishful/
+    source ./dev/bin/activate
+    cd final_showcase/network_zigbee
+    python agent.py --config config/portable/agent_config.yaml
     
-in the shell 1 you can see the registered networks and you can send command to networks, 
-you can follow the command line menu to activate wifi/LTE traffic, afterwards, 
-the AD controller will receive the monitor report messages and send them ot the webui.
+    ssh dgarlisi@172.16.16.3
+    cd /groups/portable-ilabt-imec-be/wish/imec/wishful/
+    source ./dev/bin/activate
+    cd final_showcase/network_zigbee
+    python global_controller.py --config config/portable --solution_controller 172.16.17.2
 
-Start CNIT_WIFI_NETWORK  (SHELL 2) (need AD controller activated):
+WiPLUS - LTE-U detector
+==========================================
+    1. Start WiPLUS detector controller on nuc1:
+        ssh piotr@172.16.16.1
+        sudo su
+		/home/piotr/wishful/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_wiplus.sh 172.16.17.2
 
-     ssh dgarlisi@nuc12
-     cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_wifi/solution_wifi_ct/
-     ex -sc $"%s/\r$//e|x" start_wifi_network.sh
-     bash start_wifi_network.sh
+    2. Start LTE-U BS controller on nuc2:
+        ssh piotr@172.16.16.2
+        sudo su
+        uhd_usrp_probe
+		/home/piotr/wishful/final_showcase/spectrum_monitoring_service/solution_interference_classifier/scripts/start_lte_u_bs.sh 172.16.17.2
 
-Start CNIT_LTE_NETWORK  (SHELL 3) (need AD controller activated):
+LTE-U  TDMA 
+==========================================
+    ssh dgarlisi@nuc11
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
+    python3 agent_tx.py
+
+    ssh dgarlisi@nuc6
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
+    python3 agent_rx.py
 
     ssh dgarlisi@nuc12
-    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct/
-    ex -sc $"%s/\r$//e|x" start_lte_network.sh
-    bash start_lte_network.sh
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
+    python3 controller_lte --config controller_cfg_nuc12.yaml --nodes node_info.txt
 
-Start CNIT_LTE_NETWORK  (SHELL 4) (need AD controller activated):
+WiFI  TDMA 
+==========================================
+    """
+     cd helper
+     ex -sc $'%s/\r$//e|x' deploy_upis.sh
+     sh deploy_upis.sh root alix04,alix05  #deploy framework on alixnodes
+     ex -sc $'%s/\r$//e|x' sync_date.sh
+     sh sync_date.sh root alix04,alix05  #sync nodes time
+     cd ..
+    """
 
+    ssh dgarlisi@nuc12
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_wifi/solution_wifi_ct/
+    python3 controller_wifi --config controller_cfg_nuc12.yaml --nodes node_info.txt
+
+    ssh root@alix04
+    cd ~/wishful-github-manifest/final_showcase/network_wifi/solution_wifi_ct
+    python3 agent --config agent_cfg_ap.yaml
+
+    ssh root@alix05
+    cd ~/wishful-github-manifest/final_showcase/network_wifi/solution_wifi_ct
+    python3 agent --config agent_cfg_sta.yaml
+    
+Wishful FINAL SHOWCASE network_virtual_radio
+==========================================
+    ssh kistm@172.16.16.5
+    2. Move to final_showcase/network_virtual_radio folder:
+            cd /root/wishful/final_showcase/network_virtual_radio
+    3. Execute the script to start the 3 GNURadio WiSHFUL agents + virtual radio controller:
+            ./start_virtual_radio_network.sh start
+    4. Make sure the AD controller is running. If it is not running, the previous command will not print any message on screen.
+    5. Send a "START_LTE" or "START_NBIOT" command from the AD controller to the Virtual Radio Network controller.
+    
+
+Monitor service - interference detection
+==========================================
     ssh dgarlisi@nuc11
     cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/spectrum_monitoring_service/solution_interference_detection/
     sudo python3 controller --config controller_cfg_nuc11.yaml --nodes node_info.txt
 
-Start USRP channel trace visualizer on web portal  (SHELL 5):
-
+USRP channel trace visualizer on web portal
+==========================================
     ssh dgarlisi@nuc12
     cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal
     sudo bash run_usrp.sh 11
 
-you can see the trace via web browser at address : http://172.16.16.12/WishfulWebPortal/only_usrp.html
+    http://172.16.16.12/WishfulWebPortal/only_usrp.html
 
-Start graphical interface (SHELL 6):
+generic command
+==========================================
+    sudo ntpdate -u it.pool.ntp.org
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh dgarlisi@172.16.17.2:/groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/
 
-    ssh dgarlisi@nuc12
-    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/webui/
-    bokeh serve --allow-websocket-origin=*:5006 wishful
-    
-        (sudo pipenv shell bokeh serve --allow-websocket-origin="*:5006" wishful) ??
-
-you can see the statistics via web browser at address : http://172.16.16.6:5006/wishful
 
 ## Acknowledgement
 
