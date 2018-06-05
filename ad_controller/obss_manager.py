@@ -84,13 +84,31 @@ class ObssManager(object):
         self.minChanSwitchInterval = 10
         self.avaiableChannels = [1, 6, 11]
 
+        self.channelToFreq = {1: 2412,
+                              2: 2417,
+                              3: 2422,
+                              4: 2427,
+                              5: 2432,
+                              6: 2437,
+                              7: 2442,
+                              8: 2447,
+                              9: 2452,
+                              10: 2457,
+                              11: 2462,
+                              12: 2467,
+                              13: 2472,
+                              14: 2484,
+                              }
+
+        self.freqToChannel = {v: k for k, v in self.channelToFreq.items()}
+
     def set_pub_socket(self, pubSocket):
         self.pubSocket = pubSocket
 
     def get_active_networks(self,):
         activeNets = []
         for name, net in self.wifiNetworks.items():
-            if net.activated:
+            if net.activated and net.requestedTraffic:
                 activeNets.append(net)
 
         return activeNets
@@ -201,7 +219,7 @@ class ObssManager(object):
 
     def notify_command_msg(self, cmdMsg):
         print("ObssManager: Received Command Message")
-        print(cmdMsg)
+        # print(cmdMsg)
 
         ctrName = cmdMsg["involvedController"][0]
         network = self.wifiNetworks.get(ctrName, None)
@@ -256,7 +274,7 @@ class ObssManager(object):
 
     def notify_channel_usage(self, channelUsageMsg):
         print("ObssManager: Received Channel Usage Report")
-        print(channelUsageMsg)
+        # print(channelUsageMsg)
 
         ctrName = channelUsageMsg["networkController"]
         network = self.wifiNetworks.get(ctrName, None)
@@ -283,13 +301,11 @@ class ObssManager(object):
 
     def notify_interference_report(self, interferenceReport):
         print("ObssManager: Received Interference Report")
-        print(interferenceReport)
-
-        # TODO: check if interferences overlap with used channels
+        # print(interferenceReport)
 
     def notify_performance_report(self, perfomanceReport):
         print("ObssManager: Received Performance Report")
-        print(perfomanceReport)
+        # print(perfomanceReport)
 
         ctrName = perfomanceReport["networkController"]
         network = self.wifiNetworks.get(ctrName, None)
