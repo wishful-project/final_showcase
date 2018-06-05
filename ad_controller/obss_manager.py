@@ -206,7 +206,7 @@ class ObssManager(object):
                 return
 
             # if we have all samples
-            if 0 and net0.check_cache(self.avaiableChannels) and net1.check_cache(self.avaiableChannels):
+            if net0.check_cache(self.avaiableChannels) and net1.check_cache(self.avaiableChannels):
                 net0.measurementsRunning = False
                 net1.measurementsRunning = False
 
