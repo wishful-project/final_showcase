@@ -167,6 +167,22 @@ def main(args):
     else:
         print("Solution was not registered to Global Solution Controller")
 
+    channelToFreq = {1: 2412,
+                     2: 2417,
+                     3: 2422,
+                     4: 2427,
+                     5: 2432,
+                     6: 2437,
+                     7: 2442,
+                     8: 2447,
+                     9: 2452,
+                     10: 2457,
+                     11: 2462,
+                     12: 2467,
+                     13: 2472,
+                     14: 2484,
+                     }
+
     # control loop
     while True:
         gevent.sleep(1)
