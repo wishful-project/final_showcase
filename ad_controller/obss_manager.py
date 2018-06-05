@@ -210,6 +210,46 @@ class ObssManager(object):
                 net0.measurementsRunning = False
                 net1.measurementsRunning = False
 
+                # select best channel
+                thrList0 = []
+                thrList1 = []
+
+                for ch in self.avaiableChannels:
+                    channelStats = net0.throughputCache.get(ch, {})
+                    thrSamples = channelStats.get("thrSamples", [])
+                    # remove last as it may contain results from next channel
+                    del thrSamples[-1]
+                    meanThr = sum(thrSamples) / len(thrSamples)
+                    thrList0.append(meanThr)
+
+                for ch in self.avaiableChannels:
+                    channelStats = net1.throughputCache.get(ch, {})
+                    thrSamples = channelStats.get("thrSamples", [])
+                    # remove last as it may contain results from next channel
+                    del thrSamples[-1]
+                    meanThr = sum(thrSamples) / len(thrSamples)
+                    thrList1.append(meanThr)
+
+                print("Mean Thr 0 ", thrList0)
+                bestThr0 = max(thrList0)
+                bestChanIdx0 = thrList0.index(bestThr0)
+                bestChan0 = self.avaiableChannels[bestChanIdx0]
+                print("Best channel0 ", bestChan0)
+                net0.send_switch_channel_cmd(self.pubSocket, bestChan0)
+                net0.channel = bestChan0
+                net0.lastChanSwitchTime = now
+                net0.clean_thr_cache()
+
+                print("Mean Thr 1 ", thrList1)
+                bestThr1 = max(thrList1)
+                bestChanIdx1 = thrList1.index(bestThr1)
+                bestChan1 = self.avaiableChannels[bestChanIdx1]
+                print("Best channel1 ", bestChan1)
+                net1.send_switch_channel_cmd(self.pubSocket, bestChan1)
+                net1.channel = bestChan1
+                net1.lastChanSwitchTime = now
+                net1.clean_thr_cache()
+
             # if we have samples for current channel-> switch channel
             if net0.check_cache([net0.channel]) and net1.check_cache([net1.channel]):
                 newChannelIdx0 = self.avaiableChannels.index(net0.channel) + 1
