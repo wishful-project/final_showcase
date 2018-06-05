@@ -198,6 +198,10 @@ def main(args):
         gevent.sleep(1)
 
         # Notify channel usage
+        value = {"channels" : [],
+                 "frequencies": []
+                 }
+
         if bsEnabled and lteuFreq:
             channels = []
             channel = freqToChannel.get(lteuFreq, None)
@@ -209,8 +213,9 @@ def main(args):
             value = {"channels" : channels,
                      "frequencies": frequencies
                      }
-            # print("Notify AD controller about used channels", channels)
-            solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
+
+        # print("Notify AD controller about used channels", channels)
+        solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
 
 
 if __name__ == "__main__":
