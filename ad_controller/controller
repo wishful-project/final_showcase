@@ -40,15 +40,15 @@ import struct  # for packing integers
 from obss_manager import ObssManager
 
 
-sys.path.append('../')
-sys.path.append('../../')
+sys.path.append("../")
+sys.path.append("../../")
 from lib.kvsimple import KVMsg
 from lib.zhelpers import zpipe
 
-log = logging.getLogger('wishful_agent.main')
+log = logging.getLogger("wishful_agent.main")
 
 # clear = lambda: os.system('cls')
-clear = lambda: os.system('clear')
+clear = lambda: os.system("clear")
 do_run = True
 solutionCompatibilityMatrix = []
 socket_visualizer = None
@@ -59,12 +59,15 @@ obssManager = ObssManager()
 
 # Management function for 6lowpan (zigbee)
 from sicslowpan_manager import SICSLOWPANNetwork
+
 sicslowpanManager = SICSLOWPANNetwork()
 
 
 ###############################
 ######## GUI related ##########
 ###############################
+
+
 class Network:
     """
     Structure to store network information
@@ -80,7 +83,16 @@ class Network:
     load = "off"
     active = True
 
-    def __init__(self, id, name, networkType, solution, commandList=None, monitorList=None, solutionCompatibilityList=None):
+    def __init__(
+        self,
+        id,
+        name,
+        networkType,
+        solution,
+        commandList=None,
+        monitorList=None,
+        solutionCompatibilityList=None,
+    ):
         self.id = id
         self.name = name
         self.networkType = networkType
@@ -109,6 +121,8 @@ class Network:
 ###############################
 ######## GUI related ##########
 ###############################
+
+
 def start_visualizer_connection(webui_ip_address):
     """
     ****    SETUP LOG GUI VISUALIZER    ****
@@ -118,8 +132,13 @@ def start_visualizer_connection(webui_ip_address):
     socket_visualizer_port = "5506"
     ctx = zmq.Context()
     socket_visualizer = ctx.socket(zmq.PUB)
-    socket_visualizer.connect("tcp://%s:%s" % (webui_ip_address, socket_visualizer_port))
-    print("Connecting to server %s on port %s ... ready to send information to experiment WEBUI" % (webui_ip_address, socket_visualizer_port))
+    socket_visualizer.connect(
+        "tcp://%s:%s" % (webui_ip_address, socket_visualizer_port)
+    )
+    print(
+        "Connecting to server %s on port %s ... ready to send information to experiment WEBUI"
+        % (webui_ip_address, socket_visualizer_port)
+    )
     return socket_visualizer
 
 
@@ -132,8 +151,13 @@ def start_command_connection(webui_ip_address):
     socket_command_visualizer_port = "8500"
     context = zmq.Context()
     socket_command_visualizer = context.socket(zmq.PAIR)
-    socket_command_visualizer.connect("tcp://%s:%s" % (webui_ip_address, socket_command_visualizer_port))
-    print("Create server on port %s ... ready to receive command from experiment GUI" % socket_command_visualizer_port)
+    socket_command_visualizer.connect(
+        "tcp://%s:%s" % (webui_ip_address, socket_command_visualizer_port)
+    )
+    print(
+        "Create server on port %s ... ready to receive command from experiment GUI"
+        % socket_command_visualizer_port
+    )
     return socket_command_visualizer
 
 
@@ -142,9 +166,9 @@ def forward_lines(stream, socket):
     try:
         line = stream.readline()
         while line:
-            socket.send(line[:-1].encode('utf-8'))
+            socket.send(line[:-1].encode("utf-8"))
             line = stream.readline()
-        socket.send(''.encode('utf-8'))  # send eof message.
+        socket.send("".encode("utf-8"))  # send eof message.
     finally:
         socket.close()
 
@@ -155,9 +179,9 @@ def forward_standard_input(context):
     from the standard input.  You will receive a final empty line when the EOF
     character is input to the keyboard."""
     reader = context.socket(zmq.PAIR)
-    reader.connect('inproc://standard-input')
+    reader.connect("inproc://standard-input")
     writer = context.socket(zmq.PAIR)
-    writer.bind('inproc://standard-input')
+    writer.bind("inproc://standard-input")
     stdin_thread = threading.Thread(target=forward_lines, args=(sys.stdin, writer))
     stdin_thread.start()
     return [reader, stdin_thread]
@@ -166,23 +190,26 @@ def forward_standard_input(context):
 def send_status_update(socket_visualizer):
     nsu = []
     import random
+
     for network in solutionCompatibilityMatrix:
-        nsu.append({
-            "name": network.name,
-            "type": network.networkType,
-            "channel": str(network.channels),
-            "load": network.load,
-            "active": True,
-        })
-    socket_visualizer.send_multipart([
-        b'networkStatusUpdate',
-        json.dumps(nsu).encode('utf-8'),
-    ])
+        nsu.append(
+            {
+                "name": network.name,
+                "type": network.networkType,
+                "channel": str(network.channels),
+                "load": network.load,
+                "active": True,
+            }
+        )
+    socket_visualizer.send_multipart(
+        [b"networkStatusUpdate", json.dumps(nsu).encode("utf-8")]
+    )
 
 
 ########################################
 ######## COMMAND LINE related ##########
 ########################################
+
 
 def print_log(logString):  ## Your menu design here
     if logString == "START":
@@ -226,8 +253,10 @@ def print_solutions():
         if items.get(reader, 0) & zmq.POLLIN:
             line = reader.recv()
             break
+
         else:
             continue
+
     clear()
     return
 
@@ -261,24 +290,33 @@ def print_menu_command():  ## Your menu design here
         if items.get(reader, 0) & zmq.POLLIN:
             line = reader.recv()
             break
+
         else:
             continue
 
     # Parse the selected network:
     network_choice = line.decode("utf-8").lower()
-    if network_choice == '':
+    if network_choice == "":
         return
+
     else:
         try:
             networkIndex = int(network_choice)
-            selected_network = next((x for x in solutionCompatibilityMatrix if x.id == networkIndex), None)
+            selected_network = next(
+                (x for x in solutionCompatibilityMatrix if x.id == networkIndex), None
+            )
         except KeyError:
             print("Invalid selection, please try again.\n")
             return
 
     # Pass the commands of the network to the output:
     for command_index in range(0, len(selected_network.commandList)):
-        print("     " + str(command_index) + " :" + str(selected_network.commandList[command_index]))
+        print(
+            "     "
+            + str(command_index)
+            + " :"
+            + str(selected_network.commandList[command_index])
+        )
     print("insert command number : ")
 
     while True:
@@ -286,15 +324,18 @@ def print_menu_command():  ## Your menu design here
             items = dict(poller.poll())
         except (zmq.ZMQError, KeyboardInterrupt):
             return
+
         if items.get(reader, 0) & zmq.POLLIN:
             line = reader.recv()
             break
+
         else:
             continue
 
     command_choice = line.decode("utf-8").lower()
-    if command_choice == '':
+    if command_choice == "":
         return
+
     else:
         try:
             commandIndex = int(command_choice)
@@ -309,7 +350,7 @@ def print_menu_command():  ## Your menu design here
     msg = {
         "type": "publisherUpdate",
         "involvedController": [selected_network.name],
-        "commandList": {}
+        "commandList": {},
     }
 
     if commandToSend == "TRAFFIC":
@@ -326,30 +367,44 @@ def print_menu_command():  ## Your menu design here
         # WIFI NETWORK COMMAND
         if commandToSend == "START_WIFI":
             msg["commandList"][selected_network.solution[0]] = {"START_WIFI": {}}
-            msg["commandList"][selected_network.solution[0]]["START_WIFI"] = {"2437": True}
+            msg["commandList"][selected_network.solution[0]]["START_WIFI"] = {
+                "2437": True
+            }
         elif commandToSend == "STOP_WIFI":
             msg["commandList"][selected_network.solution[0]] = {"STOP_WIFI": {}}
-            msg["commandList"][selected_network.solution[0]]["STOP_WIFI"] = {"2437": False}
+            msg["commandList"][selected_network.solution[0]]["STOP_WIFI"] = {
+                "2437": False
+            }
         elif commandToSend == "START_TDMA":
             msg["commandList"][selected_network.solution[0]] = {"START_TDMA": {}}
-            msg["commandList"][selected_network.solution[0]]["START_TDMA"] = {"2437": False}
+            msg["commandList"][selected_network.solution[0]]["START_TDMA"] = {
+                "2437": False
+            }
         elif commandToSend == "STOP_TDMA":
             msg["commandList"][selected_network.solution[0]] = {"STOP_TDMA": {}}
-            msg["commandList"][selected_network.solution[0]]["STOP_TDMA"] = {"2437": False}
+            msg["commandList"][selected_network.solution[0]]["STOP_TDMA"] = {
+                "2437": False
+            }
 
         # LTE NETWORK COMMAND
         elif commandToSend == "START_LTE":
             msg["commandList"][selected_network.solution[0]] = {"START_LTE": {}}
-            msg["commandList"][selected_network.solution[0]]["START_LTE"] = {"2437": True}
+            msg["commandList"][selected_network.solution[0]]["START_LTE"] = {
+                "2437": True
+            }
         elif commandToSend == "STOP_LTE":
             msg["commandList"][selected_network.solution[0]] = {"STOP_LTE": {}}
-            msg["commandList"][selected_network.solution[0]]["STOP_LTE"]= {"2437": False}
+            msg["commandList"][selected_network.solution[0]]["STOP_LTE"] = {
+                "2437": False
+            }
 
         # 6LOWPAN NETWORK COMMANDS:
         elif network.name == "6lowPAN":
             msg["commandList"][selected_network.solution[0]] = {commandToSend: None}
             if commandToSend == "LTE_WIFI_ZIGBEE":
-                msg["commandList"][selected_network.solution[0]] = {"LTE_WIFI_ZIGBEE": True}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "LTE_WIFI_ZIGBEE": True
+                }
             elif commandToSend == "ENABLE_TRAFFIC":
                 traffic_load = "High"
                 selected_network.update_load(traffic_load)
@@ -374,28 +429,36 @@ def print_menu_command():  ## Your menu design here
                     send_status_update(socket_visualizer)
 
             elif commandToSend == "TRAFFIC_SET_OFF":
-                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_OFF": {}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "TRAFFIC_SET_OFF": {}
+                }
                 traffic_load = "OFF"
                 selected_network.update_load(traffic_load)
                 if startVisualizer:
                     send_status_update(socket_visualizer)
 
             elif commandToSend == "TRAFFIC_SET_LOW":
-                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_LOW": {}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "TRAFFIC_SET_LOW": {}
+                }
                 traffic_load = "LOW"
                 selected_network.update_load(traffic_load)
                 if startVisualizer:
                     send_status_update(socket_visualizer)
 
             elif commandToSend == "TRAFFIC_SET_MEDIUM":
-                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_MEDIUM": {}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "TRAFFIC_SET_MEDIUM": {}
+                }
                 traffic_load = "MEDIUM"
                 selected_network.update_load(traffic_load)
                 if startVisualizer:
                     send_status_update(socket_visualizer)
 
             elif commandToSend == "TRAFFIC_SET_HIGH":
-                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_HIGH": {}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "TRAFFIC_SET_HIGH": {}
+                }
                 traffic_load = "HIGH"
                 selected_network.update_load(traffic_load)
                 if startVisualizer:
@@ -403,18 +466,24 @@ def print_menu_command():  ## Your menu design here
 
             elif commandToSend == "TRAFFIC":
                 traffic_load = "HIGH"
-                msg["commandList"][selected_network.solution[0]] = {"TRAFFIC": {"TYPE": traffic_load}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "TRAFFIC": {"TYPE": traffic_load}
+                }
                 selected_network.update_load(traffic_load)
                 if startVisualizer:
                     send_status_update(socket_visualizer)
 
             elif commandToSend == "SWITCH_CHANNEL":
-                msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "SWITCH_CHANNEL": {"channel": 0}
+                }
 
         # TUB NON_WISHFUL_LTE_U:
         elif selected_network.name in ["NON_WISHFUL_LTE_U", "Non_WiSHFUL_LTE_U_BS"]:
             if commandToSend == "ACTIVATE":
-                msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {"freq" : 2412}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "ACTIVATE": {"freq": 2412}
+                }
                 traffic_load = "MEDIUM"
                 selected_network.update_load(traffic_load)
                 if startVisualizer:
@@ -426,29 +495,33 @@ def print_menu_command():  ## Your menu design here
                 if startVisualizer:
                     send_status_update(socket_visualizer)
             elif commandToSend == "SET_FREQ":
-                msg["commandList"][selected_network.solution[0]] = {"SET_FREQ": {"freq" : 2437}}
+                msg["commandList"][selected_network.solution[0]] = {
+                    "SET_FREQ": {"freq": 2437}
+                }
 
         # TCD NB-IoT Virtual
         elif commandToSend == "START_NBIOT":
             msg["commandList"][selected_network.solution[0]] = {"START_NBIOT": {}}
-            msg["commandList"][selected_network.solution[0]]["START_NBIOT"] = {"2437": True}
+            msg["commandList"][selected_network.solution[0]]["START_NBIOT"] = {
+                "2437": True
+            }
         elif commandToSend == "STOP_NBIOT":
             msg["commandList"][selected_network.solution[0]] = {"STOP_NBIOT": {}}
-            msg["commandList"][selected_network.solution[0]]["STOP_NBIOT"] = {"2437": False}
-
+            msg["commandList"][selected_network.solution[0]]["STOP_NBIOT"] = {
+                "2437": False
+            }
 
         # No arguments
         else:
             msg["commandList"][selected_network.solution[0]] = {commandToSend: {}}
-            
 
     if msg:
-        print('update message %s' % str(msg))
+        print("update message %s" % str(msg))
         # Distribute as key-value message
         # sequence_publisher += 1
         kvmsg = KVMsg(sequence_publisher)
         kvmsg.key = b"generic"
-        kvmsg.body = json.dumps(msg).encode('utf-8')
+        kvmsg.body = json.dumps(msg).encode("utf-8")
         kvmsg.send(publisher)
         print("sent update information with sequence %d" % sequence_publisher)
 
@@ -457,7 +530,7 @@ def print_menu_command():  ## Your menu design here
 
     else:
         print("Malformed message, sending failed")
-        print('update message %s' % str(msg))
+        print("update message %s" % str(msg))
 
     print(67 * "-")
     print("Press 0 to BACK")
@@ -470,31 +543,35 @@ def print_menu_command():  ## Your menu design here
         if items.get(reader, 0) & zmq.POLLIN:
             line = reader.recv()
             break
+
         else:
             continue
+
     clear()
     return
 
+
 # Exit program
+
+
 def exit():
     global do_run
     do_run = False
 
 
 # Menu definition
-menu_actions = {
-    '1': print_solutions,
-    '2': print_menu_command,
-    '0': exit,
-}
+menu_actions = {"1": print_solutions, "2": print_menu_command, "0": exit}
 
 
 # Execute menu
+
+
 def exec_menu(choice):
     clear()
     ch = choice.decode("utf-8").lower()
-    if ch == '':
+    if ch == "":
         return
+
     else:
         try:
             menu_actions[ch]()
@@ -529,12 +606,12 @@ def main(args):
     networkNum = 0
     sequence_publisher = 0
 
-    if args['--novisualizer']:
+    if args["--novisualizer"]:
         print("Communication with visualizer won't be started")
         startVisualizer = False
 
-    log.info('*******     WISHFUL *************')
-    log.info('********  Starting solution global controller ***************')
+    log.info("*******     WISHFUL *************")
+    log.info("********  Starting solution global controller ***************")
 
     # all_nodes = ['B', 'C', 'D', 'E']
     # nodes_source_rate = []
@@ -599,12 +676,26 @@ def main(args):
 
             # print(received_request)
             if "type" in received_request:
-                network = next((x for x in solutionCompatibilityMatrix if x.name == received_request["networkController"]), None)
+                network = next(
+                    (
+                        x
+                        for x in solutionCompatibilityMatrix
+                        if x.name == received_request["networkController"]
+                    ),
+                    None,
+                )
                 # Process registration request
                 if received_request["type"] == "registerRequest":
-                    print("***Received registration request*** : %s\n" % received_request)
+                    print(
+                        "***Received registration request*** : %s\n" % received_request
+                    )
 
-                    if "networkController" in received_request and "solution" in received_request and "commandList" in received_request and "monitorList" in received_request:
+                    if (
+                        "networkController" in received_request
+                        and "solution" in received_request
+                        and "commandList" in received_request
+                        and "monitorList" in received_request
+                    ):
                         if network is None:
                             networkNum += 1
                             network = Network(
@@ -613,7 +704,7 @@ def main(args):
                                 received_request["networkType"],
                                 received_request["solution"],
                                 received_request["commandList"],
-                                received_request["monitorList"]
+                                received_request["monitorList"],
                             )
                             solutionCompatibilityMatrix.append(network)
 
@@ -630,10 +721,10 @@ def main(args):
 
                     # reply response to client
                     request.send(identity, zmq.SNDMORE)
-                    sequence = struct.unpack('!l', msg[2])[0] + 1
+                    sequence = struct.unpack("!l", msg[2])[0] + 1
                     kvmsg = KVMsg(sequence)
                     kvmsg.key = b"generic"
-                    kvmsg.body = json.dumps(responseMsg).encode('utf-8')
+                    kvmsg.body = json.dumps(responseMsg).encode("utf-8")
                     kvmsg.send(request)
 
                 # Process monitoring Report
@@ -669,7 +760,12 @@ def main(args):
                         received_request["monitorValue"]["timestamp"] = now
 
                         if startVisualizer:
-                            socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
+                            socket_visualizer.send_multipart(
+                                [
+                                    b"monitorReport",
+                                    json.dumps(received_request).encode("utf-8"),
+                                ]
+                            )
 
                         if network and network.name in ["WIFI_A1", "WIFI_A2"]:
                             obssManager.notify_performance_report(received_request)
@@ -691,34 +787,39 @@ if __name__ == "__main__":
     try:
         from docopt import docopt
     except:
-        print(""" Please install docopt using:
+        print(
+            """ Please install docopt using:
             pip install docopt==0.6.1
-            For more refer to: https://github.com/docopt/docopt """)
+            For more refer to: https://github.com/docopt/docopt """
+        )
         raise
 
     args = docopt(__doc__, version=__version__)
     log_level = logging.INFO  # default
-    if args['--verbose']:
+    if args["--verbose"]:
         log_level = logging.DEBUG
-    elif args['--quiet']:
+    elif args["--quiet"]:
         log_level = logging.ERROR
 
     logfile = None
-    if args['--logfile']:
-        logfile = args['--logfile']
+    if args["--logfile"]:
+        logfile = args["--logfile"]
 
-    logging.basicConfig(filename=logfile, level=log_level,
-                        format='%(asctime)s - %(name)s.%(funcName)s() - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        filename=logfile,
+        level=log_level,
+        format="%(asctime)s - %(name)s.%(funcName)s() - %(levelname)s - %(message)s",
+    )
 
     # Get configuration file
-    if args['--config']:
-        config_file_path = args['--config']
+    if args["--config"]:
+        config_file_path = args["--config"]
         config = None
-        with open(config_file_path, 'r') as f:
+        with open(config_file_path, "r") as f:
             config = yaml.load(f)
     try:
         main(args)
-        print('end main')
+        print("end main")
     except KeyboardInterrupt:
         log.debug("Controller exits")
     finally:
