@@ -816,7 +816,7 @@ def main(args):
                         },
                     }
                     """
-					"""
+
 					if received_request["monitorType"] == "channelUsage":
 						network.update_channel(received_request["monitorValue"])
 						if startVisualizer:
