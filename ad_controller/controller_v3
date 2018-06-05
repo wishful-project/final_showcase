@@ -400,6 +400,10 @@ def print_menu_command():  ## Your menu design here
 
 			elif commandToSend == "DEACTIVATE":
 				msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+				traffic_load = "OFF"
+				selected_network.update_load(traffic_load)
+				if startVisualizer:
+					send_status_update(socket_visualizer)
 
 			elif commandToSend == "TRAFFIC_SET_OFF":
 				msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_OFF": {}}
@@ -443,8 +447,16 @@ def print_menu_command():  ## Your menu design here
 		elif selected_network.name in ["NON_WISHFUL_LTE_U", "Non_WiSHFUL_LTE_U_BS"]:
 			if commandToSend == "ACTIVATE":
 				msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {"freq": 2412}}
+				traffic_load = "MEDIUM"
+				selected_network.update_load(traffic_load)
+				if startVisualizer:
+					send_status_update(socket_visualizer)
 			elif commandToSend == "DEACTIVATE":
 				msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+				traffic_load = "OFF"
+				selected_network.update_load(traffic_load)
+				if startVisualizer:
+					send_status_update(socket_visualizer)
 			elif commandToSend == "SET_FREQ":
 				msg["commandList"][selected_network.solution[0]] = {"SET_FREQ": {"freq": 2437}}
 
@@ -804,6 +816,7 @@ def main(args):
                         },
                     }
                     """
+					"""
 					if received_request["monitorType"] == "channelUsage":
 						network.update_channel(received_request["monitorValue"])
 						if startVisualizer:
