@@ -395,8 +395,8 @@ def main(args):
             controller.nodes(sta0_node).net.install_traffic_shaper(interface=sta0_iface)
 
             print("Set TX power")
-            controller.nodes(sta0_node).radio.iface(sta0_iface).set_tx_power(20)
-            controller.nodes(ap0_node).radio.iface(ap0_iface).set_tx_power(20)
+            controller.nodes(sta0_node).radio.iface(sta0_iface).set_tx_power(10)
+            controller.nodes(ap0_node).radio.iface(ap0_iface).set_tx_power(10)
 
             print("Start iperf server")
             controller.nodes(sta0_node).net.create_packetflow_sink(port=5051)
