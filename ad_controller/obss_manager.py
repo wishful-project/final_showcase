@@ -138,10 +138,6 @@ class ObssManager(object):
         if activeNetNumber == 1:
             net0 = activeNets[0]
 
-            # if no traffic do nothing
-            if net0.requestedTraffic == 0:
-                return
-
             now = time.time()
             if net0.lastOptimizationTime is None or now - net0.lastOptimizationTime > 60:
                 # start checking channels
@@ -195,13 +191,46 @@ class ObssManager(object):
             net0 = activeNets[0]
             net1 = activeNets[1]
 
-            if net0.satisfied and net1.satisfied:
-                # do nothing
+            now = time.time()
+            if net0.lastOptimizationTime is None or now - net0.lastOptimizationTime > 60:
+                # start checking channels
+                net0.lastOptimizationTime = now
+                net0.clean_thr_cache()
+                net0.measurementsRunning = True
+                net1.lastOptimizationTime = now
+                net1.clean_thr_cache()
+                net1.measurementsRunning = True
+
+            # if no measurements return
+            if not net0.measurementsRunning or not net1.measurementsRunning:
                 return
 
-            # if no traffic do nothing
-            if net0.requestedTraffic == 0 and net1.requestedTraffic == 0:
-                return
+            # if we have all samples
+            if 0 and net0.check_cache(self.avaiableChannels) and net1.check_cache(self.avaiableChannels):
+                net0.measurementsRunning = False
+                net1.measurementsRunning = False
+
+            # if we have samples for current channel-> switch channel
+            if net0.check_cache([net0.channel]) and net1.check_cache([net1.channel]):
+                newChannelIdx0 = self.avaiableChannels.index(net0.channel) + 1
+                if newChannelIdx0 >= len(self.avaiableChannels):
+                    newChannelIdx0 = 0
+
+                newChannelIdx1 = newChannelIdx0 + 1
+                if newChannelIdx1 >= len(self.avaiableChannels):
+                    newChannelIdx1 = 0
+
+                newChannel = self.avaiableChannels[newChannelIdx0]
+                now = time.time()
+                net0.send_switch_channel_cmd(self.pubSocket, newChannel)
+                net0.channel = newChannel
+                net0.lastChanSwitchTime = now
+
+                newChannel = self.avaiableChannels[newChannelIdx1]
+                now = time.time()
+                net0.send_switch_channel_cmd(self.pubSocket, newChannel)
+                net0.channel = newChannel
+                net0.lastChanSwitchTime = now
 
     def add_network(self, network):
         self.networks.append(network)
