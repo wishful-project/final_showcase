@@ -234,16 +234,31 @@ class ObssManager(object):
                 bestThr0 = max(thrList0)
                 bestChanIdx0 = thrList0.index(bestThr0)
                 bestChan0 = self.avaiableChannels[bestChanIdx0]
+
+                print("Mean Thr 1 ", thrList1)
+                bestThr1 = max(thrList1)
+                bestChanIdx1 = thrList1.index(bestThr1)
+                bestChan1 = self.avaiableChannels[bestChanIdx1]
+
+                if bestChan0 == bestChan1:
+                    # get second best for worse network
+                    if bestThr0 > bestThr1:
+                        del thrList1[bestChanIdx1]
+                        bestThr1 = max(thrList1)
+                        bestChanIdx1 = thrList1.index(bestThr1)
+                        bestChan1 = self.avaiableChannels[bestChanIdx1]
+                    else:
+                        del thrList0[bestChanIdx0]
+                        bestThr0 = max(thrList0)
+                        bestChanIdx0 = thrList0.index(bestThr0)
+                        bestChan0 = self.avaiableChannels[bestChanIdx0]
+
                 print("Best channel0 ", bestChan0)
                 net0.send_switch_channel_cmd(self.pubSocket, bestChan0)
                 net0.channel = bestChan0
                 net0.lastChanSwitchTime = now
                 net0.clean_thr_cache()
 
-                print("Mean Thr 1 ", thrList1)
-                bestThr1 = max(thrList1)
-                bestChanIdx1 = thrList1.index(bestThr1)
-                bestChan1 = self.avaiableChannels[bestChanIdx1]
                 print("Best channel1 ", bestChan1)
                 net1.send_switch_channel_cmd(self.pubSocket, bestChan1)
                 net1.channel = bestChan1
