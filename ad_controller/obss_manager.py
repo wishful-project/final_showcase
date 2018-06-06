@@ -244,14 +244,14 @@ class ObssManager(object):
                     # get second best for worse network
                     if bestThr0 > bestThr1:
                         del thrList1[bestChanIdx1]
-                        mchannels = self.avaiableChannels
+                        mchannels = [1, 6, 11]
                         del mchannels[bestChanIdx1]
                         bestThr1 = max(thrList1)
                         bestChanIdx1 = thrList1.index(bestThr1)
                         bestChan1 = mchannels[bestChanIdx1]
                     else:
                         del thrList0[bestChanIdx0]
-                        mchannels = self.avaiableChannels
+                        mchannels = [1, 6, 11]
                         del mchannels[bestChanIdx0]
                         bestThr0 = max(thrList0)
                         bestChanIdx0 = thrList0.index(bestThr0)
