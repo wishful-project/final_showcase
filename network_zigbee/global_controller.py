@@ -62,6 +62,10 @@ hopping_sequence = []
 expected_throughput = sys.maxsize
 payload = 128
 software_reset = 0
+
+# Adapt this to change the minimal duty cycle of external interference, 
+# before the corresponding frequency range will be blacklisted
+interference_blacklist_threshold = 0.25
 # 0 = OFF
 # 1 = LOW
 # 2 = MEDIUM
@@ -271,7 +275,8 @@ def reset():
 ## Commands implementation:
 channel_update_counter = 0
 def blacklist(spectrum_scan):
-    global blacklisted_channels, blacklisted_channels_timestamps, channel_update_counter
+    global blacklisted_channels, blacklisted_channels_timestamps, \
+        channel_update_counter, interference_blacklist_threshold
     blacklisted_channels_prev = blacklisted_channels
     blacklisted_channels = []
     
@@ -289,7 +294,7 @@ def blacklist(spectrum_scan):
                 interference_bandwidth = float(interference_information[0])
                 interference_dutycycle = float(interference_information[1])
                 #~ logging.info("INTERFERENCE ({}): {} {} {}".format(technology,interference_center, interference_bandwidth, interference_dutycycle))
-                if interference_dutycycle > 0.25:
+                if interference_dutycycle > interference_blacklist_threshold:
                     for sicslowpan_channel in range(11,27):
                         center_frequency = 2350 + sicslowpan_channel * 5
                         if (center_frequency > interference_center - interference_bandwidth/2
@@ -476,7 +481,7 @@ if __name__ == "__main__":
     if "--cca_threshold" in args and args["--cca_threshold"] is not None:
         cca_threshold = int(args['--cca_threshold'])
     else:
-        cca_threshold = -80
+        cca_threshold = -75
         
     
     if "--tx_power" in args and args["--tx_power"] is not None:
