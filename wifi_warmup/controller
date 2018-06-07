@@ -213,21 +213,27 @@ def set_traffic(trafficValue):
 
     controller._clear_call_context()
 
+    if trafficValue:
+        trafficValue = trafficValue.get("TYPE", None)
+
+    if trafficValue is None:
+        return
+
     # 0-OFF, 1-LOW, 2-MEDIUM, 3-HIGH
     if trafficValue == "OFF" and trafficStarted and ap0_node:
-        print("Switch traffic OFF")
+        print("set_traffic: Switch traffic OFF")
         controller.nodes(ap0_node).blocking(False).net.stop_packetflow()
         trafficStarted = False
         myRate = 100
 
     elif trafficValue == "LOW":
-        print("Set LOW traffic")
+        print("set_traffic: Set LOW traffic")
         myRate = 1
     elif trafficValue == "MEDIUM":
-        print("Set MEDIUM traffic")
+        print("set_traffic: Set MEDIUM traffic")
         myRate = 20
     else:
-        print("Set HIGH traffic")
+        print("set_traffic: Set HIGH traffic")
         myRate = 500
 
     if not trafficStarted and trafficValue != "OFF" and ap0_node:
