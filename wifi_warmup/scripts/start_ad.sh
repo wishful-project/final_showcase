@@ -5,5 +5,5 @@ AD_PATH=$WISHFUL_PATH/final_showcase/ad_controller
 
 source $WISHFUL_PATH/dev/bin/activate
 cd $AD_PATH
-python ./controller -n
+python ./controller
 cd ..

@@ -185,9 +185,9 @@ def remote_control_program(controller):
             tdma_mask_output = tdma_mask_array_full_off[:]
             # print("2")
 
-            print("tdma_mask_output", tdma_mask_output)
-            print("index_pattern_3_finded", index_pattern_3_finded[0])
-            print("TDMA_TYPE", TDMA_TYPE)
+            print(tdma_mask_output)
+            print(index_pattern_3_finded[0])
+            print(TDMA_TYPE)
 
             if TDMA_TYPE == 3:
                 for ii in range(0, len(lte_pattern_3_zigbee_on)):
@@ -362,10 +362,6 @@ def remote_control_program(controller):
             #     mask_int=update_pattern(mask_psucc_int, L, mask_sum + 1)
 
             print("----------")
-            print("Resync TDMA received command")
-            if reading_buffer[3]:
-                mask_psucc_int = [0 for x in list(mask)]
-                reading_buffer[3] = 0
             print(mask_psucc_int)
             [index_start_pattern, mask_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION] = find_lte_pos(mask_psucc_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION, reading_buffer[2])
             print(mask_int)
@@ -487,7 +483,6 @@ def remote_control_program(controller):
                 reading_buffer.append(0.0)
                 reading_buffer.append("0000000000")
                 reading_buffer.append(3)
-                reading_buffer.append(0)
                 reading_buffer_thread = threading.Thread(target=tune_wifi_pattern, args=(reading_buffer,))
                 reading_buffer_thread.do_run = True
                 reading_buffer_thread.start()
@@ -509,9 +504,6 @@ def remote_control_program(controller):
 
             if "tdmaType" in msg:
                 reading_buffer[2] = msg["tdmaType"]
-
-            if "tdmaResync" in msg:
-                reading_buffer[3] = msg["tdmaResync"]
 
         #send statistics to controller
         # if 'reading_time' in report_stats:

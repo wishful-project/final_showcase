@@ -116,6 +116,8 @@ wifiStateChange = False
 lteState = "DISABLE"
 lteStateChange = False
 tdmaState = "DISABLE"
+tdmaType = 3
+tdmaResync = 0
 tdmaStateChange = False
 
 """
@@ -423,33 +425,39 @@ def active_TDMA_radio_program(node, log, controller, current_platform_info):
 def startWifi():
 	print("change wifi state")
 	global wifiState, wifiStateChange
-	wifiState = "ENABLE"
-	wifiStateChange = True
+	if wifiState == "DISABLE":
+		wifiState = "ENABLE"
+		wifiStateChange = True
 
 
 def stopWifi():
 	print("change wifi state")
 	global wifiState, wifiStateChange
-	wifiState = "DISABLE"
-	wifiStateChange = True
-
-
-def lteStatus():
-	print("change lte state")
-	global lteState, lteStateChange
-	if lteState == "ENABLE":
-		lteState = "DISABLE"
-	elif lteState == "DISABLE":
-		lteState = "ENABLE"
-	else:
-		lteState = "DISABLE"
-		return
-	lteStateChange = True
+	if wifiState == "ENABLE":
+		wifiState = "DISABLE"
+		wifiStateChange = True
 
 def startTdma():
 	print("change TDMA state")
-	global tdmaState, tdmaStateChange
+	global tdmaState, tdmaStateChange, tdmaType
 	tdmaState = "ENABLE"
+	tdmaType = 3
+	tdmaStateChange = True
+	return
+
+def startTdma2():
+	print("change TDMA state")
+	global tdmaState, tdmaStateChange, tdmaType
+	tdmaState = "ENABLE"
+	tdmaType = 2
+	tdmaStateChange = True
+	return
+
+def resyncTdma():
+	print("change TDMA state")
+	global tdmaState, tdmaStateChange, tdmaType, tdmaResync
+	tdmaState = "ENABLE"
+	tdmaResync = 1
 	tdmaStateChange = True
 	return
 
@@ -538,7 +546,25 @@ def main(args):
 	global eth_ip
 	global role
 
-	global tdmaState, tdmaStateChange, wifiState, wifiStateChange, lteState, lteStateChange
+	global tdmaState, tdmaStateChange, tdmaType, tdmaResync, wifiState, wifiStateChange, lteState, lteStateChange
+
+	channelToFreq = {1: 2412,
+					 2: 2417,
+					 3: 2422,
+					 4: 2427,
+					 5: 2432,
+					 6: 2437,
+					 7: 2442,
+					 8: 2447,
+					 9: 2452,
+					 10: 2457,
+					 11: 2462,
+					 12: 2467,
+					 13: 2472,
+					 14: 2484,
+					 }
+
+
 
 	# Init variables
 	do_run = True
@@ -552,11 +578,11 @@ def main(args):
 	****** setup the communication with the solution global controller ******
 	"""
 
-	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.16.12", requestPort=7001, subPort=7000)
+	solutionCtrProxy = GlobalSolutionControllerProxy(ip_address="172.16.17.2", requestPort=7001, subPort=7000)
 	networkName = "WIFI_TDMA"
 	solutionName = ["WIFI_CT"]
 	networkType = 'IEEE_802.11'
-	commands = {"STOP_WIFI": (lambda: stopWifi()), "START_WIFI": (lambda:startWifi()), "STOP_TDMA": (lambda:stopTdma()), "START_TDMA": (lambda:startTdma())}
+	commands = {"STOP_WIFI": (lambda: stopWifi()), "START_WIFI": (lambda:startWifi()), "STOP_TDMA": (lambda:stopTdma()), "RESYNC": (lambda:resyncTdma()), "START_TDMA": (lambda:startTdma()), "START_TDMA_2": (lambda:startTdma2())}
 	monitorList = ["THR", "PER"]
 	solutionCtrProxy.set_solution_attributes(networkName, networkType, solutionName, commands, monitorList )
 
@@ -565,9 +591,15 @@ def main(args):
 	if response:
 		print("Solution was correctly registered to GlobalSolutionController")
 		solutionCtrProxy.start_command_listener()
+		channels = [11]
+		frequencies = {channelToFreq[11]: 20}
+		value = {"channels": channels,
+				 "frequencies": frequencies
+				 }
+		print("Notify AD controller about used channels", channels)
+		solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
 	else:
 		print("Solution was not registered to Global Solution Controller")
-
 	"""
 	****** Solution experiment controller ******
 	"""
@@ -764,7 +796,6 @@ def main(args):
 							tdmaStateChange = False
 							continue
 
-						tdmaStateChange = False
 						for jj in range(0, len(nodes)):
 							pos = eth_ip.index(nodes[jj].ip)
 							if role[pos] == "STA":
@@ -775,6 +806,21 @@ def main(args):
 									return
 								else:
 									log.warning('Radio program activation successful')
+
+								if tdmaState == "ENABLE":
+									for ii in range(0, len(lcpDescriptor_nodes)):
+										try:
+											if lcpDescriptor_nodes[ii]:
+												msg = {"tdmaType": tdmaType}
+												if tdmaResync:
+													msg["tdmaResync"] = 1
+													tdmaResync = 0
+												lcpDescriptor_nodes[ii].send(msg)
+										except:
+											print('Error in %s local control program send messages' % str(nodes[ii].ip))
+
+						tdmaStateChange = False
+
 
 					if wifiStateChange:
 						if wifiState == "ENABLE":

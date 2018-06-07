@@ -11,7 +11,7 @@
 
     <style>{% include 'pure-min.css' %}</style>
     <style>{% include 'side-menu.css' %}</style>
-    <style>.bk-root .bk-grid-row > *, .bk-root .bk-grid-column > * {flex-shrink: 2;}</style>
+
   </head>
   <body>
     <div id="main">
@@ -27,10 +27,12 @@
         {{ plot_div|indent(8) }}
         <!-- </div> -->
       </div>
+
     </div>
 
     <!-- Optional JavaScript -->
     {{ plot_script|indent(8) }}
     <script>{% include 'ui.js' %}</script>
+
   </body>
 </html>

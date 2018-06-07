@@ -174,6 +174,7 @@ def main(args):
             # send interference report to AD controller
             value = {}
             lte = {}
+            wifi = {}
             busy = {}
             for chan in channels:
                 freq = channelToFreq[chan]
@@ -183,14 +184,37 @@ def main(args):
                     if lteDetected:
                         lteuDC = freqStats.get('DC')
                         lte[freq] = [bandwidth, lteuDC]
+
+                    wifiRatio = freqStats.get('wifi', 0.0)
+                    if wifiRatio > 0.0:
+                        wifi[freq] = [bandwidth, wifiRatio]
+
                     busyRatio = freqStats.get('busy')
                     busy[freq] = [bandwidth, busyRatio]
 
 
             if lte:
                 value['LTE'] = lte
-            value['Busy'] = busy
-            solutionCtrProxy.send_monitor_report('interference', networkType, value)
+            if wifi:
+                value['WIFI'] = wifi
+            if busy:
+                value['Busy'] = busy
+
+            if value:
+                solutionCtrProxy.send_monitor_report('interference', networkType, value)
+
+        # Notify channel usage
+        value = {"channels" : [],
+                 "frequencies": []
+                 }
+
+        if wiplusEnabled:
+            value = {"channels" : [1,6,11],
+                     "frequencies": [2412, 2437, 2462]
+                     }
+
+        # print("Notify AD controller about used channels", channels)
+        solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
 
 
 if __name__ == "__main__":

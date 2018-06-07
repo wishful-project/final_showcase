@@ -21,7 +21,12 @@ Wishful FINAL SHOWCASE Interference detection
 
     http://172.16.16.12/WishfulWebPortal/only_usrp.html
     
-    
+#deploy experiment files
+    cd /mnt/d/ownCloud/wishful-framework-cnit/wishful-github-manifest-7/final_showcase/
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh dgarlisi@172.16.16.11:/groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/
+
+    rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh 10.8.9.13:~/wishful-github-manifest-7/
+
     
     #Start CNIT_MONITOR_SERVICE  (SHELL 4) (need AD controller activated):
 

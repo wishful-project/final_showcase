@@ -46,17 +46,19 @@ Wishful FINAL SHOWCASE Network WiFi
     python3 ./controller
 
  #Solution
-    python3 controller --config controller_cfg_nuc12.yaml --nodes node_info.txt
+    ssh dgarlisi@nuc12
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_wifi/solution_wifi_ct/
+    python3 controller_wifi --config controller_cfg_nuc12.yaml --nodes node_info.txt
 
     ~~~~
     #start agent
     ~~~~
-    cd ~/wishful-github-manifest/final_showcase/network_wifi/solution_wifi_ct
     ssh root@alix04
+    cd ~/wishful-github-manifest/final_showcase/network_wifi/solution_wifi_ct
     python3 agent --config agent_cfg_ap.yaml
 
-    cd ~/wishful-github-manifest/final_showcase/network_wifi/solution_wifi_ct
     ssh root@alix05
+    cd ~/wishful-github-manifest/final_showcase/network_wifi/solution_wifi_ct
     python3 agent --config agent_cfg_sta.yaml
 
     ~~~~

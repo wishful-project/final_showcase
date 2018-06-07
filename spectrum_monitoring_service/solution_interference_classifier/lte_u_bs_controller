@@ -48,6 +48,7 @@ __email__ = "gawlowicz@tkn.tu-berlin.de"
 log = logging.getLogger('wishful_agent.main')
 controller = wishful_controller.Controller()
 bsEnabled = True
+lteuFreq = None
 nodes = []
 
 srsLteEnbPath = "/home/piotr/demo/pdsch_enodeb_lteu -g 100 -p 100 -f 2412e6"
@@ -68,12 +69,14 @@ def start_bs(args):
     global bsEnabled
     global srsLteEnbProcess
     global eNbManager
+    global lteuFreq
     bsEnabled = True
 
     newFreq = 2412  # channel 1
     if args:
         newFreq = args.get("freq", newFreq)
 
+    lteuFreq = newFreq
     if srsLteEnbProcess is None:
         cmd = ['/home/piotr/demo/pdsch_enodeb_lteu']
         cmd.extend(['-g', '100'])  # tx gain 100
@@ -82,7 +85,7 @@ def start_bs(args):
 
         srsLteEnbProcess = subprocess.Popen(cmd)
 
-        time.sleep(1)
+        time.sleep(5)
         eNbManager.start_tx()
         eNbManager.set_rf_freq(newFreq)
 
@@ -92,8 +95,10 @@ def stop_bs(args):
     global bsEnabled
     global srsLteEnbProcess
     global eNbManager
+    global lteuFreq
     bsEnabled = False
 
+    lteuFreq = None
     if srsLteEnbProcess:
         cmd = ['/bin/kill']
         cmd.extend(['-9'])
@@ -106,12 +111,14 @@ def set_freq(args):
     global bsEnabled
     global srsLteEnbProcess
     global eNbManager
+    global lteuFreq
 
     newFreq = 2437  # channel 6
     if args:
         newFreq = args.get("freq", newFreq)
 
     print("Change LTE-U BS central frequency to :", newFreq)
+    lteuFreq = newFreq
 
     if srsLteEnbProcess and bsEnabled:
         eNbManager.set_rf_freq(newFreq)
@@ -120,6 +127,7 @@ def set_freq(args):
 def main(args):
     global controller
     global bsEnabled
+    global lteuFreq
 
     log.debug(args)
 
@@ -167,9 +175,47 @@ def main(args):
     else:
         print("Solution was not registered to Global Solution Controller")
 
+    channelToFreq = {1: 2412,
+                     2: 2417,
+                     3: 2422,
+                     4: 2427,
+                     5: 2432,
+                     6: 2437,
+                     7: 2442,
+                     8: 2447,
+                     9: 2452,
+                     10: 2457,
+                     11: 2462,
+                     12: 2467,
+                     13: 2472,
+                     14: 2484,
+                     }
+
+    freqToChannel = {v: k for k, v in channelToFreq.items()}
+
     # control loop
     while True:
         gevent.sleep(1)
+
+        # Notify channel usage
+        value = {"channels" : [],
+                 "frequencies": []
+                 }
+
+        if bsEnabled and lteuFreq:
+            channels = []
+            channel = freqToChannel.get(lteuFreq, None)
+            if channel:
+                channels = [channel]
+
+            frequencies = {lteuFreq : 20}
+
+            value = {"channels" : channels,
+                     "frequencies": frequencies
+                     }
+
+        # print("Notify AD controller about used channels", channels)
+        solutionCtrProxy.send_monitor_report('channelUsage', networkType, value)
 
 
 if __name__ == "__main__":

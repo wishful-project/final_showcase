@@ -84,13 +84,31 @@ class ObssManager(object):
         self.minChanSwitchInterval = 10
         self.avaiableChannels = [1, 6, 11]
 
+        self.channelToFreq = {1: 2412,
+                              2: 2417,
+                              3: 2422,
+                              4: 2427,
+                              5: 2432,
+                              6: 2437,
+                              7: 2442,
+                              8: 2447,
+                              9: 2452,
+                              10: 2457,
+                              11: 2462,
+                              12: 2467,
+                              13: 2472,
+                              14: 2484,
+                              }
+
+        self.freqToChannel = {v: k for k, v in self.channelToFreq.items()}
+
     def set_pub_socket(self, pubSocket):
         self.pubSocket = pubSocket
 
     def get_active_networks(self,):
         activeNets = []
         for name, net in self.wifiNetworks.items():
-            if net.activated:
+            if net.activated and net.requestedTraffic:
                 activeNets.append(net)
 
         return activeNets
@@ -119,10 +137,6 @@ class ObssManager(object):
 
         if activeNetNumber == 1:
             net0 = activeNets[0]
-
-            # if no traffic do nothing
-            if net0.requestedTraffic == 0:
-                return
 
             now = time.time()
             if net0.lastOptimizationTime is None or now - net0.lastOptimizationTime > 60:
@@ -177,13 +191,105 @@ class ObssManager(object):
             net0 = activeNets[0]
             net1 = activeNets[1]
 
-            if net0.satisfied and net1.satisfied:
-                # do nothing
+            now = time.time()
+            if net0.lastOptimizationTime is None or now - net0.lastOptimizationTime > 60:
+                # start checking channels
+                net0.lastOptimizationTime = now
+                net0.clean_thr_cache()
+                net0.measurementsRunning = True
+                net1.lastOptimizationTime = now
+                net1.clean_thr_cache()
+                net1.measurementsRunning = True
+
+            # if no measurements return
+            if not net0.measurementsRunning or not net1.measurementsRunning:
                 return
 
-            # if no traffic do nothing
-            if net0.requestedTraffic == 0 and net1.requestedTraffic == 0:
-                return
+            # if we have all samples
+            if net0.check_cache(self.avaiableChannels) and net1.check_cache(self.avaiableChannels):
+                net0.measurementsRunning = False
+                net1.measurementsRunning = False
+
+                # select best channel
+                thrList0 = []
+                thrList1 = []
+
+                for ch in self.avaiableChannels:
+                    channelStats = net0.throughputCache.get(ch, {})
+                    thrSamples = channelStats.get("thrSamples", [])
+                    # remove last as it may contain results from next channel
+                    del thrSamples[-1]
+                    meanThr = sum(thrSamples) / len(thrSamples)
+                    thrList0.append(meanThr)
+
+                for ch in self.avaiableChannels:
+                    channelStats = net1.throughputCache.get(ch, {})
+                    thrSamples = channelStats.get("thrSamples", [])
+                    # remove last as it may contain results from next channel
+                    del thrSamples[-1]
+                    meanThr = sum(thrSamples) / len(thrSamples)
+                    thrList1.append(meanThr)
+
+                print("Mean Thr 0 ", thrList0)
+                bestThr0 = max(thrList0)
+                bestChanIdx0 = thrList0.index(bestThr0)
+                bestChan0 = self.avaiableChannels[bestChanIdx0]
+
+                print("Mean Thr 1 ", thrList1)
+                bestThr1 = max(thrList1)
+                bestChanIdx1 = thrList1.index(bestThr1)
+                bestChan1 = self.avaiableChannels[bestChanIdx1]
+
+                if bestChan0 == bestChan1:
+                    # get second best for worse network
+                    if bestThr0 > bestThr1:
+                        del thrList1[bestChanIdx1]
+                        mchannels = [1, 6, 11]
+                        del mchannels[bestChanIdx1]
+                        bestThr1 = max(thrList1)
+                        bestChanIdx1 = thrList1.index(bestThr1)
+                        bestChan1 = mchannels[bestChanIdx1]
+                    else:
+                        del thrList0[bestChanIdx0]
+                        mchannels = [1, 6, 11]
+                        del mchannels[bestChanIdx0]
+                        bestThr0 = max(thrList0)
+                        bestChanIdx0 = thrList0.index(bestThr0)
+                        bestChan0 = mchannels[bestChanIdx0]
+
+                print("Best channel0 ", bestChan0)
+                net0.send_switch_channel_cmd(self.pubSocket, bestChan0)
+                net0.channel = bestChan0
+                net0.lastChanSwitchTime = now
+                net0.clean_thr_cache()
+
+                print("Best channel1 ", bestChan1)
+                net1.send_switch_channel_cmd(self.pubSocket, bestChan1)
+                net1.channel = bestChan1
+                net1.lastChanSwitchTime = now
+                net1.clean_thr_cache()
+
+            # if we have samples for current channel-> switch channel
+            if net0.check_cache([net0.channel]) and net1.check_cache([net1.channel]):
+                newChannelIdx0 = self.avaiableChannels.index(net0.channel) + 1
+                if newChannelIdx0 >= len(self.avaiableChannels):
+                    newChannelIdx0 = 0
+
+                newChannelIdx1 = newChannelIdx0 + 1
+                if newChannelIdx1 >= len(self.avaiableChannels):
+                    newChannelIdx1 = 0
+
+                newChannel = self.avaiableChannels[newChannelIdx0]
+                now = time.time()
+                net0.send_switch_channel_cmd(self.pubSocket, newChannel)
+                net0.channel = newChannel
+                net0.lastChanSwitchTime = now
+
+                newChannel = self.avaiableChannels[newChannelIdx1]
+                now = time.time()
+                net1.send_switch_channel_cmd(self.pubSocket, newChannel)
+                net1.channel = newChannel
+                net1.lastChanSwitchTime = now
 
     def add_network(self, network):
         self.networks.append(network)
@@ -201,7 +307,7 @@ class ObssManager(object):
 
     def notify_command_msg(self, cmdMsg):
         print("ObssManager: Received Command Message")
-        print(cmdMsg)
+        # print(cmdMsg)
 
         ctrName = cmdMsg["involvedController"][0]
         network = self.wifiNetworks.get(ctrName, None)
@@ -256,7 +362,7 @@ class ObssManager(object):
 
     def notify_channel_usage(self, channelUsageMsg):
         print("ObssManager: Received Channel Usage Report")
-        print(channelUsageMsg)
+        # print(channelUsageMsg)
 
         ctrName = channelUsageMsg["networkController"]
         network = self.wifiNetworks.get(ctrName, None)
@@ -283,13 +389,11 @@ class ObssManager(object):
 
     def notify_interference_report(self, interferenceReport):
         print("ObssManager: Received Interference Report")
-        print(interferenceReport)
-
-        # TODO: check if interferences overlap with used channels
+        # print(interferenceReport)
 
     def notify_performance_report(self, perfomanceReport):
         print("ObssManager: Received Performance Report")
-        print(perfomanceReport)
+        # print(perfomanceReport)
 
         ctrName = perfomanceReport["networkController"]
         network = self.wifiNetworks.get(ctrName, None)

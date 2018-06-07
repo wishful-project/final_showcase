@@ -362,22 +362,52 @@ def print_menu_command():  ## Your menu design here
                     send_status_update(socket_visualizer)
 
         # TUB WIFI:
-        elif selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+        elif selected_network.name in ["WIFI_A1", "WIFI_A2"]:
             if commandToSend == "ACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {}}
+
             elif commandToSend == "DEACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+                traffic_load = "OFF"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_OFF":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_OFF": {}}
+                traffic_load = "OFF"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_LOW":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_LOW": {}}
+                traffic_load = "LOW"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_MEDIUM":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_MEDIUM": {}}
+                traffic_load = "MEDIUM"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC_SET_HIGH":
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC_SET_HIGH": {}}
+                traffic_load = "HIGH"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "TRAFFIC":
                 traffic_load = "HIGH"
                 msg["commandList"][selected_network.solution[0]] = {"TRAFFIC": {"TYPE": traffic_load}}
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
+
             elif commandToSend == "SWITCH_CHANNEL":
                 msg["commandList"][selected_network.solution[0]] = {"SWITCH_CHANNEL": {"channel" : 0}}
 
@@ -385,8 +415,16 @@ def print_menu_command():  ## Your menu design here
         elif selected_network.name in ["NON_WISHFUL_LTE_U", "Non_WiSHFUL_LTE_U_BS"]:
             if commandToSend == "ACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"ACTIVATE": {"freq" : 2412}}
+                traffic_load = "MEDIUM"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
             elif commandToSend == "DEACTIVATE":
                 msg["commandList"][selected_network.solution[0]] = {"DEACTIVATE": {}}
+                traffic_load = "OFF"
+                selected_network.update_load(traffic_load)
+                if startVisualizer:
+                    send_status_update(socket_visualizer)
             elif commandToSend == "SET_FREQ":
                 msg["commandList"][selected_network.solution[0]] = {"SET_FREQ": {"freq" : 2437}}
 
@@ -414,7 +452,7 @@ def print_menu_command():  ## Your menu design here
         kvmsg.send(publisher)
         print("sent update information with sequence %d" % sequence_publisher)
 
-        if selected_network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+        if selected_network.name in ["WIFI_A1", "WIFI_A2"]:
             obssManager.notify_command_msg(msg)
 
     else:
@@ -518,7 +556,7 @@ def main(args):
 
     # Init connection with GUI ffor LOG
     if startVisualizer:
-        socket_visualizer = start_visualizer_connection("172.16.16.3")
+        socket_visualizer = start_visualizer_connection("172.16.17.2")
 
     reader, stdin_thread = forward_standard_input(ctx)
     poller.register(reader, zmq.POLLIN)
@@ -579,7 +617,7 @@ def main(args):
                             )
                             solutionCompatibilityMatrix.append(network)
 
-                            if network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+                            if network.name in ["WIFI_A1", "WIFI_A2"]:
                                 obssManager.add_network(network)
                             elif network.name == "6lowPAN":
                                 sicslowpanManager.set_network(network)
@@ -623,7 +661,7 @@ def main(args):
                         if startVisualizer:
                             send_status_update(socket_visualizer)
 
-                        if network and network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+                        if network and network.name in ["WIFI_A1", "WIFI_A2"]:
                             obssManager.notify_channel_usage(received_request)
 
                     elif received_request["monitorType"] == "performance":
@@ -633,7 +671,7 @@ def main(args):
                         if startVisualizer:
                             socket_visualizer.send_multipart([b'monitorReport', json.dumps(received_request).encode('utf-8'), ])
 
-                        if network and network.name in ["WIFI_TUB_0", "WIFI_TUB_1"]:
+                        if network and network.name in ["WIFI_A1", "WIFI_A2"]:
                             obssManager.notify_performance_report(received_request)
 
                     elif received_request["monitorType"] == "interference":

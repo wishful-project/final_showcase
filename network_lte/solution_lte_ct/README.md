@@ -49,10 +49,6 @@ Wishful FINAL SHOWCASE solution_lte_ct
     python3 ./controller
 
  #Solution
-    python3 controller_lte --config controller_cfg_clapton.yaml --nodes node_info.txt
-    python3 controller_lte --config controller_cfg_nuc12.yaml --nodes node_info.txt
-    python3 controller_lte --config controller_cfg_nuc_ttilab.yaml --nodes node_info.txt
-
     ~~~~
     #start agent
     ~~~~
@@ -64,10 +60,17 @@ Wishful FINAL SHOWCASE solution_lte_ct
     python3 agent --config agent_cfg_sta.yaml
     
     ssh nuc11
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
     python3 agent_tx.py
 
     ssh nuc6
+    cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/network_lte/solution_lte_ct
     python3 agent_rx.py
+
+    python3 controller_lte --config controller_cfg_clapton.yaml --nodes node_info.txt
+    python3 controller_lte --config controller_cfg_nuc12.yaml --nodes node_info.txt
+    python3 controller_lte --config controller_cfg_nuc_ttilab.yaml --nodes node_info.txt
+
 
     ~~~~
 
@@ -99,13 +102,20 @@ Wishful FINAL SHOWCASE solution_lte_ct
      pipenv install
      pipenv --python /usr/bin/python3.6
      
+     
+     ssh dgarlisi@172.16.17.2
      #start the virtual environment and the server
      move to directory
          cd /groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/final_showcase/webui/
      start server
          sudo pipenv shell bokeh serve --allow-websocket-origin="*:5006" wishful
      visualize GUI in browser
-         http://172.16.16.6:5006/wishful
+         http://172.16.17.2:5006/wishful
+         
+         
+      python2 /home/tub/final_showcase/webui/usrp-ss/gr-specmon/usrp_pwr_fft.py -u serial=3143091 -c 2425e6 -b 50e6 -a tcp://localhost:5507
+      python2 /home/tub/final_showcase/webui/usrp-ss/gr-specmon/usrp_pwr_fft.py -u serial=3143028 -c 2475e6 -b 50e6 -a tcp://localhost:5508
+      
      
   #library collection
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/python3.6/config-3.6m-x86_64-linux-gnu
