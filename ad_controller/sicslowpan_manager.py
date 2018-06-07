@@ -48,8 +48,19 @@ class SICSLOWPANNetwork:
         command_list = {"LTE_WIFI_ZIGBEE": {}}
         command_list["LTE_WIFI_ZIGBEE"] = True
         self.send_commands(command_list)
-    
+
     def stop_three_way_tdma(self):
         command_list = {"LTE_WIFI_ZIGBEE": {}}
         command_list["LTE_WIFI_ZIGBEE"] = False
         self.send_commands(command_list)
+
+    def set_channel(self, channel):
+        command_list = {"CHANNEL": {}}
+        command_list["CHANNEL"] = channel
+        self.send_commands(command_list)
+
+    def set_cca_threshold(self, cca_threshold):
+        command_list = {"CCA_THRESHOLD": {}}
+        command_list["CCA_THRESHOLD"] = cca_threshold
+        self.send_commands(command_list)
+

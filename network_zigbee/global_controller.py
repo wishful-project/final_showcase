@@ -83,7 +83,7 @@ per_value_prev = 0
 watchdog_counter = {}
 def macstats_event_cb(mac_address, event_name, event_value):
     global solutionCtrProxy, number_of_packets_received, per_value_prev, \
-        expected_throughput, payload, watch_dog, traffic_type
+        expected_throughput, payload, watch_dog, traffic_type, mac_mode
     print(mac_address, event_name, event_value)
     if mac_address == 1:
         number_of_packets_received_cur = event_value[10]
@@ -125,13 +125,14 @@ def macstats_event_cb(mac_address, event_name, event_value):
 
     # Watchdog implementation:   
     if (mac_address in watchdog_counter 
-			and throughput_measurement == 0
-			and traffic_type["TYPE"].lower() != "off"):
+            and throughput_measurement == 0
+            and traffic_type["TYPE"].lower() != "off"):
         watchdog_counter[mac_address] +=1
-        print("WDT {}".format(watchdog_counter[mac_address]))
-        if watchdog_counter[mac_address] == 5:
-            watchdog_counter[mac_address] = 0
-            reset()
+        if mac_mode != "LTE_COEXISTENCE": # or mac_address == 1:
+            print("WDT {}".format(watchdog_counter[mac_address]))
+            if watchdog_counter[mac_address] == 60:
+                watchdog_counter[mac_address] = 0
+                reset()
     else:
         watchdog_counter[mac_address] = 0            
 
@@ -188,6 +189,7 @@ def send_channel_update(channels):
     for channel in channels:
         update_value["channels"].extend([channel])
         update_value["frequencies"].update(channelisation[channel])
+    update_value["channels"].sort()
     print(update_value)
        
     solutionCtrProxy.send_monitor_report("channelUsage", "6lowPAN", update_value)
@@ -267,41 +269,39 @@ def reset():
     control_traffic(traffic_type)
 
 ## Commands implementation:
+channel_update_counter = 0
 def blacklist(spectrum_scan):
-    global blacklisted_channels, blacklisted_channels_timestamps
+    global blacklisted_channels, blacklisted_channels_timestamps, channel_update_counter
     blacklisted_channels_prev = blacklisted_channels
     blacklisted_channels = []
-    for technology in spectrum_scan["monitorValue"]:
+    
+    # This next part will periodically the blacklisted_channels_prev in 
+    # an attempt to stop the blacklisting getting stuck
+    channel_update_counter += 1
+    if channel_update_counter == 60:
+        blacklisted_channels_prev = []
+    
+    for technology in spectrum_scan:
         if technology != "ZigBee":
-            interference = spectrum_scan["monitorValue"][technology]
+            interference = spectrum_scan[technology]
             for interference_center, interference_information in interference.items():
                 interference_center = float(interference_center)
                 interference_bandwidth = float(interference_information[0])
                 interference_dutycycle = float(interference_information[1])
                 #~ logging.info("INTERFERENCE ({}): {} {} {}".format(technology,interference_center, interference_bandwidth, interference_dutycycle))
-                for sicslowpan_channel in range(11,27):
-                    center_frequency = 2350 + sicslowpan_channel * 5
-                    if (center_frequency > interference_center - interference_bandwidth
-                            and center_frequency < interference_center + interference_bandwidth):
-                        if sicslowpan_channel not in blacklisted_channels:
-                            blacklisted_channels.append(sicslowpan_channel)
-
+                if interference_dutycycle > 0.25:
+                    for sicslowpan_channel in range(11,27):
+                        center_frequency = 2350 + sicslowpan_channel * 5
+                        if (center_frequency > interference_center - interference_bandwidth/2
+                                and center_frequency < interference_center + interference_bandwidth/2):
+                            if sicslowpan_channel not in blacklisted_channels:
+                                blacklisted_channels.append(sicslowpan_channel)
+                                blacklisted_channels_timestamps[sicslowpan_channel - 11] = time.time() 
+    logging.info("New blacklist {}".format(blacklisted_channels))
     for channel in blacklisted_channels_prev:
         if channel not in blacklisted_channels:
-            if time.time() < blacklisted_channels_timestamps[channel - 11] + 10:
-                blacklisted_channels.append(channel)
-            else:
-                blacklisted_channels_timestamps[channel - 11] = time.time() 
-        else:
-            blacklisted_channels_timestamps[channel - 11] = time.time() 
-    for channel in blacklisted_channels:
-        if channel not in blacklisted_channels_prev:
-            if time.time() < blacklisted_channels_timestamps[channel - 11] + 10:
-                blacklisted_channels.remove(channel)
-            else:
-                blacklisted_channels_timestamps[channel - 11] = time.time()
-        else:
-            blacklisted_channels_timestamps[channel - 11] = time.time()         
+            if time.time() < blacklisted_channels_timestamps[channel - 11] + 20:
+                blacklisted_channels.append(channel)      
     logging.info("BLACKLIST {}".format(blacklisted_channels))
 
 def sicslowpan_traffic(traffic_type_value):
