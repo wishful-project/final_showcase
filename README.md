@@ -180,6 +180,7 @@ generic command
 ==========================================
     sudo ntpdate -u it.pool.ntp.org
     rsync -avz --delete --exclude=examples --exclude=.git --exclude '*.o' --exclude '*.h' --exclude '*.c' --exclude '*.pyc' --exclude .idea/ --exclude .repo/ ../  -e ssh dgarlisi@172.16.17.2:/groups/portable-ilabt-imec-be/wish/cnit/wishful-github-manifest-7/
+    sudo ps aux | grep usrp |  awk '{print $2}' | xargs kill -9
 
 
 ## Acknowledgement

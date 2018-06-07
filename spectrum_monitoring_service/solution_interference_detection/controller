@@ -571,17 +571,26 @@ def receive_data_spectral(solutionCtrProxy):
 						prediction_zigbee_count += 1
 						prediction_zigbee_freq = center_in_freq_range[ii]
 						prediction_zigbee_bw = bandwidth_in_freq_range[ii]
-						prediction_zigbee_duration = ed_features_mean
+						if num_element_in_freq_range[ii] < 100:
+							prediction_zigbee_duration = num_element_in_freq_range[ii]/100
+						else:
+							prediction_zigbee_duration = 1.0
 					elif bandwidth_in_freq_range[ii] < bbMedianThMaxLte and bandwidth_in_freq_range[ii] > bbMedianThMinLte:
 						prediction_lte_count += 1
 						prediction_lte_freq = center_in_freq_range[ii]
 						prediction_lte_bw = bandwidth_in_freq_range[ii]
-						prediction_lte_duration = ed_features_mean
+						if num_element_in_freq_range[ii] < 200:
+							prediction_lte_duration = num_element_in_freq_range[ii]/200
+						else:
+							prediction_lte_duration = 1.0
 					elif bandwidth_in_freq_range[ii] < bbMedianThMaxWiFi and bandwidth_in_freq_range[ii] > bbMedianThMinWiFi:
 						prediction_wifi_count += 1
 						prediction_wifi_freq = center_in_freq_range[ii]
 						prediction_wifi_bw = bandwidth_in_freq_range[ii]
-						prediction_wifi_duration = ed_features_mean
+						if num_element_in_freq_range[ii] < 1000:
+							prediction_wifi_duration = num_element_in_freq_range[ii]/1000
+						else:
+							prediction_wifi_duration = 1.0
 					else:
 						pass
 
@@ -605,6 +614,7 @@ def receive_data_spectral(solutionCtrProxy):
 			print("global dutycycle :  ", ed_features_mean)
 
 			print("take decision")
+			# 'Busy', 'WIFI', 'LTE', 'ZigBee'
 			monitorValue = {}
 			# print(prediction_zigbee_count)
 			# print(prediction_lte_count)
@@ -615,7 +625,7 @@ def receive_data_spectral(solutionCtrProxy):
 				print("detected zigbee")
 				# if interference_state != "ZigBee_U_DETECTED":
 				# 	interference_state = "ZigBee_U_DETECTED"
-				monitorValue["ZigBee"] = {str(round(prediction_zigbee_freq)): [str(round(prediction_zigbee_bw)), prediction_zigbee_duration]}
+				monitorValue["ZigBee"] = {str(round(prediction_zigbee_freq)): [round(prediction_zigbee_bw), prediction_zigbee_duration]}
 
 			if prediction_lte_count>0:
 				# LTE detection
@@ -623,33 +633,15 @@ def receive_data_spectral(solutionCtrProxy):
 				# send message to solution global controller
 				# if interference_state != "LTE_U_DETECTED":
 				# 	interference_state = "LTE_U_DETECTED"
-				monitorValue["LTE"] = { str(round(prediction_lte_freq)) : [str(round(prediction_lte_bw)), prediction_lte_duration]}
+				monitorValue["LTE"] = { str(round(prediction_lte_freq)) : [round(prediction_lte_bw), prediction_lte_duration]}
 
 			if prediction_wifi_count>0:
 				# WiFi detection
 				print("detected WiFi")
 				# if interference_state != "WiFi_DETECTED":
 				# 	interference_state = "WiFi_DETECTED"
-				monitorValue["WiFi"] = {str(round(prediction_wifi_freq)): [str(round(prediction_wifi_bw)), 0]}
+				monitorValue["WIFI"] = {str(round(prediction_wifi_freq)): [round(prediction_wifi_bw), prediction_wifi_duration]}
 
-			"""
-			msg = {'type': 'monitorReport',    ‘networkController
-			': controllerName,	'
-			monitorType
-			': ‘interference’,
-			'monitorValue': {
-			            “LTE”: { “2467”: [BW, duty]}
-			                 “ZigBee”: { “2484”: [BW, duty]}
-			                 “Busy”: { “2484”: [BW, duty]}
-			    },
-			}
-			2412 2417 2422 2427 2432 2437 2442 2447 2452 2457 2462 2467 2472 2484 (WIFI)
-			2405 2410 2415 2420 2425 2430 2435 2440 2445 2450 2455 2460 2465 2470 	2475 2480 (ZigBee)
-			
-							value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": msg["measure"][2]}
-							solutionCtrProxy.send_monitor_report("performance", "U-LTE", value)
-
-			"""
 			value = {"monitorValue": monitorValue}
 			solutionCtrProxy.send_monitor_report("interference", "SpectrumMonitoring", value["monitorValue"])
 			# log.warning('Report monitor interference message')

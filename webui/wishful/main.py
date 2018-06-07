@@ -2,8 +2,9 @@
 import conf
 import itertools
 import usrp
-import time
 import numpy as np
+import subprocess, threading, time
+import os
 
 from bokeh.models.widgets import Div
 from bokeh.io import curdoc
@@ -22,6 +23,32 @@ from bokeh.models import Range1d, Plot, LinearAxis, Grid
 from bokeh.models.glyphs import ImageURL, Image
 from bokeh.plotting import output_file, show
 from bokeh.models.widgets import Slider, TextInput
+from bokeh.models.widgets import Button, RadioButtonGroup, Select, Slider
+
+ssh_command_string = "ssh -t 172.16.16.12 'cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal && sudo bash run_usrp.sh 11 &> /dev/null' &"
+def set_channel_trace_channel(channel):
+    global ssh_command_string
+
+    if channel == 1:
+        ssh_command_string = "ssh -t 172.16.16.12 'cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal && sudo bash run_usrp.sh 1 &> /dev/null' &"
+    if channel == 2:
+        ssh_command_string = "ssh -t 172.16.16.12 'cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal && sudo bash run_usrp.sh 6 &> /dev/null' &"
+    if channel == 3:
+        ssh_command_string = "ssh -t 172.16.16.12 'cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal && sudo bash run_usrp.sh 11 &> /dev/null' &"
+    if channel == 4:
+        ssh_command_string = "ssh -t 172.16.16.12 'cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal && sudo bash run_usrp.sh 14 &> /dev/null' &"
+
+    ssh_command_string_kill = "ssh -t 172.16.16.12 \"sudo ps aux | grep usrp | awk '{print \$2}' | xargs sudo kill -9 \" "
+    print(ssh_command_string_kill)
+    os.system(ssh_command_string_kill)
+    print("process killed")
+
+    time.sleep(1)
+    print("execute command", ssh_command_string)
+    os.system(ssh_command_string)
+    print("command executed")
+    return
+
 
 doc = curdoc()
 colors = itertools.cycle(palette)
@@ -92,12 +119,78 @@ spectrum_table_2 = DataTable(
 tab_table_3 = Panel(child=spectrum_table_2, title="Moitor service")
 tabs_spectrum_table_2 = Tabs(tabs=[ tab_table_3 ])
 
+#################
+#monitor service table
+#################
+# Frequencies : 		2454 		2457 		2459 		2462 		2464 		2467 		2470
+# Occurances : 		0 		10 		0 		63 		75 		1 		0
+# Bandwidth : 		0 		0.0 		0 		16.0 		5.0 		8.0 		0
+# data_monitor_service = { "Interference": [],
+#               "2401":[], "2405":[], "2408":[], "2412":[], "2416":[], "2420":[], "2424":[],
+#               "2426":[], "2429":[], "2433":[], "2437":[], "2441":[], "2445":[], "2449":[],
+#               "2454":[], "2457":[], "2459":[], "2462":[], "2464":[], "2467":[], "2470":[],
+#               "2472":[], "2476":[], "2480":[], "2484":[], "2490":[], "2494":[], "2498":[]}
+# data_monitor_service = { "Interference": [],
+#               "2405":[], "2412":[], "2420":[],
+#               "2429":[], "2437":[], "2445":[],
+#               "2457":[], "2462":[], "2467":[],
+#               "2476":[], "2484":[], "2494":[] }
+data_monitor_service = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+                              "2404": [[], [], [], []], "2412": [[], [], [], []], "2420": [[], [], [], []],
+                              "2429": [[], [], [], []], "2437": [[], [], [], []], "2445": [[], [], [], []],
+                              "2454": [[], [], [], []], "2462": [[], [], [], []], "2470": [[], [], [], []],
+                              "2476": [[], [], [], []], "2484": [[], [], [], []], "2492": [[], [], [], []]}
+source_monitor_service = ColumnDataSource(data_monitor_service, name='monitorServiceStatusUpdate')
+ms_cols_spec = [
+    TableColumn(field="Interference", title="Interference"),
+    TableColumn(field="2404", title="2.405MHz"),
+    TableColumn(field="2412", title="2.412MHz"),
+    TableColumn(field="2420", title="2.420MHz"),
+
+    TableColumn(field="2429", title="2.429MHz"),
+    TableColumn(field="2437", title="2.437MHz"),
+    TableColumn(field="2445", title="2.445MHz"),
+
+    TableColumn(field="2454", title="2.457MHz"),
+    TableColumn(field="2462", title="2.462MHz"),
+    TableColumn(field="2470", title="2.467MHz"),
+
+#     TableColumn(field="2476", title="2.476MHz"),
+#     TableColumn(field="2484", title="2.484MHz"),
+#     TableColumn(field="2492", title="2.494MHz"),
+ ]
+
+spectrum_table_monitor_service = DataTable(
+    source=source_monitor_service,
+    columns=ms_cols_spec,
+    index_position=None,
+    width=1000, height=140
+)
+tab_table_monitor_service = Panel(child=spectrum_table_monitor_service, title="Moitor service")
+tabs_monitor_service = Tabs(tabs=[ tab_table_monitor_service ])
+
+
 iframe_text_2 = """<iframe src="http://172.16.16.12/WishfulWebPortal/only_usrp.html" height="350" width="1000" scrolling="no" frameBorder="0" ></iframe>"""
-div = Div(text=iframe_text_2, width=900, height=335)
+div = Div(text=iframe_text_2, width=600, height=270)
+
+div_text = """"""
+div_blank = Div(text=div_text, width=600, height=20)
+
+button_group_channel_trace = RadioButtonGroup(labels=["OFF", "2.412MHz", "2.437MHz", "2.462MHz", "2.484MHz"], active=0, width=400)
+button_group_channel_trace.on_click(set_channel_trace_channel)
+# tab_channel_trace_button = Panel(child=button_group_channel_trace, title="Channel")
+# tabs_wifi = Tabs(tabs=[ tab_channel_trace_button ])
+
+l1 = layout([[div_blank, button_group_channel_trace], [div]], sizing_mode='fixed')
+tab_channel_trace = Panel(child=div, title="Channel Trace")
+tabs_channel_trace = Tabs(tabs=[ tab_channel_trace ])
+
+div_blank_2 = Div(text=div_text, width=100, height=250)
 
 plots = [[
-    [div, tabs_spectrum_table],
-    [tabs_active_networks_table,  tabs_spectrum_table_2] ]]
+    [tabs_channel_trace ],
+    [div_blank, button_group_channel_trace, div_blank_2, tabs_monitor_service],
+    [tabs_active_networks_table] ]]
 
 master_range = None
 
@@ -112,6 +205,7 @@ for technology in conf.controllers:
         toolbar_location=None,
         x_axis_type="datetime",
         # y_range=[0, None],
+        # x_range=[0,20000],
     )
     thr_plt.legend.location = "top_left"
     thr_plt.xaxis.axis_label = "Time"
@@ -137,6 +231,7 @@ for technology in conf.controllers:
     else:
         thr_plt.x_range = master_range
     per_plt.x_range = master_range
+
 
     for k in conf.controllers[technology]:
         data = ColumnDataSource(
@@ -167,6 +262,8 @@ for technology in conf.controllers:
     # plots.append([thr_plt, per_plt])
     thr_plt.legend.location = "top_left"
     per_plt.legend.location = "top_left"
+    # per_plt.x_range = Range1d(0, 20)
+
     plt_array.append(thr_plt)
     plt_array.append(per_plt)
 

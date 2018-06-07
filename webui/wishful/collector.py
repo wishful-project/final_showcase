@@ -19,7 +19,7 @@ def plt_update(source, timestamp, THR, PER):
         timestamp=[datetime.fromtimestamp(timestamp)],
         THR=[THR],
         PER=[PER],
-    ), 120)
+    ), 60)
 
 
 @gen.coroutine
@@ -37,6 +37,18 @@ def stats_listener(endpoint, server_context):
     socket.setsockopt(zmq.SUBSCRIBE, b'specStatusUpdate')
     socket.setsockopt(zmq.SUBSCRIBE, b'specStatusUpdate_2')
     socket.bind(endpoint)
+
+    data_monitor_service_1 = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+                              "2404": [[], [], [], []], "2412": [[], [], [], []], "2420": [[], [], [], []],
+                              "2429": [[], [], [], []], "2437": [[], [], [], []], "2445": [[], [], [], []],
+                              "2454": [[], [], [], []], "2462": [[], [], [], []], "2470": [[], [], [], []],
+                              "2476": [[], [], [], []], "2484": [[], [], [], []], "2492": [[], [], [], []]}
+
+    data_monitor_service_2 = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+                              "2404": [[], [], [], []], "2412": [[], [], [], []], "2420": [[], [], [], []],
+                              "2429": [[], [], [], []], "2437": [[], [], [], []], "2445": [[], [], [], []],
+                              "2454": [[], [], [], []], "2462": [[], [], [], []], "2470": [[], [], [], []],
+                              "2476": [[], [], [], []], "2484": [[], [], [], []], "2492": [[], [], [], []]}
 
     while True:
         full_msg = socket.recv_multipart()
@@ -72,137 +84,143 @@ def stats_listener(endpoint, server_context):
                 ))
 
 
-        # msg = {'type': 'monitorReport',‘networkController': controllerName,	' monitorType ': ‘interference’, 'monitorValue': { “LTE”: { “2467”: [BW, duty]}
-        #                  “ZigBee”: { “2484”: [BW, duty]} “Busy”: { “2484”: [BW, duty]} }, }
-        # "LTE" "Busy" "ZigBee" "WiFi"
-        # dict(f254=[], f2457=[], f2459=[], f2462=[], f2464=[], f2467=[], f2470=[])
-        if full_msg[0] == b'specStatusUpdate':
-            #print("receive specStatusUpdate")
-            msg_monitor_value = msg["monitorValue"]
-            data = {"Interference": [], "2454": [], "2457": [], "2459": [], "2462": [], "2464": [], "2467": [], "2470": []}
-            all_interference_detected = []
-            # if "Busy" in msg_monitor_value:
-            #     msg_monitor_value_busy = msg_monitor_value["Busy"]
-            #     data["Interference"].append("Busy")
-            #     for key, value in data.items():
-            #         if key in msg_monitor_value_busy:
-            #             data[key].append(msg_monitor_value_busy[key])
+        if full_msg[0] == b'specStatusUpdate_2' or full_msg[0] == b'specStatusUpdate':
+            if full_msg[0] == b'specStatusUpdate_2':
+                ##############
+                ###DATA wiplus
+                ##############
+                data_monitor_service_1 = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+                                          "2404": [], "2412": [], "2420": [],
+                                          "2429": [], "2437": [], "2445": [],
+                                          "2454": [], "2462": [], "2470": [],
+                                          "2476": [], "2484": [], "2492": []}
+                msg_monitor_value = msg["monitorValue"]
+                for key_table in data_monitor_service_1["Interference"]:
+                    # print(key_table)
+                    if key_table in msg_monitor_value:
+                        msg_monitor_value_freq = msg_monitor_value[key_table]
+                        for key_freq in ["2412", "2437", "2462", "2484"]:
+                            if key_freq in msg_monitor_value_freq:
+                                data_monitor_service_1[str(int(key_freq) - 8)].append([round(msg_monitor_value_freq[key_freq][0]/3), msg_monitor_value_freq[key_freq][1]])
+                                data_monitor_service_1[key_freq].append([round(msg_monitor_value_freq[key_freq][0]/3), msg_monitor_value_freq[key_freq][1]])
+                                data_monitor_service_1[str(int(key_freq) + 8)].append([round(msg_monitor_value_freq[key_freq][0]/3), msg_monitor_value_freq[key_freq][1]])
+                            else:
+                                data_monitor_service_1[str(int(key_freq) - 8)].append([])
+                                data_monitor_service_1[key_freq].append([])
+                                data_monitor_service_1[str(int(key_freq) + 8)].append([])
+                    else:
+                        data_monitor_service_1["2404"].append([])
+                        data_monitor_service_1["2412"].append([])
+                        data_monitor_service_1["2420"].append([])
 
-            if "LTE" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["LTE"]
-                all_interference_detected.append("LTE")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
+                        data_monitor_service_1["2429"].append([])
+                        data_monitor_service_1["2437"].append([])
+                        data_monitor_service_1["2445"].append([])
 
-            if "ZigBee" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["ZigBee"]
-                all_interference_detected.append("ZigBee")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
+                        data_monitor_service_1["2454"].append([])
+                        data_monitor_service_1["2462"].append([])
+                        data_monitor_service_1["2470"].append([])
 
-            if "WiFi" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["WiFi"]
-                all_interference_detected.append("WiFi")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
+                        data_monitor_service_1["2476"].append([])
+                        data_monitor_service_1["2484"].append([])
+                        data_monitor_service_1["2492"].append([])
 
-            data["Interference"].append(all_interference_detected)
-            #print(data)
-            # {'Interference': ['ZigBee'], '2454': [], '2457': [], '2459': [], '2462': [], '2464': [['2.0', 0.0]], '2467': [], '2470': []}
-            max_len = 0
-            for key, value in data.items():
-                if len(data[key]) > max_len:
-                    max_len = len(data[key])
-            for key, value in data.items():
-                if len(data[key]) < max_len:
-                    current_len = len(data[key])
-                    for ii in range(max_len - current_len):
-                        data[key].append([])
-            #print(data)
+                # print(data_monitor_service_1)
+
+            if full_msg[0] == b'specStatusUpdate':
+                ###################
+                ##DATA interference Detection
+                ####################
+                data_monitor_service_2 = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+                                          "2404": [[], [], [], []], "2412": [[], [], [], []], "2420": [[], [], [], []],
+                                          "2429": [[], [], [], []], "2437": [[], [], [], []], "2445": [[], [], [], []],
+                                          "2454": [], "2462": [], "2470": [],
+                                          "2476": [[], [], [], []], "2484": [[], [], [], []], "2492": [[], [], [], []]}
+                msg_monitor_value = msg["monitorValue"]
+                for key_table in data_monitor_service_2["Interference"]:
+                    if key_table in msg_monitor_value:
+                        key = key_table
+                        # print(key)
+                        data_temp = []
+                        for key_freq, value_freq in msg_monitor_value[key].items():
+                            if int(key_freq) < 2458:
+                                data_temp.append([round(value_freq[0]), value_freq[1]])
+                        if len(data_temp) > 0:
+                            data_monitor_service_2["2454"].append(np.mean(data_temp, 0).tolist())
+                        else:
+                            data_monitor_service_2["2454"].append([])
+
+                        data_temp = []
+                        for key_freq, value_freq in msg_monitor_value[key].items():
+                            if int(key_freq) > 2458 and int(key_freq) < 2465:
+                                data_temp.append([round(value_freq[0]), value_freq[1]])
+                        if len(data_temp) > 0:
+                            data_monitor_service_2["2462"].append(np.mean(data_temp, 0).tolist())
+                        else:
+                            data_monitor_service_2["2462"].append([])
+
+                        data_temp = []
+                        for key_freq, value_freq in msg_monitor_value[key].items():
+                            if int(key_freq) > 2465:
+                                data_temp.append([round(value_freq[0]), value_freq[1]])
+                        if len(data_temp) > 0:
+                            data_monitor_service_2["2470"].append(np.mean(data_temp, 0).tolist())
+                        else:
+                            data_monitor_service_2["2470"].append([])
+
+                    else:
+                        data_monitor_service_2["2454"].append([])
+                        data_monitor_service_2["2462"].append([])
+                        data_monitor_service_2["2470"].append([])
+
+                # print(data_monitor_service_2)
+
+            ############
+            ###DATA global monitor service
+            ###########
+            # data_monitor_service_global = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+            #                                "2404": [], "2412": [], "2420": [],
+            #                                "2429": [], "2437": [], "2445": [],
+            #                                "2454": [], "2462": [], "2470": [],
+            #                                "2476": [], "2484": [], "2492": []}
+            # for key_table, value_table in data_monitor_service_global.items():
+            #     if not key_table == "Interference":
+            #         data_monitor_service_global[key_table].append(data_monitor_service_1[key_table])
+            #         data_monitor_service_global[key_table].append(data_monitor_service_2[key_table])
+            # print(data_monitor_service_global)
+
+            data_monitor_service_global_2 = {"Interference": ['Busy', 'WIFI', 'LTE', 'ZigBee'],
+                                             "2404": [], "2412": [], "2420": [],
+                                             "2429": [], "2437": [], "2445": [],
+                                             "2454": [], "2462": [], "2470": [],
+                                             "2476": [], "2484": [], "2492": []}
+            for key_table, value_table in data_monitor_service_global_2.items():
+                if not key_table == "Interference":
+                    for ii in range(4):
+                        # print(key_table, " : ", ii)
+                        data_temp = []
+                        if len(data_monitor_service_1[key_table][ii]) > 0 and len(data_monitor_service_2[key_table][ii]) > 0:
+
+                            data_temp.append(data_monitor_service_1[key_table][ii])
+                            data_temp.append(data_monitor_service_2[key_table][ii])
+                            # print(data_temp)
+                            data_monitor_service_global_2[key_table].append(np.mean(data_temp, 0).tolist())
+                        # print(data_monitor_service_global_2[key_table])
+                        elif len(data_monitor_service_1[key_table][ii]) > 0:
+                            data_monitor_service_global_2[key_table].append(data_monitor_service_1[key_table][ii])
+                        elif len(data_monitor_service_2[key_table][ii]) > 0:
+                            data_monitor_service_global_2[key_table].append(data_monitor_service_2[key_table][ii])
+                        else:
+                            data_monitor_service_global_2[key_table].append([])
+            # print(data_monitor_service_global_2)
+
             for ses in server_context.application_context.sessions:
                 ses._document.add_next_tick_callback(partial(
-                    tab_update,
-                    source=ses._document.select_one(
-                        {'name': 'specStatusUpdate'}),
-                    data = data,
-                ))
-
-
-
-        # {'monitorValue': {'Busy': {'2412': [20, 0.06], '2437': [20, 0.01], '2462': [20, 0.03]}, 'WIFI': {'2412': [20, 0.05], '2437': [20, 0.01], '2462': [20, 0.02]}},
-        #  'monitorType': 'interference', 'type': 'monitorReport', 'networkController': 'WIPLUS_LTE_U_DETECTOR', 'networkType': 'DETECTOR'}
-
-        #{'Interference': [['Busy', 'WIFI']], '2412': [[20, 0.06], [20, 0.04]], '2437': [[20, 0.02], [20, 0.01]], '2462': [[20, 0.04], [20, 0.02]], '2484': []}
-        #{'Interference': [['Busy', 'WIFI'], []], '2412': [[20, 0.06], [20, 0.04]], '2437': [[20, 0.02], [20, 0.01]], '2462': [[20, 0.04], [20, 0.02]], '2484': [[], []]}
-
-        if full_msg[0] == b'specStatusUpdate_2':
-            #print("receive specStatusUpdate")
-            #print(msg)
-            data = {"Interference": [], "2412": [], "2437": [], "2462": [], "2484": []}
-            msg_monitor_value = msg["monitorValue"]
-            all_interference_detected = []
-            # if "Busy" in msg_monitor_value:
-            #     msg_monitor_value_busy = msg_monitor_value["Busy"]
-            #     data["Interference"].append("Busy")
-            #     for key, value in data.items():
-            #         if key in msg_monitor_value_busy:
-            #             data[key].append(msg_monitor_value_busy[key])
-
-            if "Busy" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["Busy"]
-                all_interference_detected.append("Busy")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
-
-            if "LTE" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["LTE"]
-                all_interference_detected.append("LTE")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
-
-            if "ZigBee" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["ZigBee"]
-                all_interference_detected.append("ZigBee")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
-
-            if "WIFI" in msg_monitor_value:
-                msg_monitor_value_busy = msg_monitor_value["WIFI"]
-                all_interference_detected.append("WIFI")
-                for key, value in data.items():
-                    if key in msg_monitor_value_busy:
-                        data[key].append(msg_monitor_value_busy[key])
-
-            #data["Interference"].append(all_interference_detected)
-            for ii in range(0, len(all_interference_detected)):
-                #print(all_interference_detected[ii])
-                data["Interference"].append(all_interference_detected[ii])
-
-            #print(data)
-            max_len = 0
-            for key, value in data.items():
-                if len(data[key]) > max_len:
-                    max_len = len(data[key])
-            for key, value in data.items():
-                if len(data[key]) < max_len:
-                    current_len = len(data[key])
-                    for ii in range(max_len - current_len):
-                        data[key].append([])
-            #print(data)
-            for ses in server_context.application_context.sessions:
-                ses._document.add_next_tick_callback(partial(
-                    tab_update,
-                    source=ses._document.select_one(
-                        {'name': 'specStatusUpdate_2'}),
-                    data=data,
-                ))
-
+                            tab_update,
+                            source=ses._document.select_one(
+                                {'name': 'monitorServiceStatusUpdate'}),
+                            data = data_monitor_service_global_2,
+                        ))
 
 @gen.coroutine
 def usrp_plot_update(source, spectrogram):
