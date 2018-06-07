@@ -24,6 +24,15 @@ from bokeh.models.glyphs import ImageURL, Image
 from bokeh.plotting import output_file, show
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.models.widgets import Button, RadioButtonGroup, Select, Slider
+from bokeh.models import BoxSelectTool
+
+
+thr_plt = None
+def set_visible():
+    global thr_plt
+    lineA1 = thr_plt.select(name="WIFI_A1")
+    lineA1.visible = False
+
 
 ssh_command_string = "ssh -t 172.16.16.12 'cd /groups/portable-ilabt-imec-be/wish/cnit/pyUsrpTrackerWishfulWebPortal && sudo bash run_usrp.sh 11 &> /dev/null' &"
 def set_channel_trace_channel(channel):
@@ -47,7 +56,9 @@ def set_channel_trace_channel(channel):
     print("execute command", ssh_command_string)
     os.system(ssh_command_string)
     print("command executed")
+
     return
+
 
 
 doc = curdoc()
@@ -197,12 +208,12 @@ master_range = None
 plt_array = []
 index_color = 0
 for technology in conf.controllers:
+    tools = ["pan", "wheel_zoom", "box_zoom", "hover", "reset" ]
     thr_plt = figure(
-        plot_height=300, plot_width=400,
+        plot_height=300, plot_width=450,
         title="{} Received Throughput".format(technology),
-        # tools="crosshair,pan,reset,save,wheel_zoom",
-        tools="",
-        toolbar_location=None,
+        tools=tools,
+        toolbar_location="left",
         x_axis_type="datetime",
         # y_range=[0, None],
         # x_range=[0,20000],
@@ -214,7 +225,7 @@ for technology in conf.controllers:
     thr_plt.y_range.start = 0
 
     per_plt = figure(
-        plot_height=300, plot_width=400,
+        plot_height=300, plot_width=450,
         title="{} Performance".format(technology),
         # tools="crosshair,pan,reset,save,wheel_zoom",
         tools="",
@@ -226,11 +237,11 @@ for technology in conf.controllers:
     per_plt.xaxis.axis_label = "Time"
     per_plt.yaxis.axis_label = "Performance"
 
-    if master_range is None:
-        master_range = thr_plt.x_range
-    else:
-        thr_plt.x_range = master_range
-    per_plt.x_range = master_range
+    # if master_range is None:
+    #     master_range = thr_plt.x_range
+    # else:
+    #     thr_plt.x_range = master_range
+    # per_plt.x_range = master_range
 
 
     for k in conf.controllers[technology]:
@@ -262,7 +273,11 @@ for technology in conf.controllers:
     # plots.append([thr_plt, per_plt])
     thr_plt.legend.location = "top_left"
     per_plt.legend.location = "top_left"
-    # per_plt.x_range = Range1d(0, 20)
+    # per_plt.x_range = Range1d(0, 30)
+    thr_plt.x_range.follow = "end"
+    thr_plt.x_range.follow_interval = 30000
+    # thr_plt.x_range.flipped = True
+
 
     plt_array.append(thr_plt)
     plt_array.append(per_plt)

@@ -262,7 +262,8 @@ def collect_remote_messages(lcpDescriptor_node, socket_visualizer, mac_address, 
 							
 							"""
 							# value = {"WIFI": { "timestamp": msg["measure"][0], "THR": msg["measure"][1],  "PER":msg["measure"][2]} }
-							value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": msg["measure"][2]}
+							#value = {"timestamp": msg["measure"][0], "THR": msg["measure"][1], "PER": msg["measure"][2]}
+							value = {"timestamp": time.time(), "THR": msg["measure"][1], "PER": msg["measure"][2]}
 							#print(value)
 							solutionCtrProxy.send_monitor_report("performance", "U-LTE", value)
 

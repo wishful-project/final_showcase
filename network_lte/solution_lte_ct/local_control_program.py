@@ -225,7 +225,7 @@ def remote_control_program(controller):
 
     #CONTROLLER MAIN LOOP
     while not controller.is_stopped():
-        msg = controller.recv(timeout=1)
+        msg = controller.recv(timeout=2)
         if msg:
             log.info("Receive message %s" % str(msg))
             if 'i_time' in msg:

@@ -366,6 +366,7 @@ def remote_control_program(controller):
             if reading_buffer[3]:
                 mask_psucc_int = [0 for x in list(mask)]
                 reading_buffer[3] = 0
+            print(psucc)
             print(mask_psucc_int)
             [index_start_pattern, mask_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION] = find_lte_pos(mask_psucc_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION, reading_buffer[2])
             print(mask_int)
@@ -390,7 +391,7 @@ def remote_control_program(controller):
                         log.warning('Error in radio program configuration')
                         do_run = False
 
-            reading_buffer[0] = 1-np.mean(psucc)
+            reading_buffer[0] = np.mean(psucc)
             reading_buffer[1] = mask
             time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
@@ -501,7 +502,7 @@ def remote_control_program(controller):
 
     #CONTROLLER MAIN LOOP
     while not controller.is_stopped():
-        msg = controller.recv(timeout=1)
+        msg = controller.recv(timeout=2)
         if msg:
             log.info("Receive message %s" % str(msg))
             if 'i_time' in msg:
