@@ -787,7 +787,8 @@ def main(args):
 								controller.node(nodes[jj]).radio.set_parameters({'FREQ': 2465000000})
 
 								controller.node(nodes[jj]).radio.set_parameters({'GAIN': 90})
-								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
+								# controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': 1})
+								controller.node(nodes[jj]).radio.set_parameters({'NO_OF_ANTENNAS': "172.16.16.6"})
 								controller.node(nodes[jj]).radio.set_parameters({'EQUALIZER_MODE': 'mmse'})
 								controller.node(nodes[jj]).radio.set_parameters({'MAX_TURBO_ITS': 3})
 								controller.node(nodes[jj]).radio.set_parameters({'NOISE_EST_ALG': 0})

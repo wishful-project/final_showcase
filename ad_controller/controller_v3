@@ -77,7 +77,7 @@ class Network:
 	solutionCompatibilityList = None
 	channels = []
 	frequencies = {}
-	load = "off"
+	load = "OFF"
 	active = True
 
 	def __init__(self, id, name, networkType, solution, commandList=None, monitorList=None, solutionCompatibilityList=None):
@@ -388,7 +388,7 @@ def print_menu_command():  ## Your menu design here
 				if startVisualizer:
 					send_status_update(socket_visualizer)
 			elif commandToSend == "DISABLE_TRAFFIC":
-				traffic_load = "Off"
+				traffic_load = "OFF"
 				selected_network.update_load(traffic_load)
 				if startVisualizer:
 					send_status_update(socket_visualizer)
@@ -596,6 +596,9 @@ def send_command(network_name, solution_name, command, args, args_value):  ## Yo
 		kvmsg.body = json.dumps(msg).encode('utf-8')
 		kvmsg.send(publisher)
 		print("sent update information with sequence %d" % sequence_publisher)
+
+		if network_name in ["WIFI_A1", "WIFI_A2"]:
+			obssManager.notify_command_msg(msg)
 	else:
 		print("Malformed message, sending failed")
 		print('update message %s' % str(msg))
@@ -873,11 +876,11 @@ def main(args):
 			if current_phase == -2:
 
 				traffic_load = "OFF"
-				send_command(networkNames[0], solutionNames[0], "TRAFFIC_SET_OFF", "TYPE", traffic_load)
+				send_command(networkNames[0], solutionNames[0], "TRAFFIC_SET_OFF")
 				selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[0]), None)
 				selected_network.update_load(traffic_load)
 
-				send_command(networkNames[1], solutionNames[1], "TRAFFIC_SET_OFF", "TYPE", traffic_load)
+				send_command(networkNames[1], solutionNames[1], "TRAFFIC_SET_OFF")
 				selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[1]), None)
 				selected_network.update_load(traffic_load)
 
@@ -900,8 +903,6 @@ def main(args):
 				selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[5]), None)
 				selected_network.update_load(traffic_load)
 
-				# {'type': 'publisherUpdate', 'involvedController': ['LTE_virt'], 'commandList': {'Radio Virtualization': {'STOP_LTE': {'2437': False}}}}
-				# {'type': 'publisherUpdate', 'involvedController': ['LTE_nb'], 'commandList': {'Radio Virtualization': {'STOP_NBIOT': {'2437': False}}}}
 				send_command(networkNames[6], solutionNames[6], "STOP_LTE", None, True)
 				selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[6]), None)
 				selected_network.update_load(traffic_load)
@@ -915,17 +916,9 @@ def main(args):
 			#######  PHASE 0 ##################
 			###################################
 			if current_phase == 0:
-				# Pass the commands of the network to the output:
-				# for command_index in range(0, len(selected_network.commandList)):
-				# 	print("     " + str(command_index) + " :" + str(selected_network.commandList[command_index]))
-				# print("insert command number : ")
-				# Command menu (choice of network)
-				# print(networkNames[0])
-				# print(networkNames[1])
-				# print(networkNames[2])
-
 				if state_phase == 0:
 					traffic_load = "HIGH"
+					send_command(networkNames[0], solutionNames[0], "ACTIVATE")
 					send_command(networkNames[0], solutionNames[0], "SWITCH_CHANNEL", "channel", 1)
 					send_command(networkNames[0], solutionNames[0], "TRAFFIC", "TYPE", traffic_load)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[0]), None)
@@ -946,24 +939,20 @@ def main(args):
 			#######  PHASE 1 ##################
 			###################################
 			elif current_phase == 1:
-				# print(networkNames[3])
-				# print(networkNames[0])
-				# print(networkNames[1])
-				# print(networkNames[2])
-
 				traffic_load = "HIGH"
-
 				if time_phase < 50 and state_phase == 0:
 					send_command(networkNames[2], solutionNames[2], "ENABLE_TSCH", None, True)
 					send_command(networkNames[2], solutionNames[2], "ENABLE_TRAFFIC", None, True)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[2]), None)
 					selected_network.update_load(traffic_load)
 
+					send_command(networkNames[0], solutionNames[0], "ACTIVATE")
 					send_command(networkNames[0], solutionNames[0], "SWITCH_CHANNEL", "channel", 6)
 					send_command(networkNames[0], solutionNames[0], "TRAFFIC", "TYPE", traffic_load)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[0]), None)
 					selected_network.update_load(traffic_load)
 
+					send_command(networkNames[1], solutionNames[1], "ACTIVATE")
 					send_command(networkNames[1], solutionNames[1], "SWITCH_CHANNEL", "channel", 11)
 					send_command(networkNames[1], solutionNames[1], "TRAFFIC", "TYPE", traffic_load)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[1]), None)
@@ -995,11 +984,13 @@ def main(args):
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[3]), None)
 					selected_network.update_load(traffic_load)
 
+					send_command(networkNames[1], solutionNames[1], "ACTIVATE")
 					send_command(networkNames[1], solutionNames[1], "SWITCH_CHANNEL", "channel", 1)
 					send_command(networkNames[1], solutionNames[1], "TRAFFIC", "TYPE", traffic_load)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[1]), None)
 					selected_network.update_load(traffic_load)
 
+					send_command(networkNames[0], solutionNames[0], "ACTIVATE")
 					send_command(networkNames[0], solutionNames[0], "TRAFFIC", "TYPE", traffic_load)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[0]), None)
 					selected_network.update_load(traffic_load)
@@ -1044,7 +1035,7 @@ def main(args):
 
 				if time_phase < 50 and state_phase == 0:
 					traffic_load = "OFF"
-					send_command(networkNames[1], solutionNames[1], "TRAFFIC_SET_OFF", "TYPE", traffic_load)
+					send_command(networkNames[1], solutionNames[1], "TRAFFIC_SET_OFF")
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[1]), None)
 					selected_network.update_load(traffic_load)
 
@@ -1066,8 +1057,6 @@ def main(args):
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[2]), None)
 					selected_network.update_load(traffic_load)
 
-					# {'type': 'publisherUpdate', 'involvedController': ['LTE_virt'], 'commandList': {'Radio Virtualization': {'STOP_LTE': {'2437': False}}}}
-					# {'type': 'publisherUpdate', 'involvedController': ['LTE_nb'], 'commandList': {'Radio Virtualization': {'STOP_NBIOT': {'2437': False}}}}
 					send_command(networkNames[6], solutionNames[6], "START_LTE", None, True)
 					selected_network = next((x for x in solutionCompatibilityMatrix if x.name == networkNames[6]), None)
 					selected_network.update_load(traffic_load)

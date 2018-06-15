@@ -10,6 +10,7 @@ __email__ = "domenico.garlisi@cnit.it; pierluigi.gallo@unipa.it"
 # Definition of Local Control Program
 def remote_control_program(controller):
     import sys
+    import math
     sys.path.append('../../')
     sys.path.append("../../agent_modules/wifi_ath")
     sys.path.append("../../agent_modules/wifi_wmp")
@@ -368,6 +369,13 @@ def remote_control_program(controller):
                 reading_buffer[3] = 0
             print(psucc)
             print(mask_psucc_int)
+
+            reading_buffer[0] = round(np.mean(mask_psucc_int) / np.mean(mask_int), 2)
+            if math.isnan(reading_buffer[0]):
+                reading_buffer[0] = 0
+            if reading_buffer[0] > 1:
+                reading_buffer[0] = 1
+
             [index_start_pattern, mask_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION] = find_lte_pos(mask_psucc_int, LTE_PATTERN_STATE, CORRECTION_DIRECTION, reading_buffer[2])
             print(mask_int)
             print("**********")
@@ -391,7 +399,6 @@ def remote_control_program(controller):
                         log.warning('Error in radio program configuration')
                         do_run = False
 
-            reading_buffer[0] = np.mean(psucc)
             reading_buffer[1] = mask
             time.sleep(reading_interval - ((time.time() - local_starttime) % reading_interval))
 
@@ -425,9 +432,11 @@ def remote_control_program(controller):
                 if rcv_ip_address == wlan_ip_address:
                     print('parsed_json : %s' % str(parsed_json))
                     iperf_througputh[0] = float(parsed_json['throughput'])
+                    iperf_througputh[1] = float(float(parsed_json['per']) / 100)
             else:
                 # raise IOError("Timeout processing auth request")
                 iperf_througputh[0] = float(0)
+                iperf_througputh[1] = float(0)
 
 
     def run_command(command):
@@ -479,6 +488,7 @@ def remote_control_program(controller):
                 wlan_ip_address = wlan_ip_address[0]
 
                 iperf_througputh = []
+                iperf_througputh.append(0.0)
                 iperf_througputh.append(0.0)
                 iperf_thread = threading.Thread(target=rcv_from_iperf_socket, args=(iperf_througputh,))
                 iperf_thread.do_run = True

@@ -272,12 +272,14 @@ for technology in conf.controllers:
 
     # plots.append([thr_plt, per_plt])
     thr_plt.legend.location = "top_left"
-    per_plt.legend.location = "top_left"
     # per_plt.x_range = Range1d(0, 30)
     thr_plt.x_range.follow = "end"
     thr_plt.x_range.follow_interval = 30000
     # thr_plt.x_range.flipped = True
 
+    per_plt.legend.location = "top_left"
+    per_plt.x_range.follow = "end"
+    per_plt.x_range.follow_interval = 30000
 
     plt_array.append(thr_plt)
     plt_array.append(per_plt)
